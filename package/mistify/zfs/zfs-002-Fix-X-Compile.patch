@@ -1,0 +1,42 @@
+diff --git a/config/kernel.m4 b/config/kernel.m4
+index 9145dbd89bf414a3395ae6231edd800a5e749e35..75fc32e290c4900269d07c41747a220496a7e0eb 100644
+--- a/config/kernel.m4
++++ b/config/kernel.m4
+@@ -448,6 +448,8 @@ dnl # detected at configure time and cause a build failure.  Otherwise
+ dnl # modules may be successfully built that behave incorrectly.
+ dnl #
+ AC_DEFUN([ZFS_AC_KERNEL_CONFIG], [
++	save_cross_compiling=$cross_compiling
++	cross_compiling=no
+ 	AC_RUN_IFELSE([
+ 		AC_LANG_PROGRAM([
+ 			#include "$LINUX/include/linux/license.h"
+@@ -459,6 +461,7 @@ AC_DEFUN([ZFS_AC_KERNEL_CONFIG], [
+ 		    [Define to 1 if GPL-only symbols can be used])
+ 	], [
+ 	])
++	cross_compiling=$save_cross_compiling
+ 
+ 	ZFS_AC_KERNEL_CONFIG_DEBUG_LOCK_ALLOC
+ ])
+diff --git a/config/user-libblkid.m4 b/config/user-libblkid.m4
+index 2dd26238c70eca8fcaeab8b217f622c614891cb2..1fb98a8a7dc7d15926e6314b8570038ecedc6d25 100644
+--- a/config/user-libblkid.m4
++++ b/config/user-libblkid.m4
+@@ -57,6 +57,8 @@ AC_DEFUN([ZFS_AC_CONFIG_USER_LIBBLKID], [
+ 			saved_LIBS="$LIBS"
+ 			LIBS="-lblkid"
+ 
++			save_cross_compiling=$cross_compiling
++			cross_compiling=no
+ 			AC_RUN_IFELSE([AC_LANG_PROGRAM(
+ 			[
+ 				#include <stdio.h>
+@@ -100,6 +102,7 @@ AC_DEFUN([ZFS_AC_CONFIG_USER_LIBBLKID], [
+ 					[AC_MSG_FAILURE(
+ 					[--with-blkid given but unavailable])])
+ 			])
++			cross_compiling=$save_cross_compiling
+ 
+ 			LIBS="$saved_LIBS"
+ 		],

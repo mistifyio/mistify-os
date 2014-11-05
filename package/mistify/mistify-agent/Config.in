@@ -1,0 +1,10 @@
+config BR2_PACKAGE_MISTIFY_AGENT
+        bool "mistify-agent"
+        select BR2_PACKAGE_HOST_GO
+        help
+          The Mistify Agent. 
+          
+          This agent is used to manage .....
+
+          https://github.com/mistifyio/mistify-agent
+          

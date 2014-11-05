@@ -1,0 +1,20 @@
+Makefile.in: Fixed for a non-admin build into a custom directory.
+
+Signed-off-by: Steve Isaacs <sisaacs@omniti.com>
+
+--- zfs-0.6.3.orig/module/Makefile.in	2014-06-12 16:58:09.000000000 -0400
++++ zfs-0.6.3/module/Makefile.in	2014-10-27 14:16:25.143785394 -0400
+@@ -47,11 +47,11 @@ modules_install:
+ 	@# Remove extraneous build products when packaging
+ 	kmoddir=$(DESTDIR)$(INSTALL_MOD_PATH)/lib/modules/@LINUX_VERSION@; \
+ 	if [ -n $$kmoddir ]; then \
+-		find $$kmoddir -name 'modules.*' | xargs $(RM); \
++		echo "disabled: find $$kmoddir -name 'modules.*' | xargs $(RM)"; \
+ 	fi
+ 	sysmap=$(DESTDIR)$(INSTALL_MOD_PATH)/boot/System.map-@LINUX_VERSION@; \
+ 	if [ -f $$sysmap ]; then \
+-		depmod -ae -F $$sysmap @LINUX_VERSION@; \
++		depmod -ae -F $$sysmap -b $(DESTDIR)$(INSTALL_MOD_PATH) @LINUX_VERSION@; \
+ 	fi
+ 
+ modules_uninstall:

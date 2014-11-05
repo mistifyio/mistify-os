@@ -1,0 +1,13 @@
+config BR2_PACKAGE_ZFS
+        bool "zfs"
+        select BR2_PACKAGE_SPL
+        help
+          The native Linux kernel port of the ZFS filesystem. 
+          
+          ZFS is a highly scalable future proof file system and logical volume
+          manager designed around a few key concepts:
+            - Data integrity is paramount.
+            - Storage administration should be simple.
+            - Everything can be done online.
+
+          http://zfsonlinux.org/

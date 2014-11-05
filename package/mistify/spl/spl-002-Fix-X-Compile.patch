@@ -1,0 +1,21 @@
+diff --git a/config/spl-build.m4 b/config/spl-build.m4
+index 5a33f5e8ee8e0440e694680bc8d3981c29245041..d2147182f976f2e47dd61184a7e3b5733c09398c 100644
+--- a/config/spl-build.m4
++++ b/config/spl-build.m4
+@@ -711,6 +711,8 @@ AC_DEFUN([SPL_AC_TEST_MODULE],
+ 		fi
+ 	])
+ 
++	save_cross_compiling=$cross_compiling
++	cross_compiling=no
+ 	AC_RUN_IFELSE([
+ 		AC_LANG_PROGRAM([
+ 			#include "$LINUX/include/linux/license.h"
+@@ -722,6 +724,7 @@ AC_DEFUN([SPL_AC_TEST_MODULE],
+ 		    [Define to 1 if GPL-only symbols can be used])
+ 	], [
+ 	])
++	cross_compiling=$save_cross_compiling
+ ])
+ 
+ dnl #

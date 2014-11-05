@@ -1,0 +1,7 @@
+config BR2_PACKAGE_AUFS
+        bool "aufs"
+	depends on BR2_LINUX_KERNEL_EXT_AUFS
+        help
+          The native Linux kernel port of the AuFS filesystem. 
+
+          http://aufs.sourceforge.net/

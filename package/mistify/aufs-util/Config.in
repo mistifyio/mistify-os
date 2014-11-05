@@ -1,0 +1,8 @@
+config BR2_PACKAGE_AUFS_UTIL
+        bool "aufs-util"
+	depends on BR2_LINUX_KERNEL_EXT_AUFS
+	depends on BR2_PACKAGE_AUFS
+        help
+	  Userland utilities for administrating AUFS
+
+          http://aufs.sourceforge.net/

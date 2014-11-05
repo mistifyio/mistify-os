@@ -1,0 +1,21 @@
+comment "libvirt requires a toolchain with WCHAR, THREADS and LARGEFILE support"
+    depends on !BR2_USE_WCHAR || !BR2_LARGEFILE || !BR2_TOOLCHAIN_HAS_THREADS
+
+config BR2_PACKAGE_LIBVIRT
+	bool "libvirt"
+	depends on BR2_USE_WCHAR                    # gnutls
+	depends on BR2_LARGEFILE                    # lvm2
+	depends on BR2_USE_MMU                      # lvm2
+	depends on BR2_TOOLCHAIN_HAS_THREADS        # libnl
+	select BR2_PACKAGE_GETTEXT
+	select BR2_PACKAGE_GNUTLS
+	select BR2_PACKAGE_YAJL
+	select BR2_PACKAGE_LVM2
+	select BR2_PACKAGE_LIBNL
+	select BR2_PACKAGE_LIBXML2
+	select BR2_PACKAGE_LIBGCRYPT
+	help
+	  libvirt is a toolkit to interact with the virtualization
+	  capabilities of recent versions of Linux (and other OSes).
+
+	  http://libvirt.org/
