@@ -1,0 +1,138 @@
+#!/bin/bash
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+export PATH
+
+problem()
+{
+    printf "Encountered a problem!\n\nDropping you to a shell.\n\n"
+    sh
+}
+
+init=/sbin/init
+
+mount -n -t devtmpfs devtmpfs /dev
+mount -n -t proc     proc     /proc
+mount -n -t sysfs    sysfs    /sys
+mount -n -t tmpfs   -o mode=755,nodev tmpfs    /run
+
+read -r cmdline < /proc/cmdline
+
+for param in $cmdline ; do
+    case $param in
+        init=*      ) init=${param#init=}             ;;
+    esac
+done
+
+# udevd location depends on version
+if [ -x /sbin/udevd ]; then
+    UDEVD=/sbin/udevd
+elif [ -x /lib/udev/udevd ]; then
+    UDEVD=/lib/udev/udevd
+elif [ -x /lib/systemd/systemd-udevd ]; then
+    UDEVD=/lib/systemd/systemd-udevd
+else
+    echo "Cannot find udevd nor systemd-udevd"
+    problem
+fi
+
+${UDEVD} --daemon --resolve-names=never
+udevadm trigger
+udevadm settle
+
+cat /sys/class/dmi/id/product_uuid > /etc/hostid
+cat /etc/hostid | sed s/-//g | > /etc/machine-id
+
+modprobe spl
+modprobe zfs
+
+cd /tmp
+
+sleep 5
+
+zpool import -f mistify > /dev/null 2>&1 || echo "Mistify zpool is not present"
+
+zpool list mistify > /dev/null 2>&1
+
+if [ $? -ne 0 ]; then
+    DISKLIST=$(for d in `lsblk --ascii --noheadings --output type,name --nodeps | awk '/^disk/ {print "/dev/"$2}'`; do
+                   DISKINFO=`blktool $d id`
+                   VENDORID=`echo "$DISKINFO" | grep vendor-id: | awk '{print $2}'`
+                   PRODUCTID=`echo "$DISKINFO" | grep product-id: | awk '{print $2}'`
+                   FWREV=`echo "$DISKINFO" | grep product-rev: | awk '{print $2}'`
+                   DSIZE=`lsblk -o SIZE -dn $d`
+                   printf "%s\t%s\t%s %s Rev: %s\n" $d $DSIZE $VENDORID $PRODUCTID $FWREV
+               done)
+
+
+    DISKS=`echo "$DISKLIST" | awk '{print $1}'`
+    echo "No zpool detected."
+    echo "enter y and a zpool will be created using all disks."
+    echo "enter any other input to drop to a shell to setup manually"
+    echo "DISKS:"
+    echo "$DISKLIST"
+
+    echo -n "input: "
+    read ANSWER
+
+    if [ "$ANSWER" == "y" ]; then
+        TYPE=raidz
+        read -a ARRAY <<< "$DISKS"
+
+        if [ ${#ARRAY[@]} -eq 1 ]; then
+            TYPE=""
+        fi
+
+        zpool create -f \
+		      -o cachefile=none \
+		      mistify $TYPE $DISKS
+
+        if [ $? -ne 0 ]; then
+            exit -4
+        fi
+	    udevadm settle
+    else
+        # TODO: we could allow bootflags that will set it up for us
+        # possibly using certain options
+        echo "You need to create a zpool named mistify"
+        echo "Reboot after setting it up"
+        problem
+    fi
+fi
+
+# Pause until the mistify zpool is imported and mounted
+while [ ! -d /mistify ];do
+	sleep 2
+done
+
+# Create base zfs filesystems and set their properies
+for D in private images guests; do
+    zfs list mistify/$D > /dev/null 2>&1 || zfs create mistify/$D
+done
+
+COMPRESSION=$(zfs get compression -Ho value mistify)
+if [ "$COMPRESSION" = "off" ]; then
+    zfs set compression=lz4 mistify
+fi
+
+QUOTA=$(zfs get quota -Ho value mistify/private)
+if [ "$QUOTA" = "none" ]; then
+    zfs set quota=4G mistify/private
+fi
+
+# Create AUFS overlay mountpoints under /mistify/private
+for D in etc var root home; do
+    zfs list mistify/private/$D > /dev/null 2>&1 || zfs create mistify/private/$D
+    mount -t aufs -o br:/mistify/private/$D:/$D=ro none /$D
+done
+
+# permissions
+mkdir -p /mistify/private/var/log
+chmod 0775 /mistify/private/var/log
+
+killall -w ${UDEVD##*/}
+
+sleep 1
+
+exec "$init" "$@"
+
