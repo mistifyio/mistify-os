@@ -17,7 +17,7 @@ initialize_configs() {
 	for i in $IFACES; do
 		iface_file=$iface_dir/$i.cfg
 		if [ ! -f $iface_file ]; then
-			log_daemon_msg "Generating configuration for $i..."
+			log_action_msg "Generating configuration for $i..."
 			cat > $iface_file << EOF
 auto $i
 iface $i inet dhcp
