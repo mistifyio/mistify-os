@@ -13,7 +13,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     config.vm.provision "shell", privileged: true, inline: <<EOS
 apt-get update
-apt-get install -y build-essential git mercurial unzip bc libncurses5-dev
+apt-get install -y build-essential git mercurial unzip bc libncurses5-dev syslinux genisoimage
 
 mkdir -p /home/vagrant/.ssh
 cat << END  > /home/vagrant/.ssh/config
@@ -25,3 +25,5 @@ chown -R vagrant /home/vagrant/.ssh
 
 EOS
 end
+
+#./buildmistify --builddir /home/vagrant/build --buildroot /home/vagrant/buildroot && rm /vagrant/mistify.iso; bash -x make-iso /home/vagrant/build/images /vagrant/mistify.iso
