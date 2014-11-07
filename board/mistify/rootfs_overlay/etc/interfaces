@@ -1,0 +1,6 @@
+# Always configure Loopback
+auto lo
+iface lo inet loopback
+
+# Source additional configs in per-interface configuration files.
+source /etc/network/interfaces.d/*.cfg

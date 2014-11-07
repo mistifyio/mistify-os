@@ -1,0 +1,4 @@
+config BR2_PACKAGE_IFUPDOWN
+        bool "ifupdown"
+        help
+          Debian's ifupdown suite. 
