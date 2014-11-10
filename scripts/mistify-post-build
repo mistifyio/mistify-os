@@ -21,7 +21,7 @@
 # recopied to this directory by a package install or from the rootfs
 # overlay it is possible that the older version of the script will be used.
 #-
-scriptlist="kmod udev hostid init-zpools zfs aufs logging acpid"
+scriptlist="kmod udev logging acpid"
 #+
 # This is the list of inittab entries which are disabled.
 #-
