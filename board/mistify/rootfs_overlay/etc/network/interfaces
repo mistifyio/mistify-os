@@ -1,11 +1,6 @@
-# Configure Loopback
+# Always configure Loopback
 auto lo
 iface lo inet loopback
 
-auto eno3
-iface eno3 inet dhcp
-  # The interface needs some time to wake up.
-  pre-up ip link set $IFACE up
-  pre-up echo waiting....
-  pre-up sleep 4
-
+# Source additional configs in per-interface configuration files.
+source /etc/network/interfaces.d/*.cfg
