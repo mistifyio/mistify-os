@@ -1,0 +1,10 @@
+config BR2_PACKAGE_STATSD
+        bool "statsd"
+        select BR2_PACKAGE_NODEJS
+	help
+	  A network daemon that runs on the Node.js platform and listens for 
+	  statistics, like counters and timers, sent over UDP or TCP and sends 
+	  aggregates to one or more pluggable backend services (e.g., Graphite).
+
+          https://github.com/etsy/statsd/
+          
