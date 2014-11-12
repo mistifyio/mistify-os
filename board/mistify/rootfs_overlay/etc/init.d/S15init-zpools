@@ -8,23 +8,15 @@ zpool import -f mistify > /dev/null 2>&1 || echo "Mistify zpool is not present"
 zpool list mistify > /dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-    DISKLIST=$(for d in `lsblk --ascii --noheadings --output type,name --nodeps | awk '/^disk/ {print "/dev/"$2}'`; do
-                   DISKINFO=`blktool $d id`
-                   VENDORID=`echo "$DISKINFO" | grep vendor-id: | awk '{print $2}'`
-                   PRODUCTID=`echo "$DISKINFO" | grep product-id: | awk '{print $2}'`
-                   FWREV=`echo "$DISKINFO" | grep product-rev: | awk '{print $2}'`
-                   DSIZE=`lsblk -o SIZE -dn $d`
-                   printf "%s\t%s\t%s %s Rev: %s\n" $d $DSIZE $VENDORID $PRODUCTID $FWREV
-            done)
-
-    DISKS=`echo "$DISKLIST" | awk '{print $1}'`
+    DISKLIST=`lsblk --ascii --noheadings --output type,name,size,model --nodeps | grep ^disk`
+    DISKS=`echo "$DISKLIST" | awk '{print "/dev/"$2}'`
 
     echo "No zpool detected."
     echo "enter y and a zpool will be created using all disks."
     echo "enter any other input to drop to a shell to setup manually"
     echo "DISKS:"
     echo "$DISKLIST"
-
+    echo
     echo -n "input: "
     read ANSWER
 
