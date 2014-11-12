@@ -1,0 +1,8 @@
+config BR2_PACKAGE_MISTIFY_AGENT_IMAGE
+        bool "mistify-agent-image"
+        select BR2_PACKAGE_HOST_GO
+        help
+          The Mistify Image Sub-Agent
+          
+          https://github.com/mistifyio/mistify-agent-image
+          

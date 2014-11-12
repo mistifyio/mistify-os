@@ -1,0 +1,14 @@
+#!/bin/sh
+set -x
+
+BRIDGE=mistify
+
+if [ -n "$1" ]; then
+        ip link set $1 up
+        sleep 1
+        brctl addif $BRIDGE $1
+        exit 0
+else
+        echo "Error: no interface specified"
+        exit 1
+fi

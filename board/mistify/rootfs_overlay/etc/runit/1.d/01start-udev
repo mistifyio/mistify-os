@@ -1,0 +1,18 @@
+#!/bin/sh
+# udevd location depends on version
+if [ -x /sbin/udevd ]; then
+    UDEVD=/sbin/udevd
+elif [ -x /lib/udev/udevd ]; then
+    UDEVD=/lib/udev/udevd
+elif [ -x /lib/systemd/systemd-udevd ]; then
+    UDEVD=/lib/systemd/systemd-udevd
+else
+    echo "Cannot find udevd nor systemd-udevd"
+    exit -1
+fi
+
+echo $UDEVD > /run/.udev.path
+
+${UDEVD} --daemon --resolve-names=never
+udevadm trigger
+udevadm settle

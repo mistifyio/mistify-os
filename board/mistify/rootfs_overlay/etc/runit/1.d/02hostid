@@ -1,5 +1,3 @@
-#!/bin/bash
-# these will change when hardware is replaced
-# but zfs imprints into pool
+#!/bin/sh
 cat /sys/class/dmi/id/product_uuid > /etc/hostid
 cat /etc/hostid | sed s/-//g | > /etc/machine-id

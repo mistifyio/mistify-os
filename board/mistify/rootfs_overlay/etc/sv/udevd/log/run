@@ -1,0 +1,3 @@
+#!/bin/sh
+mkdir -p /var/log/udevd
+exec svlogd -t /var/log/udevd

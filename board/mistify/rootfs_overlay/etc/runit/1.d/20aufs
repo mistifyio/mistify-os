@@ -1,0 +1,21 @@
+#!/bin/bash
+
+cd /tmp
+# Create AUFS overlay mountpoints under /mistify/private
+for D in etc var root home; do
+    zfs list mistify/private/$D > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        zfs create mistify/private/$D
+        sleep 1
+        MOUNTED=`zfs get mounted -Ho value mistify/private/$D`
+        if [ "$MOUNTED" != "yes" ]; then
+            zfs mount mistify/private/$D
+            sleep 1
+        fi
+    fi
+    mount -t aufs -o br:/mistify/private/$D:/$D=ro,noatime,nodiratime none /$D
+done
+
+# permissions
+mkdir -p /mistify/private/var/log
+chmod 0775 /mistify/private/var/log

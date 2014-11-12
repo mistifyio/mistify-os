@@ -1,0 +1,57 @@
+#!/bin/bash
+set -e
+
+## where buildroot dumped things
+TARGET=$1
+
+## The output for our iso
+ISO=$2
+
+OBJDIR=/tmp/$0.$$
+mkdir -p $OBJDIR
+
+cp $TARGET/bzImage $OBJDIR/vmlinuz
+cp $TARGET/rootfs.cpio.gz $OBJDIR/initrd
+mkdir -p $OBJDIR/isolinux
+cp /usr/lib/syslinux/isolinux.bin $OBJDIR/isolinux/
+cp /usr/lib/syslinux/linux.c32 $OBJDIR/isolinux/
+cp /usr/lib/syslinux/menu.c32 $OBJDIR/isolinux/
+
+DATE=$(date)
+cat > $OBJDIR/isolinux/isolinux.cfg <<EOF
+UI menu.c32
+PROMPT 0
+TIMEOUT 100
+TOTALTIMEOUT 3000
+DEFAULT mistify
+MENU TITLE Mistify Boot Menu
+
+LABEL mistify
+MENU LABEL Mistify - $DATE
+KERNEL /vmlinuz
+APPEND initrd=/initrd noapic acpi=off ramdisk_size=200000 rw
+
+LABEL mistify
+MENU LABEL Mistify - Auto Zpool Creation
+KERNEL /vmlinuz
+APPEND initrd=/initrd noapic acpi=off ramdisk_size=200000 rw zfs=auto
+
+LABEL rescue
+MENU LABEL Rescue
+KERNEL /vmlinuz
+APPEND initrd=/initrd init=/bin/bash noapic acpi=off ramdisk_size=200000 rw
+EOF
+
+
+mkisofs -o $ISO \
+        -b isolinux/isolinux.bin \
+        -c isolinux/boot.cat \
+        -no-emul-boot \
+        -boot-load-size 4 \
+        -boot-info-table \
+        $OBJDIR
+
+isohybrid $ISO
+
+rm -rf $OBJDIr
+exit 0
