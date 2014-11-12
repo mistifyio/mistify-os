@@ -1,0 +1,275 @@
+#!/bin/bash
+#+
+# Use this script to create a bootable USB flash drive.
+#-
+source scripts/mistify-functions.sh
+
+# Where buildmistify settings are maintained.
+statedir=$projectdir/.buildmistify
+imagesdir=images
+stagedir=usb
+tmpdir=/tmp
+mountdir=$tmpdir/$id/mnt
+
+usage () {
+    cat << EOF
+Usage: ./$id [options]
+  This script installs the Mistify-OS images onto a target drive so that it
+  can be booted on the target. In most cases this is a USB flashdrive.
+  
+  WARNING: This is a potentially destructive script which will destroy existing
+  content on the target device. To help avoid unintended destruction of data
+  this script first verifies that the target device is a removable device.
+  
+  <targetdevice> The device on which to install the system images. For USB
+  flashdrives this is often "sdc". This must be a removable device.
+  
+  Options:
+    -b|--builddir <dir>
+        Where to find the target images. This location is read from the
+        file $statedir/builddir. NOTE: This is normally set by the buildmistify
+        script.
+        [builddir=`cat $statedir/builddir`]
+    -t|--targetdev <device>
+        The device on which to install the bootable images. This is typically
+        sdX where X indicates a removable device in the /dev directory. If this
+        is equal to "default" then this script will scan for removable devices
+        and use the highest one. e.g. sdd will be used before sdc.
+        [targetdev=`cat $statedir/targetdev`]
+    --install
+        Install onto the target device. Otherwise only create the image.
+EOF
+}
+
+#+
+# Handle the command line options.
+#-
+a=`getopt -l "\
+targetdev:,\
+builddir:,\
+install,\
+help" \
+   -o "t:b:h" -- "$@"`
+
+if [ $? -gt 0 ]; then
+    usage
+    exit 1
+fi
+
+eval set -- $a
+
+while [ $# -ge 1 ]; do
+    case "$1" in
+	--)
+	    shift
+	    break
+	    ;;
+	-t|--targetdev)
+	    targetdev=$2
+	    shift
+	    ;;
+	-b|--builddir)
+	    builddir=$2
+	    shift
+	    ;;
+	--install)
+	    install=yes
+	    ;;
+	-h|--help)
+	    usage
+	    exit 0
+	    ;;
+	# using getopt should avoid needing this catchall but just in case...
+	*)
+	    error "Invalid option: $1"
+	    usage
+	    exit 1
+	    ;;
+    esac
+    shift
+done
+if [[ $# -ne 0 ]]; then
+  usage
+  exit 1
+fi
+
+is_removable () {
+    local _retval=$1
+    if [ -e "/sys/block/$1/removable" ]; then
+        r=`cat /sys/block/$1/removable`
+        if [ "$r" = "1" ]; then
+	    return 0
+	fi
+    fi
+    return 1
+}
+
+#+
+# Scan for a removable device starting with the highest and working down.
+#-
+find_removable_device () {
+    local _retval=$1
+    for d in sdi sdj sdh sdg sdf sde sdd sdc; do
+        message "Checking /dev/$d"
+        if is_removable $d; then
+            message "Device $d is removable."
+	    eval $_retval=$d
+	    return
+        fi
+    done
+    error "No removable devices found."
+    exit 1
+}
+
+function setup_img() {
+    [ -d $builddir/$stagedir ] || mkdir $builddir/$stagedir
+
+    cp $builddir/$imagesdir/bzImage.buildroot $builddir/$stagedir/bzImage
+    cp $builddir/$imagesdir/initrd.buildroot $builddir/$stagedir/initrd
+}
+
+function syslinux_config() {
+    cat > $1 <<EOF
+UI menu.c32
+PROMPT 0
+TIMEOUT 100
+TOTALTIMEOUT 3000
+DEFAULT mistify
+MENU TITLE Mistify Boot Menu
+LABEL mistify
+MENU LABEL Mistify
+KERNEL /bzImage
+APPEND initrd=/initrd init=/init ramdisk_size=300000 root=/dev/ram0 rw intel_idle.max_cstate=0 console=ttyS1,115200n8r
+LABEL rescue
+MENU LABEL Rescue
+KERNEL /bzImage
+APPEND initrd=/initrd init=/bin/bash noapic acpi=off ramdisk_size=300000 root=/dev/ram0 rw intel_idle.max_cstate=0 console=ttyS1,115200n8r
+EOF
+
+}
+
+function make_usb_img() {
+
+    mkdir -p $builddir/$stagedir/syslinux
+    syslinux_config $builddir/$stagedir/syslinux/syslinux.cfg
+
+    _size=`du -ms $builddir/$stagedir | awk '
+    function ceiling(x)
+    {
+    return (x == int(x)) ? x : int(x)+1
+    }
+    {printf "%s", ceiling($1/256)*256}
+    '`
+
+    _size=`printf "%sM" $_size`
+
+    echo _size=$_size
+
+    rm -f $tmpdir/boot.img
+    truncate -s $_size $tmpdir/boot.img
+
+    printf "0,32,b,*\n0,0\n0,0\n0,0\n;\n" | sfdisk $tmpdir/boot.img
+
+    #+
+    # From this point root access is needed.
+    # TODO: Maybe at some point move this to another script so only one sudo
+    # is needed. Or perhaps could use fakeroot for this?
+    #-
+    _dev=`sudo losetup -f`
+
+    sudo losetup -v $_dev $tmpdir/boot.img
+
+    sudo partx -a $_dev
+    _part=$(printf "/dev/%sp1" $(basename $_dev))
+
+    sudo mkdosfs -F 32 $_part
+    sudo dd if=/usr/lib/syslinux/mbr.bin of=$_dev
+
+    sudo mkdir -p $mountdir
+    sudo mount -t vfat $_part $mountdir
+
+    sudo cp -r $builddir/$stagedir/* $mountdir
+    sudo cp /usr/lib/syslinux/linux.c32 /usr/lib/syslinux/menu.c32 \
+	$mountdir/syslinux/
+    sudo chown -R 0:0 $mountdir
+
+    sudo umount $mountdir
+
+    sudo syslinux $_part
+
+    sudo partx -d $_dev
+    sudo losetup -v -d $_dev
+
+    #+
+    # No longer need root access.
+    #-
+    mv $tmpdir/boot.img $builddir/$imagesdir/mistify-usb.img
+    # TODO: Need to remove the mount directory.
+}
+
+message "Creating a bootable USB flashdrive."
+
+#+
+# Determine the location of the build directory.
+# NOTE: The directory does not need to exist because the Buildroot make will
+# create it if necessary.
+#-
+if [ -z "$builddir" ]; then
+    if [ -f $statedir/builddir ]; then
+        builddir=`cat $statedir/builddir`
+    else
+        error "No build directory specified."
+        exit 1
+    fi
+fi
+if [ ! -d "$builddir" ]; then
+    error "The build directory $builddir doesn't exist."
+    exit 1
+fi
+message "Build output directory is: $builddir"
+
+#+
+# Prepare the target image.
+#-
+setup_img
+make_usb_img
+
+message "USB image file is: $builddir/$imagesdir/mistify-usb.img"
+
+if [ -z "$install" ]; then
+  exit 0
+fi
+
+#+
+# Validate the target device.
+#-
+if [[ "$targetdev" == "default" ]]; then
+    find_removable_device targetdev
+fi
+if [ -z "$targetdev" ]; then
+    if [ -f $statedir/targetdev ]; then
+        targetdev=`cat $statedir/targetdev`
+    else
+        find_removable_device targetdev
+    fi
+fi
+if ! is_removable $targetdev; then
+    error "The target device $targetdev is not removable."
+    exit 1
+fi
+
+warning "This is destructive. Install onto /dev/$targetdev?"
+select yn in "Yes" "No"; do
+    case $yn in
+        Yes )
+            echo $targetdev >$statedir/targetdev
+            message "Installing to /dev/$targetdev"
+            sudo dd if=$builddir/$imagesdir/mistify-usb.img of=/dev/$targetdev
+	    break;;
+        No )
+            message "Exiting"
+	    exit 1;;
+    esac
+done
+
+exit 0
