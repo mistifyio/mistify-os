@@ -1,0 +1,17 @@
+#!/bin/sh
+exec 2>&1
+
+# udevd location depends on version
+if [ -x /sbin/udevd ]; then
+    UDEVD=/sbin/udevd
+elif [ -x /lib/udev/udevd ]; then
+    UDEVD=/lib/udev/udevd
+elif [ -x /lib/systemd/systemd-udevd ]; then
+    UDEVD=/lib/systemd/systemd-udevd
+else
+    echo "Cannot find udevd nor systemd-udevd"
+    exit -1
+fi
+
+exec ${UDEVD} 2>&1
+

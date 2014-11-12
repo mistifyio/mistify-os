@@ -1,0 +1,19 @@
+#!/bin/bash
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+export PATH
+
+for SCRIPT in /etc/runit/1.d/*; do
+    echo "executing $SCRIPT"
+    NAME=$(basename $SCRIPT)
+    $SCRIPT 2>&1 | tee /tmp/$NAME.log
+    if [ $? -ne 0 ]; then
+        echo "$SCRIPT failed! dropping to a shell"
+        exec /bin/bash
+    fi
+done
+
+touch /etc/runit/stopit
+chmod 0 /etc/runit/stopit
+
+mkfifo /dev/initctl

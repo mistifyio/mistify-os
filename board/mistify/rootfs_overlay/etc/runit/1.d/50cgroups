@@ -1,0 +1,6 @@
+#!/bin/sh
+mount -t tmpfs cgroup_root /sys/fs/cgroup
+for G in $(awk '/^[cmdfb]/ {print $1}' /proc/cgroups); do
+   mkdir -p /sys/fs/cgroup/$G
+   mount -t cgroup -o$G $G /sys/fs/cgroup/$G
+done

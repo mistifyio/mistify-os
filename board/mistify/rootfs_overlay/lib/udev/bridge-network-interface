@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #!/bin/sh
 
 # bridge-network-interface - configure a network bridge
@@ -44,3 +45,6 @@ if [ -d /run/network ]; then
 	done
    done
 fi
+=======
+ACTION=="add", SUBSYSTEM=="net", RUN+="bridge-network-interface"
+>>>>>>> 6225687... various bridge utilities from debian

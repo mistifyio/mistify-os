@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ -f /etc/hostname ]; then
+    hostname ` cat /etc/hostname`
+fi
+
+mkdir -p /run/network
+ifup --all

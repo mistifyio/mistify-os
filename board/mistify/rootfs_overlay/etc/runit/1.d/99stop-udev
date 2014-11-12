@@ -1,0 +1,6 @@
+#!/bin/bash
+UDEV=`cat /run/.udev.path`
+
+if [ -n "$UDEV" ]; then
+    killall -w $UDEV
+fi
