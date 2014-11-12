@@ -4,5 +4,35 @@ if [ -f /etc/hostname ]; then
     hostname ` cat /etc/hostname`
 fi
 
+# horrible hack
+NETWORK=""
+read -r cmdline < /proc/cmdline
+for param in $cmdline ; do
+    case $param in
+        network=*)
+            NETWORK=${param#network=}
+            ;;
+    esac
+done
+
+if [ "$NETWORK" = "test" ]; then
+    mkdir -p /etc/network/interfaces.d/
+
+    cat <<EOF > /etc/network/interfaces.d/br0.cfg
+auto br0
+iface br0 inet static
+    bridge_ports eth0
+    address 192.168.255.100
+    netmask 255.255.255.0
+    gateway 192.168.255.1
+
+EOF
+
+    cat <<EOF > /etc/resolv.conf
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+EOF
+fi
+
 mkdir -p /run/network
 ifup --all
