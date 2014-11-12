@@ -6,4 +6,4 @@ exec 2>&1
 
 chmod 700 /etc/ssh/*_key
 
-exec /usr/sbin/sshd -D 2>&1
+exec /usr/sbin/sshd -f /etc/ssh/sshd_config -D 2>&1
