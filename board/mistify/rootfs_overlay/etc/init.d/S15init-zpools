@@ -8,13 +8,14 @@ zpool import -f mistify > /dev/null 2>&1 || echo "Mistify zpool is not present"
 zpool list mistify > /dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-    DISKINFO=`parted -lm`
-    DISKLIST=$(for d in `echo "$DISKINFO" | grep /dev/ | cut -d ':' -f 1`; do
-        VENDORID=`echo "$DISKINFO" | grep $d | cut -d ':' -f 7 | awk '{print $1}'`
-        PRODUCTID=`echo "$DISKINFO" | grep $d | cut -d ':' -f 7 | awk '{print $2}'`
-        DSIZE=`echo "$DISKINFO" | grep $d | cut -d ':' -f 2`
-        printf "%s\t%s\t%s %s\n" $d $DSIZE $VENDORID $PRODUCTID
-done)
+    DISKLIST=$(for d in `lsblk --ascii --noheadings --output type,name --nodeps | awk '/^disk/ {print "/dev/"$2}'`; do
+                   DISKINFO=`blktool $d id`
+                   VENDORID=`echo "$DISKINFO" | grep vendor-id: | awk '{print $2}'`
+                   PRODUCTID=`echo "$DISKINFO" | grep product-id: | awk '{print $2}'`
+                   FWREV=`echo "$DISKINFO" | grep product-rev: | awk '{print $2}'`
+                   DSIZE=`lsblk -o SIZE -dn $d`
+                   printf "%s\t%s\t%s %s Rev: %s\n" $d $DSIZE $VENDORID $PRODUCTID $FWREV
+            done)
 
     DISKS=`echo "$DISKLIST" | awk '{print $1}'`
 
