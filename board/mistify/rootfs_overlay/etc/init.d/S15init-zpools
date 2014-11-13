@@ -47,7 +47,7 @@ done)
         # Be sure the drives are starting fresh.
         for D in $DISKS; do
 	    echo "Cleaning $D..."
-	    dd if=/dev/zero of=$D bs=1M >/dev/null
+	    parted -s $D mklabel 2>/dev/null
         done
         
         zpool create -f \
