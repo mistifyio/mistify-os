@@ -16,14 +16,23 @@ if [ $? -ne 0 ]; then
         printf "%s\t%s\t%s %s\n" $d $DSIZE $VENDORID $PRODUCTID
 done)
 
-    DISKS=`echo "$DISKLIST" | awk '{print $1}'`
-
+    ZPOOLCANDIDATES=`echo "$DISKLIST" | awk '{print $1}'`
+    # Don't use the boot drive.
+    for D in $ZPOOLCANDIDATES; do
+	if sfdisk -l $D | grep "\*"; then
+	    echo "Excluding boot drive $D."
+	    continue
+	else
+	    DISKS="$DISKS $D"
+	fi
+    done
+    
     echo "No zpool detected."
     echo "enter y and a zpool will be created using all disks."
     echo "enter any other input to drop to a shell to setup manually"
     echo "DISKS:"
     echo "$DISKLIST"
-
+    echo "WARNING: This will erase the following drives: $DISKS"
     echo -n "input: "
     read ANSWER
 
@@ -35,7 +44,13 @@ done)
             TYPE=""
         fi
 
-        zpool create \
+        # Be sure the drives are starting fresh.
+        for D in $DISKS; do
+	    echo "Cleaning $D..."
+	    dd if=/dev/zero of=$D bs=1M >/dev/null
+        done
+        
+        zpool create -f \
 		-o cachefile=none \
 		mistify $TYPE $DISKS
 
