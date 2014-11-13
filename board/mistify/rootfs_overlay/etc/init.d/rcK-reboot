@@ -23,7 +23,6 @@ for i in $(ls /etc/init.d/K??*) ;do
 	    ;;
     esac
 
-/etc/init.d/RCreboot stop
-
 done
 
+/etc/init.d/RCreboot stop
