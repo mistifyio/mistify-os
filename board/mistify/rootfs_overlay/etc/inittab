@@ -39,8 +39,8 @@ mess::sysinit:/bin/touch /var/log/mesages
 rebo::ctrlaltdel:/sbin/reboot
 
 # Stuff to do before rebooting
-hlt:5:wait:/etc/init.d/rcK
-rb:6:wait:/etc/init.d/rcK
+hlt:0:wait:/etc/init.d/rcK-halt
+rb:6:wait:/etc/init.d/rcK-reboot
 
 # Keep RunIt Running
 runs::respawn:/usr/sbin/runsvdir-start
