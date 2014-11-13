@@ -1,0 +1,91 @@
+#!/bin/bash
+
+source scripts/mistify-functions.sh
+
+usage () {
+    cat << EOF
+Usage: ./$id <mountdir> <stagedir> <diskimage>
+  This script is designed to be called from another script.
+  
+  <mountdir>  The directory to use to loopback mount the disk image file.
+  <stagedir>  Where the contents of the disk image are staged. These are copied
+              to the disk image.
+  <diskimage> The file to be used for the disk image. This script assumes the
+              file has already been created and is of the correct size to
+              contain the contents of $stagedir.
+EOF
+    warning "This script must be executed as root. Use with caution."
+    warning "It has the potential of corrupting an existing file system."
+}
+
+if [[ $EUID -ne 0 ]]; then
+  error "This script must be executed as root."
+  usage
+  exit 1
+fi
+
+if [[ $# -ne 3 ]]; then
+  error "Incorrect number of parameters."
+  usage
+  exit 1
+fi
+
+# TODO: Add check to verify this script is called from another script.
+
+#+
+# WARNING: This script is intended to be run as root and is potentially
+# destructive as a result.
+# Use sudo to call this script.
+#-
+mountdir=$1
+stagedir=$2
+diskimage=$3
+
+#+
+# From this point root access is needed.
+# TODO: Maybe at some point move this to another script so only one sudo
+# is needed. Or perhaps could use fakeroot for this?
+#-
+if is_mounted $mountdir; then
+  warning "The directory $mountdir is already mounted. Unmounting..."
+  run unmount $mountdir
+fi
+
+message "Initializing the disk image: $diskimage"
+
+_dev=`losetup -f` || die "Command [losetup -f] failed with error code $?"
+message "The loopback device is: $_dev"
+
+message "Creating loopback for $diskimage on device $_dev"
+run losetup -v $_dev $diskimage
+
+partx -a $_dev
+_part=$(printf "/dev/%sp1" $(basename $_dev))
+
+message "Initializing FAT file system on $_part"
+run mkdosfs -F 32 $_part
+message "Copying MBR to $_dev"
+run dd if=/usr/lib/syslinux/mbr.bin of=$_dev
+
+run mkdir -p $mountdir
+message "Mounting to $mountdir"
+run mount -t vfat $_part $mountdir
+
+message "Copying from staging directory $stagedir to $mountdir"
+run cp -r $stagedir/* $mountdir
+message "Installing syslinux to $mountdir/syslinux."
+run cp /usr/lib/syslinux/linux.c32 /usr/lib/syslinux/menu.c32 $mountdir/syslinux/
+message "Changing ownerships in $mountdir to root."
+run chown -R 0:0 $mountdir
+
+run umount $mountdir
+
+message "Installing syslinux bootloader."
+run syslinux $_part
+
+run partx -d $_dev
+message "Removing loopback device $_dev"
+run losetup -v -d $_dev
+message "Initialization complete."
+
+exit 0

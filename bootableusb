@@ -6,10 +6,13 @@ source scripts/mistify-functions.sh
 
 # Where buildmistify settings are maintained.
 statedir=$projectdir/.buildmistify
+
+# Default values some of which could be parameterized.
 imagesdir=images
 stagedir=usb
 tmpdir=/tmp
 mountdir=$tmpdir/$id/mnt
+bootimage=$tmpdir/boot.img
 
 usage () {
     cat << EOF
@@ -21,9 +24,6 @@ Usage: ./$id [options]
   content on the target device. To help avoid unintended destruction of data
   this script first verifies that the target device is a removable device.
   
-  <targetdevice> The device on which to install the system images. For USB
-  flashdrives this is often "sdc". This must be a removable device.
-  
   Options:
     -b|--builddir <dir>
         Where to find the target images. This location is read from the
@@ -34,7 +34,7 @@ Usage: ./$id [options]
         The device on which to install the bootable images. This is typically
         sdX where X indicates a removable device in the /dev directory. If this
         is equal to "default" then this script will scan for removable devices
-        and use the highest one. e.g. sdd will be used before sdc.
+        and use the highest ordered one. e.g. sdd will be used before sdc.
         [targetdev=`cat $statedir/targetdev`]
     --install
         Install onto the target device. Otherwise only create the image.
@@ -165,45 +165,16 @@ function make_usb_img() {
 
     echo _size=$_size
 
-    rm -f $tmpdir/boot.img
-    truncate -s $_size $tmpdir/boot.img
+    rm -f $bootimage
+    truncate -s $_size $bootimage
 
-    printf "0,32,b,*\n0,0\n0,0\n0,0\n;\n" | sfdisk $tmpdir/boot.img
+    printf "0,32,b,*\n0,0\n0,0\n0,0\n;\n" | sfdisk $bootimage
 
-    #+
-    # From this point root access is needed.
-    # TODO: Maybe at some point move this to another script so only one sudo
-    # is needed. Or perhaps could use fakeroot for this?
-    #-
-    _dev=`sudo losetup -f`
-
-    sudo losetup -v $_dev $tmpdir/boot.img
-
-    sudo partx -a $_dev
-    _part=$(printf "/dev/%sp1" $(basename $_dev))
-
-    sudo mkdosfs -F 32 $_part
-    sudo dd if=/usr/lib/syslinux/mbr.bin of=$_dev
-
-    sudo mkdir -p $mountdir
-    sudo mount -t vfat $_part $mountdir
-
-    sudo cp -r $builddir/$stagedir/* $mountdir
-    sudo cp /usr/lib/syslinux/linux.c32 /usr/lib/syslinux/menu.c32 \
-	$mountdir/syslinux/
-    sudo chown -R 0:0 $mountdir
-
-    sudo umount $mountdir
-
-    sudo syslinux $_part
-
-    sudo partx -d $_dev
-    sudo losetup -v -d $_dev
-
+    run sudo scripts/makediskimage $mountdir $builddir/$stagedir $bootimage
     #+
     # No longer need root access.
     #-
-    mv $tmpdir/boot.img $builddir/$imagesdir/mistify-usb.img
+    mv $bootimage $builddir/$imagesdir/mistify-usb.img
     # TODO: Need to remove the mount directory.
 }
 
@@ -258,13 +229,21 @@ if ! is_removable $targetdev; then
     exit 1
 fi
 
+#+
+# If the device is mounted then don't use it. As a precaution force the user
+# to manually unmount it.
+#-
+if is_mounted /dev/$targetdev; then
+    error "The target device $targetdev is mounted."
+fi
+
 warning "This is destructive. Install onto /dev/$targetdev?"
 select yn in "Yes" "No"; do
     case $yn in
         Yes )
             echo $targetdev >$statedir/targetdev
             message "Installing to /dev/$targetdev"
-            sudo dd if=$builddir/$imagesdir/mistify-usb.img of=/dev/$targetdev
+            run dd if=$builddir/$imagesdir/mistify-usb.img | pv | sudo dd of=/dev/$targetdev
 	    break;;
         No )
             message "Exiting"
