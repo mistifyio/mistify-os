@@ -23,6 +23,13 @@ define LIBVIRT_INSTALL_DEFAULTS
 		$(TARGET_DIR)/etc/default/libvirt-bin
 endef
 
+define LIBVIRT_INSTALL_STOPSCRIPT
+	test -s $(TARGET_DIR)/etc/init.d/K30libvirt-bin || \
+		(cd $(TARGET_DIR)/etc/init.d && ln -s ./S65libvirt-bin \
+			K40libvirt-bin)
+endef
+
 LIBVIRT_POST_INSTALL_TARGET_HOOKS += LIBVIRT_INSTALL_DEFAULTS
+LIBVIRT_POST_INSTALL_TARGET_HOOKS += LIBVIRT_INSTALL_STOPSCRIPT
 
 $(eval $(autotools-package))

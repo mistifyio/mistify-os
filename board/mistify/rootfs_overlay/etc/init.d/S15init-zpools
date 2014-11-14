@@ -3,9 +3,11 @@ cd /tmp
 
 sleep 5
 
-zpool import -f mistify > /dev/null 2>&1 || echo "Mistify zpool is not present"
+ZPOOL=mistify
 
-zpool list mistify > /dev/null 2>&1
+zpool import -f $ZPOOL > /dev/null 2>&1 || echo "Mistify zpool is not present"
+
+zpool list $ZPOOL > /dev/null 2>&1
 
 if [ $? -ne 0 ]; then
     DISKINFO=`parted -lm`
@@ -18,7 +20,7 @@ done)
 
     DISKS=`echo "$DISKLIST" | awk '{print $1}'`
 
-    echo "No zpool detected."
+    echo "No $ZPOOL zpool detected."
     echo "enter y and a zpool will be created using all disks."
     echo "enter any other input to drop to a shell to setup manually"
     echo "DISKS:"
@@ -35,9 +37,9 @@ done)
             TYPE=""
         fi
 
-        zpool create \
+        zpool create -f \
 		-o cachefile=none \
-		mistify $TYPE $DISKS
+		$ZPOOL $TYPE $DISKS
 
         if [ $? -ne 0 ]; then
             exit -4
@@ -54,22 +56,22 @@ done)
 fi
 
 # Pause until the mistify zpool is imported and mounted
-while [ ! -d /mistify ]
+while [ ! -d /$ZPOOL ]
 do
 	sleep 2
 done
 
 # Create base zfs filesystems and set their properies
 for D in private images guests; do
-    zfs list mistify/$D > /dev/null 2>&1 || zfs create mistify/$D
+    zfs list $ZPOOL/$D > /dev/null 2>&1 || zfs create $ZPOOL/$D
 done
 
 COMPRESSION=$(zfs get compression -Ho value mistify)
 if [ "$COMPRESSION" = "off" ]; then
-    zfs set compression=lz4 mistify
+    zfs set compression=lz4 $ZPOOL
 fi
 
-QUOTA=$(zfs get quota -Ho value mistify/private)
+QUOTA=$(zfs get quota -Ho value $ZPOOL/private)
 if [ "$QUOTA" = "none" ]; then
-    zfs set quota=4G mistify/private
+    zfs set quota=4G $ZPOOL/private
 fi

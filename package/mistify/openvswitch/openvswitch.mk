@@ -34,8 +34,26 @@ define OPENVSWITCH_INSTALL_INIT_SYSV
 
 endef
 
-define OPENVSWITCH_POST_INSTALL_TARGET_HOOKS
-	$(MKDIR) $(TARGET_DIR)/etc/openvswitch
+define OPENVSWITCH_INSTALL_STUFF
+	test -d $(TARGET_DIR)/etc/openvswitch || \
+		$(MKDIR) $(TARGET_DIR)/etc/openvswitch
+
+	test -d $(TARGET_DIR)/var/log/openvswitch || \
+		$(MKDIR) -p $(TARGET_DIR)/var/log/openvswitch
+
+	test -s $(TARGET_DIR)/etc/init.d/K50openvswitch-ipsec || \
+		(cd $(TARGET_DIR)/etc/init.d && ln -s ./S61openvswitch-ipsec \
+			K50openvswitch-ipsec)
+
+	test -s $(TARGET_DIR)/etc/init.d/K51openvswitch-swtitch || \
+		(cd $(TARGET_DIR)/etc/init.d && ln -s ./S60openvswitch-switch \
+			K51openvswitch-switch)
+
+	test -s $(TARGET_DIR)/etc/init.d/K52openvswitch-vtep || \
+		(cd $(TARGET_DIR)/etc/init.d && ln -s ./S59openvswitch-vtep \
+			K52openvswitch-vtep)
 endef
+
+OPENVSWITCH_POST_INSTALL_TARGET_HOOKS = OPENVSWITCH_INSTALL_STUFF
 
 $(eval $(autotools-package))

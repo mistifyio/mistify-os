@@ -1,0 +1,27 @@
+#! /bin/sh
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
+. /lib/lsb/init-functions
+
+do_halt () {
+	log_action_msg "Halting system."
+	poweroff
+}
+
+case "$1" in
+  start)
+	# No-op
+	;;
+  restart|reload|force-reload)
+	echo "Error: argument '$1' not supported" >&2
+	exit 3
+	;;
+  stop)
+	do_halt
+	;;
+  *)
+	echo "Usage: $0 start|stop" >&2
+	exit 3
+	;;
+esac
