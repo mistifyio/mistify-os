@@ -129,23 +129,12 @@ function setup_img() {
 }
 
 function syslinux_config() {
-    cat > $1 <<EOF
-UI menu.c32
-PROMPT 0
-TIMEOUT 100
-TOTALTIMEOUT 3000
-DEFAULT mistify
-MENU TITLE Mistify Boot Menu
-LABEL mistify
-MENU LABEL Mistify
-KERNEL /bzImage
-APPEND initrd=/initrd init=/init ramdisk_size=300000 root=/dev/ram0 rw intel_idle.max_cstate=0 console=ttyS1,115200n8r
-LABEL rescue
-MENU LABEL Rescue
-KERNEL /bzImage
-APPEND initrd=/initrd init=/bin/bash noapic acpi=off ramdisk_size=300000 root=/dev/ram0 rw intel_idle.max_cstate=0 console=ttyS1,115200n8r
-EOF
-
+    #+
+    # TODO: For now this is simply a copy but in the future may want to use sed
+    # to customize the syslinux menu using parameters passed to this script
+    # from the command line.
+    #-
+    cp scripts/syslinux.cfg $1
 }
 
 function make_usb_img() {
