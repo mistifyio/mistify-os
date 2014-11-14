@@ -5,7 +5,9 @@ source scripts/mistify-functions.sh
 usage () {
     cat << EOF
 Usage: ./$id <mountdir> <stagedir> <diskimage>
-  This script is designed to be called from another script.
+  This script is designed to be called from another script. It initalizes a
+  disk image file (<diskimage>) to create a bootable disk image which can then
+  be imaged to a USB flash drive or even another harddrive.
   
   <mountdir>  The directory to use to loopback mount the disk image file.
   <stagedir>  Where the contents of the disk image are staged. These are copied
