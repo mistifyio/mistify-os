@@ -22,6 +22,10 @@
                 {
                     "method": "Libvirt.Delete",
                     "service": "libvirt"
+                },
+                {
+                    "method": "ImageStore.DeleteGuestsDisks",
+                    "service": "storage"
                 }
             ]
         },

@@ -3,6 +3,7 @@ config BR2_PACKAGE_MISTIFY_AGENT_LIBVIRT
         select BR2_PACKAGE_HOST_GO
         select BR2_PACKAGE_RUNIT
         select BR2_PACKAGE_LIBVIRT
+         select BR2_PACKAGE_MISTIFY_AGENT
         help
           The Mistify Libvirt Sub-Agent
           
