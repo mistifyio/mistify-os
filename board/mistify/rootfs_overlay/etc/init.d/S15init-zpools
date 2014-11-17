@@ -10,22 +10,15 @@ zpool import -f $ZPOOL > /dev/null 2>&1 || echo "Mistify zpool is not present"
 zpool list $ZPOOL > /dev/null 2>&1
 
 if [ $? -ne 0 ]; then
-    DISKINFO=`parted -lm`
-    DISKLIST=$(for d in `echo "$DISKINFO" | grep /dev/ | cut -d ':' -f 1`; do
-        VENDORID=`echo "$DISKINFO" | grep $d | cut -d ':' -f 7 | awk '{print $1}'`
-        PRODUCTID=`echo "$DISKINFO" | grep $d | cut -d ':' -f 7 | awk '{print $2}'`
-        DSIZE=`echo "$DISKINFO" | grep $d | cut -d ':' -f 2`
-        printf "%s\t%s\t%s %s\n" $d $DSIZE $VENDORID $PRODUCTID
-done)
-
-    DISKS=`echo "$DISKLIST" | awk '{print $1}'`
+    DISKLIST=`lsblk --ascii --noheadings --output type,name,size,model --nodeps | grep ^disk`
+    DISKS=`echo "$DISKLIST" | awk '{print "/dev/"$2}'`
 
     echo "No $ZPOOL zpool detected."
     echo "enter y and a zpool will be created using all disks."
     echo "enter any other input to drop to a shell to setup manually"
     echo "DISKS:"
     echo "$DISKLIST"
-
+    echo
     echo -n "input: "
     read ANSWER
 
