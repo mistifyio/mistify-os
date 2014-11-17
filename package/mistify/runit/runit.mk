@@ -9,6 +9,12 @@ RUNIT_SOURCE        = runit-$(RUNIT_VERSION).tar.gz
 RUNIT_SITE          = http://smarden.org/runit/
 RUNIT_LICENSE       = BSD
 
+define RUNIT_INSTALL_INIT_SYSV
+        $(INSTALL) -m 755 -D \
+                $(BR2_EXTERNAL)/package/mistify/runit/runit.init \
+        $(TARGET_DIR)/etc/init.d/S99runit
+endef
+
 define RUNIT_BUILD_CMDS
 	cd $(@D)/runit-$(RUNIT_VERSION) && \
 	package/compile
