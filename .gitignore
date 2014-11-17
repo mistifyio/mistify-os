@@ -1,5 +1,5 @@
-.vagrant
 build/*
 .buildmistify
 downloads
 *.iso
+.vagrant

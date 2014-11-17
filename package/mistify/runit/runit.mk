@@ -9,12 +9,6 @@ RUNIT_SOURCE        = runit-$(RUNIT_VERSION).tar.gz
 RUNIT_SITE          = http://smarden.org/runit/
 RUNIT_LICENSE       = BSD
 
-define RUNIT_APPEND_TO_INITTAB
-	grep runs $(TARGET_DIR)/etc/inittab || \
-	echo runs::respawn:/usr/sbin/runsvdir-start >>  $(TARGET_DIR)/etc/inittab
-endef
-TARGET_FINALIZE_HOOKS += RUNIT_APPEND_TO_INITTAB
-
 define RUNIT_BUILD_CMDS
 	cd $(@D)/runit-$(RUNIT_VERSION) && \
 	package/compile

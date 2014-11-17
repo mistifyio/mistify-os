@@ -26,4 +26,3 @@ chown -R vagrant /home/vagrant/.ssh
 EOS
 end
 
-#./buildmistify --builddir /home/vagrant/build --buildroot /home/vagrant/buildroot && rm /vagrant/mistify.iso; bash -x make-iso /home/vagrant/build/images /vagrant/mistify.iso

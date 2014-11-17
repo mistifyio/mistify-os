@@ -1,0 +1,54 @@
+#!/bin/sh
+#
+# Start the network....
+#
+
+[ -f /lib/lsb/init-functions ] && . /lib/lsb/init-functions
+
+initialize_configs() {
+
+	run_dir=/run/network
+	iface_dir=/etc/network/interfaces.d
+	IFACES=`(cd /sys/class/net && /bin/ls -d1 en*)`
+
+	[ -d $iface_dir ] || mkdir $iface_dir
+	[ -d $run_dir ] || mkdir $run_dir
+
+	for i in $IFACES; do
+		iface_file=$iface_dir/$i.cfg
+		if [ ! -f $iface_file ]; then
+			log_action_msg "Generating configuration for $i..."
+			cat > $iface_file << EOF
+auto $i
+iface $i inet dhcp
+  pre-up ip link set $i up
+  pre-up echo "Initializing $i..."
+  pre-up sleep 4
+
+EOF
+		fi
+	done
+}
+
+case "$1" in
+  start)
+	initialize_configs
+
+ 	log_daemon_msg "Starting network..."
+	/sbin/ifup -a
+	;;
+  stop)
+	log_daemon_msg -n "Stopping network..."
+	/sbin/ifdown -a
+	;;
+  restart|reload)
+	"$0" stop
+	"$0" start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
+
