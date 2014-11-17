@@ -1,0 +1,4 @@
+config BR2_PACKAGE_START_STOP_DAEMON
+        bool "start-stop-daemon"
+        help
+          Debian init helper
