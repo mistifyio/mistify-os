@@ -1,3 +1,4 @@
 build/*
 .buildmistify
 downloads
+.vagrant
