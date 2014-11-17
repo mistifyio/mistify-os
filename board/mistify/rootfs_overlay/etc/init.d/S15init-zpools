@@ -13,14 +13,28 @@ if [ $? -ne 0 ]; then
     DISKLIST=`lsblk --ascii --noheadings --output type,name,size,model --nodeps | grep ^disk`
     DISKS=`echo "$DISKLIST" | awk '{print "/dev/"$2}'`
 
-    echo "No $ZPOOL zpool detected."
-    echo "enter y and a zpool will be created using all disks."
-    echo "enter any other input to drop to a shell to setup manually"
-    echo "DISKS:"
-    echo "$DISKLIST"
-    echo
-    echo -n "input: "
-    read ANSWER
+    ZFS=""
+    read -r cmdline < /proc/cmdline
+    for param in $cmdline ; do
+        case $param in
+            zfs=*)
+                ZFS=${param#zfs=}
+                ;;
+        esac
+    done
+    ANSWER=n
+    if [ "$ZFS" = "auto" ]; then
+        ANSWER=y
+    else
+        echo "No $ZPOOL zpool detected."
+        echo "enter y and a zpool will be created using all disks."
+        echo "enter any other input to drop to a shell to setup manually"
+        echo "DISKS:"
+        echo "$DISKLIST"
+        echo
+        echo -n "input: "
+        read ANSWER
+    fi
 
     if [ "$ANSWER" == "y" ]; then
         TYPE=raidz
