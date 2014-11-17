@@ -15,7 +15,7 @@ case "$1" in
         start-stop-daemon --quiet --pidfile $PIDFILE \
                           --make-pidfile \
                           --oknodo --background --exec /usr/sbin/runsvdir-start \
-                          --startas runsvdir \
+                          --name runsvdir \
                           --start
         log_end_msg $?
         ;;
@@ -28,14 +28,14 @@ case "$1" in
         start-stop-daemon --quiet --pidfile $PIDFILE \
                           --remove-pidfile \
                           --oknodo --exec /usr/sbin/runsvdir-start \
-                          --startas runsvdir \
+                          --name runsvdir \
                           --stop
         log_end_msg $?
         ;;
     status)
         start-stop-daemon --quiet --pidfile $PIDFILE \
                           --oknodo --exec /usr/sbin/runsvdir-start \
-                          --startas runsvdir \
+                          --name runsvdir \
                           --status
         log_end_msg $?
         ;;
