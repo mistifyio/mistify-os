@@ -11,7 +11,7 @@ MISTIFY_AGENT_LIBVIRT_LICENSE = Apache
 MISTIFY_AGENT_LIBVIRT_LICENSE_FILES = LICENSE
 MISTIFY_AGENT_LIBVIRT_DEPENDENCIES = host-libvirt mistify-agent
 
-GOPATH=$(O)/tmp/mistify-agent-libvirt-GOPATH
+GOPATH=$(O)/tmp/GOPATH
 
 define MISTIFY_AGENT_LIBVIRT_BUILD_CMDS
 	# GO apparently wants the install path to be independent of the
