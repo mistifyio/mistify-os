@@ -4,10 +4,11 @@
 #
 ################################################################################
 
-START_STOP_DAEMON_VERSION     = c195722ccb13c5f669a001fc2aee0c84d11d39f3
-START_STOP_DAEMON_SITE_METHOD = git
-START_STOP_DAEMON_SITE        = https://anonscm.debian.org/git/dpkg/dpkg.git
-START_STOP_DAEMON_LICENSE     = GPL
+START_STOP_DAEMON_VERSION      = c195722ccb13c5f669a001fc2aee0c84d11d39f3
+START_STOP_DAEMON_SITE_METHOD  = git
+START_STOP_DAEMON_SITE         = https://anonscm.debian.org/git/dpkg/dpkg.git
+START_STOP_DAEMON_LICENSE      = GPL
+START_STOP_DAEMON_DEPENDENCIES = host-flex
 
 define START_STOP_DAEMON_BUILD_CMDS
 	    cd $(@D) && \
