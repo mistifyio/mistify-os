@@ -6,9 +6,6 @@ export PATH
 
 . /lib/lsb/init-functions
 
-
-. /lib/lsb/init-functions
-
 case "$1" in
     start)
         log_daemon_msg "Starting runit"
