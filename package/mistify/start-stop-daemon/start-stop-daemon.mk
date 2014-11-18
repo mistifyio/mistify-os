@@ -19,10 +19,18 @@ define START_STOP_DAEMON_GENVERSION
 	mkdir $(START_STOP_DAEMON_DIR)/build-aux && touch $(START_STOP_DAEMON_DIR)/build-aux/config.rpath
 endef
 
+define START_STOP_DAEMON_GETTEXTIZE
+	$(HOST_DIR)/usr/bin/glib-gettextize $(START_STOP_DAEMON_DIR)
+	ln -s $(HOST_DIR)/usr/share/glib-2.0/gettext/po/Makefile.in.in $(START_STOP_DAEMON_DIR)/dselect/po/Makefile.in.in
+	ln -s $(HOST_DIR)/usr/share/glib-2.0/gettext/po/Makefile.in.in $(START_STOP_DAEMON_DIR)/scripts/po/Makefile.in.in
+	ln -s $(HOST_DIR)/usr/share/glib-2.0/gettext/po/Makefile.in.in $(START_STOP_DAEMON_DIR)/man/po/Makefile.in.in
+endef
+
 define START_STOP_DAEMON_INSTALL_TARGET_CMDS
 	$(MAKE) -C $(START_STOP_DAEMON_DIR)/utils install
 endef
 
 START_STOP_DAEMON_POST_EXTRACT_HOOKS += START_STOP_DAEMON_GENVERSION
+START_STOP_DAEMON_PRE_CONFIGURE_HOOKS += START_STOP_DAEMON_GETTEXTIZE
 
 $(eval $(autotools-package))
