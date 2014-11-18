@@ -80,13 +80,55 @@
             "service": "libvirt"
         }
     },
+    "imageActions":{
+        "listImages": {
+            "method": "ImageStore.ListImages",
+            "service": "storage"
+        },
+        "getImage": {
+            "method": "ImageStore.GetImage",
+            "service": "storage"
+        },
+        "deleteImage": {
+            "method": "ImageStore.DeleteImage",
+            "service": "storage"
+        },
+        "fetchImage": {
+            "method": "ImageStore.RequestImage",
+            "service": "storage"
+        },
+        "listSnapshots": {
+            "method": "ImageStore.ListSnapshots",
+            "service": "storage"
+        },
+        "getSnapshot": {
+            "method": "Test.GetSnapshot",
+            "service": "storage"
+        },
+        "createSnapshot": {
+            "method": "Test.CreateSnapshot",
+            "service": "storage"
+        },
+        "deleteSnapshot": {
+            "method": "Test.DeleteSnapshot",
+            "service": "storage"
+        },
+        "rollbackSnapshot": {
+            "method": "Test.DeleteSnapshot",
+            "service": "storage"
+        },
+        "downloadSnapshot": {
+            "method": "snapshots/download",
+            "service": "storage"
+        }
+    },
     "services": {
         "test": {
             "port": 9999
         },
-         "libvirt": {
+        "libvirt": {
             "port": 20001
-         },
+        },
         "storage": {
             "port": 16000
         }
