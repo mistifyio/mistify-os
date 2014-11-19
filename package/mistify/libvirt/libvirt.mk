@@ -25,7 +25,7 @@ define LIBVIRT_INSTALL_DEFAULTS
 endef
 
 define LIBVIRT_INSTALL_STOPSCRIPT
-	test -s $(TARGET_DIR)/etc/init.d/K30libvirt-bin || \
+	test -s $(TARGET_DIR)/etc/init.d/K40libvirt-bin || \
 		(cd $(TARGET_DIR)/etc/init.d && ln -s ./S65libvirt-bin \
 			K40libvirt-bin)
 endef
