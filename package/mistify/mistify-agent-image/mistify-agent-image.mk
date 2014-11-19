@@ -9,8 +9,9 @@ MISTIFY_AGENT_IMAGE_SITE    = git@github.com:mistifyio/mistify-agent-image.git
 MISTIFY_AGENT_IMAGE_SITE_METHOD = git
 MISTIFY_AGENT_IMAGE_LICENSE = Apache
 MISTIFY_AGENT_IMAGE_LICENSE_FILES = LICENSE
+MISTIFY_AGENT_IMAGE_DEPENDENCIES = mistify-agent
 
-GOPATH=$(O)/tmp/mistify-agent-image-GOPATH
+GOPATH=$(O)/tmp/GOPATH
 
 define MISTIFY_AGENT_IMAGE_BUILD_CMDS
 	# GO apparently wants the install path to be independent of the
