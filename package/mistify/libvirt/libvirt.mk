@@ -10,7 +10,7 @@ LIBVIRT_SITE          = http://libvirt.org/sources/
 LIBVIRT_LICENSE       = GPLv2 LGPLv2.1
 LIBVIRT_LICENSE_FILES = COPYING COPYING.LESSER
 LIBVIRT_DEPENDENCIES  = host-pkgconf lvm2 libnl libxml2 yajl libpciaccess
-HOST_LIBVIRT_DEPENDENCIES = host-pkgconf host-libxml2 host-hlibnl
+HOST_LIBVIRT_DEPENDENCIES = host-pkgconf host-libxml2 host-hlibnl host-hyajl
 
 define LIBVIRT_INSTALL_INIT_SYSV
 	$(INSTALL) -m 755 -D \
