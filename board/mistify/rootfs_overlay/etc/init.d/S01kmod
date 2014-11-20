@@ -18,7 +18,7 @@
 [ -f /etc/default/rcS ] && . /etc/default/rcS
 . /lib/lsb/init-functions
 
-PATH='/sbin:/bin'
+PATH='/sbin:/usr/sbin:/bin:/usr/bin'
 
 case "$1" in
   start)

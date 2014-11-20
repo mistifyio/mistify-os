@@ -1,0 +1,11 @@
+config BR2_PACKAGE_HOST_YAJL
+	bool "Host side yajl library and includes"
+	help
+	  Yet Another JSON Library. YAJL is a small event-driven
+	  (SAX-style) JSON parser written in ANSI C, and a small
+	  validating JSON generator.
+	  
+	  NOTE: This installs the host side components in order to build other
+	  components which are dependant upon yajl.
+
+	  http://lloyd.github.com/yajl/

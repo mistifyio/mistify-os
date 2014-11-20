@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+exec 2>&1
+
+# TODO: should this be an env var we read from /etc/something?
+# I guess if we switch to systemd, it does not matter
+mkdir -p /mistify/private/var/log/mistify-agent-libvirt
+exec svlogd /mistify/private/var/log/mistify-agent-libvirt

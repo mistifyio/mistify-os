@@ -1,0 +1,43 @@
+#!/bin/sh
+
+PIDFILE=/var/run/runit.pid
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+export PATH
+
+. /lib/lsb/init-functions
+
+case "$1" in
+    start)
+        log_daemon_msg "Starting runit"
+        start-stop-daemon --quiet --pidfile $PIDFILE \
+                          --make-pidfile \
+                          --oknodo --background --exec /usr/sbin/runsvdir-start \
+                          --name runsvdir \
+                          --start
+        log_end_msg $?
+        ;;
+    stop)
+        log_daemon_msg "stopping all runit services"
+        sv -w30 stop /etc/service/*
+        sv -w30 force-stop /etc/service/*
+        #sv exit /etc/service/*
+        log_daemon_msg "Stoppping runit"
+        start-stop-daemon --quiet --pidfile $PIDFILE \
+                          --remove-pidfile \
+                          --oknodo --exec /usr/sbin/runsvdir-start \
+                          --name runsvdir \
+                          --stop
+        log_end_msg $?
+        ;;
+    status)
+        start-stop-daemon --quiet --pidfile $PIDFILE \
+                          --oknodo --exec /usr/sbin/runsvdir-start \
+                          --name runsvdir \
+                          --status
+        log_end_msg $?
+        ;;
+    restart)
+        runit stop
+        runit start
+        ;;
+esac

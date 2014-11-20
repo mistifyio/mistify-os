@@ -9,11 +9,11 @@ RUNIT_SOURCE        = runit-$(RUNIT_VERSION).tar.gz
 RUNIT_SITE          = http://smarden.org/runit/
 RUNIT_LICENSE       = BSD
 
-define RUNIT_APPEND_TO_INITTAB
-	grep runs $(TARGET_DIR)/etc/inittab || \
-	echo runs::respawn:/usr/sbin/runsvdir-start >>  $(TARGET_DIR)/etc/inittab
+define RUNIT_INSTALL_INIT_SYSV
+        $(INSTALL) -m 755 -D \
+                $(BR2_EXTERNAL)/package/mistify/runit/runit.init \
+        $(TARGET_DIR)/etc/init.d/S99runit
 endef
-TARGET_FINALIZE_HOOKS += RUNIT_APPEND_TO_INITTAB
 
 define RUNIT_BUILD_CMDS
 	cd $(@D)/runit-$(RUNIT_VERSION) && \
