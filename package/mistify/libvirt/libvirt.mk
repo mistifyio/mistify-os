@@ -10,7 +10,7 @@ LIBVIRT_SITE          = http://libvirt.org/sources/
 LIBVIRT_LICENSE       = GPLv2 LGPLv2.1
 LIBVIRT_LICENSE_FILES = COPYING COPYING.LESSER
 LIBVIRT_DEPENDENCIES  = host-pkgconf lvm2 libnl libxml2 yajl libpciaccess
-HOST_LIBVIRT_DEPENDENCIES = host-pkgconf host-libxml2 host-hlibnl
+HOST_LIBVIRT_DEPENDENCIES = host-pkgconf host-libxml2 host-hlibnl host-hyajl host-lvm2
 
 define LIBVIRT_INSTALL_INIT_SYSV
 	$(INSTALL) -m 755 -D \
@@ -25,7 +25,7 @@ define LIBVIRT_INSTALL_DEFAULTS
 endef
 
 define LIBVIRT_INSTALL_STOPSCRIPT
-	test -s $(TARGET_DIR)/etc/init.d/K30libvirt-bin || \
+	test -s $(TARGET_DIR)/etc/init.d/K40libvirt-bin || \
 		(cd $(TARGET_DIR)/etc/init.d && ln -s ./S65libvirt-bin \
 			K40libvirt-bin)
 endef
