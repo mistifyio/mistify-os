@@ -14,6 +14,10 @@ define STATSD_BUILD_CMDS
 	@echo "StatsD is based on node.js and therefore doesn't require a build."
 endef
 
+define STATSD_USERS
+	statsd -1 statsd -1 * - - - statsd user
+endef
+
 define STATSD_INSTALL_TARGET_CMDS
 	$(INSTALL) -m 644 -D $(@D)/stats.js $(TARGET_DIR)/usr/share/statsd/stats.js
 	mkdir -p $(TARGET_DIR)/usr/share/statsd/lib
