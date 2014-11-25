@@ -25,7 +25,8 @@ statedir=$projectdir/.buildmistify
 # TODO: buildroottag needs to be updated at release time to use the tag corresponding
 # to the release.
 #-
-buildroottagdefault="master"
+buildrootbranchdefault="master"
+buildroottagdefault=
 buildrootdirdefault=$PWD/build/buildroot
 bruridefault=git@github.com:mistifyio/buildroot.git
 
@@ -53,9 +54,14 @@ Usage: ./buildmistify [options] [target]
         versions of Buildroot for different projects. This is saved in the file
         $statedir/buildroot.
         [buildroot=`cat $statedir/buildroot`]
+    --buildrootbranch <label>
+        Checkout Buildroot using a specified branch. NOTE: This option supercedes
+        the --buildroottag option. The branch name is saved in the file
+        $statedir/buildrootbranch.
+        [buildrootbranch=`cat $statedir/buildrootbranch`]
     -t:--buildroottag <tag>
         Checkout Buildroot using a specific tag. To reset to the master branch
-        use \master\ as the tag name. The tag is saved in the file
+        use the --buildrootbranch option. The tag is saved in the file
         $statedir/buildroottag.
         [buildroottag=`cat $statedir/buildroottag`]
     -b|--builddir <dir>
@@ -90,9 +96,10 @@ Usage: ./buildmistify [options] [target]
     -l|--logfile
         Use this log file name instead of the generated log file name.
     --viewlog
-        When make returns an error view the log file.
+        If the Buildroot make returns an error then view the log file.
     --test
-        Just testing what will happen with this script. Don't run the make.
+        Just testing what will happen with this script. Don't run the Buildroot
+        make.
     -h|--help
         Display this usage.
   NOTE: This script maintains state in $statedir.
@@ -135,6 +142,7 @@ kconfig:,\
 bbconfig:,\
 test,\
 buildroot:,\
+buildrootbranch:,\
 buildroottag:,\
 builddir:,\
 bruri:,\
@@ -163,6 +171,10 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--bruri)
 	    bruri=$2
+	    shift
+	    ;;
+	--buildrootbranch)
+	    buildrootbranch=$2
 	    shift
 	    ;;
 	-t|--buildroottag)
@@ -240,18 +252,6 @@ if [ -z "$buildrootdir" ]; then
 fi
 echo $buildrootdir >$statedir/buildroot
 
-#+
-# Determine the tag to use to sync Buildroot to.
-#-
-if [ -z "$buildroottag" ]; then
-  if [ -f $statedir/buildroottag ]; then
-    buildroottag=`cat $statedir/buildroottag`
-  else
-    buildroottag=$buildroottagdefault
-  fi
-  message "Using Buildroot tag: $buildroottag"
-fi
-echo $buildroottag >$statedir/buildroottag
 
 #+
 # Determine the location of the build directory.
@@ -284,6 +284,26 @@ fi
 message "The Buildroot repository is: $bruri"
 echo $bruri >$statedir/bruri
 
+#+
+# If the buildrootbranch option is used then ignore the buildroottag option.
+# NOTE: Specifying a branch overrides using a tag.
+#-
+if [ ! -z "$buildrootbranch" ]; then
+  message "Switching to branch: $buildrootbranch"
+  if [ ! -z "$buildroottag" ]; then
+    warning "Ignoring --buildroottag"
+    buildroottag=
+  fi
+  rm -f $statedir/buildroottag
+else
+  if [ -f $statedir/buildrootbranch ]; then
+    buildrootbranch=`cat $statedir/buildrootbranch`
+  else
+    buildrootbranch=$buildrootbranchdefault
+  fi
+fi
+echo $buildrootbranch >$statedir/buildrootbranch
+
 if [ ! -f $buildrootdir/README ]; then
   message 'Fetching Buildroot branch "master" from the Buildroot project repository.'
   git clone $bruri $buildrootdir
@@ -296,23 +316,56 @@ if [ ! -f $buildrootdir/README ]; then
     exit 1
   fi
 fi
+cd $buildrootdir
 
 #+
-# Verify using the desired Buildroot version.
+# Determine the tag to use to sync Buildroot to.
+# NOTE: Having branch and tag separate helps avoid an ambiguity which could
+# result in accidentally creating a branch when a tag was intended.
+# NOTE: If buildroottag is set at this point then it wasn't overridden by  
+# specifying a branch.
 #-
-cd $buildrootdir
-if [[ "$buildroottag" == "master" ]]; then
-  git checkout master
+if [ ! -z "$buildroottag" ]; then
+  buildrootbranch=
+  message "Switching to buildroot tag: $buildroottag"
+  echo $buildroottag >$statedir/buildroottag
 else
-  if [[ `git status | grep "HEAD detached" | grep $buildroottag | cut -d' ' -f 4` != "$buildroottag" ]]; then
-    git checkout tags/$buildroottag
-    if [ $? -gt 0 ]; then
-      error "Attempted to checkout Buildroot using an invalid tag: $buildroottag"
-      exit 1
-    fi
-    message "Buildroot synced to tag: $buildroottag"
+  if [ -f $statedir/buildroottag ]; then
+    buildrootbranch=
+    buildroottag=`cat $statedir/buildroottag`
   fi
 fi
+
+#+
+# Verify using the desired Buildroot version. If the branch or tag doesn't exist
+# locally then fetch an update from the repo.
+#-
+if [ ! -z "$buildroottag" ]; then
+  message "Using Buildroot tag: $buildroottag"
+  git tag | grep $buildroottag
+  if [ $? -ne 0 ]; then
+    message "Local tag $buildroottag doesn't exist."
+    message "Fetching update from remote repository."
+    git fetch
+  fi
+  buildrootlabel="tags/$buildroottag"
+else
+  message "Using Buildroot branch: $buildrootbranch"
+  git branch | grep $buildrootbranch
+  if [ $? -ne 0 ]; then
+    message "Local branch $buildrootbranch doesn't exist."
+    message "Fetching update from remote repository."
+    git fetch
+  fi
+  buildrootlabel=$buildrootbranch
+fi
+
+git checkout $buildrootlabel
+if [ $? -ne 0 ]; then
+  error "Attempted to checkout Buildroot using an invalid tag or branch: $buildrootlabel"
+  exit 1
+fi
+message "Buildroot synced to: $buildrootlabel"
 cd $projectdir
 
 #+
