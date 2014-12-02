@@ -10,7 +10,7 @@ MISTIFY_AGENT_SITE_METHOD = git
 MISTIFY_AGENT_LICENSE = Apache
 MISTIFY_AGENT_LICENSE_FILES = LICENSE
 
-GOPATH=$(O)/tmp/mistify-agent-GOPATH
+GOPATH=$(O)/tmp/GOPATH
 
 define MISTIFY_AGENT_BUILD_CMDS
 	# GO apparently wants the install path to be independent of the

@@ -26,11 +26,11 @@ host::sysinit:/bin/hostname -F /etc/hostname
 init::sysinit:/etc/init.d/rcS
 
 # Local TTYs
-1:1:respawn:/sbin/getty 38400 tty1
-2:1:respawn:/sbin/getty 38400 tty2
+1:1:respawn:/sbin/agetty 38400 tty1
+2:1:respawn:/sbin/agetty 38400 tty2
 
 # Put a getty on the serial port
-S1::respawn:/sbin/getty -L ttyS0 115200 vt100 # GENERIC_SERIAL
+S1::respawn:/sbin/agetty -L ttyS0 115200 vt100 # GENERIC_SERIAL
 
 # Logging stuff
 mess::sysinit:/bin/touch /var/log/mesages
