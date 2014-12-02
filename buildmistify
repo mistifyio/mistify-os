@@ -21,14 +21,24 @@ statedir=$projectdir/.buildmistify
 #+
 # Defaults
 #-
+
+#+
+# TODO: toolchaintag needs to be updated at release time to use the tag corresponding
+# to the release.
+#-
+tcuridefault=git://crosstool-ng.org/crosstool-ng
+toolchaindirdefault=$PWD/toolchain
+toolchainprefixdefault=x86_64-unknown-linux-gnu
+toolchainbranchdefault="master"
+toolchaintagdefault=
 #+
 # TODO: buildroottag needs to be updated at release time to use the tag corresponding
 # to the release.
 #-
+bruridefault=git@github.com:mistifyio/buildroot.git
+buildrootdirdefault=$PWD/build/buildroot
 buildrootbranchdefault="master"
 buildroottagdefault=
-buildrootdirdefault=$PWD/build/buildroot
-bruridefault=git@github.com:mistifyio/buildroot.git
 
 builddirdefault=$PWD/build/mistify
 downloaddirdefault=$PWD/downloads
@@ -43,27 +53,56 @@ Usage: ./buildmistify [options] [target]
   Buildroot build environment to build Mistify-OS using Buildroot.
   If the Buildroot build environment is not present then it is first cloned from
   the Mistify repository.
+  Buildroot is configured to use an external toolchain. If the external
+  toolchain is not present then it is installed before starting Buildroot.
   Options:
+    ==== external toolchain ====
+    --tcuri <uri>
+        The repository from which to clone Buildroot. This is saved in the file
+        $statedir/tcuri.
+        [tcuri=`cat $statedir/tcuri`]
+    --toolchain <dir>
+        Where the toolchain is to be installed. Using this option simplifies 
+        using a single toolchain install for multiple projects OR using
+        different toolchain versions for different projects. This is saved in
+        the file $statedir/toolchain.
+        [toolchain=`cat $statedir/toolchain`]
+    --toolchainprefix <prefix>
+        This is the toolchain prefix to use to select a specific build of the
+        toolchain. This is saved in the file $statedir/toolchainprefix
+        [toolchainprefix=`cat $statedir/toolchainprefix`]
+    --toolchainbranch <label>
+        Checkout the toolchain using a specified branch. NOTE: This option
+        supercedes the --toolchaintag option. The branch name is saved in the
+        file $statedir/toolchainbranch.
+        [toolchainbranch=`cat $statedir/toolchainbranch`]
+    --toolchaintag <tag>
+        Checkout the toolchain using a specific tag. To reset to the master
+        branch use the --toolchainbranch option. The tag is saved in the file
+        $statedir/toolchaintag.
+        [toolchaintag=`cat $statedir/toolchaintag`]
+    ==== buildroot ====
     --bruri <uri>
         The repository from which to clone Buildroot. This is saved in the file
         $statedir/bruri.
         [bruri=`cat $statedir/bruri`]
     --buildroot <dir>
         Where Buildroot is to be installed. Using this option simplifies using a
-        single Buildroot install for multiple projects. OR using different
+        single Buildroot install for multiple projects OR using different
         versions of Buildroot for different projects. This is saved in the file
         $statedir/buildroot.
         [buildroot=`cat $statedir/buildroot`]
     --buildrootbranch <label>
-        Checkout Buildroot using a specified branch. NOTE: This option supercedes
-        the --buildroottag option. The branch name is saved in the file
-        $statedir/buildrootbranch.
+        Checkout Buildroot using a specified branch. NOTE: This option
+        supercedes the --buildroottag option. The branch name is saved in the
+        file $statedir/buildrootbranch.
         [buildrootbranch=`cat $statedir/buildrootbranch`]
     -t:--buildroottag <tag>
         Checkout Buildroot using a specific tag. To reset to the master branch
         use the --buildrootbranch option. The tag is saved in the file
         $statedir/buildroottag.
         [buildroottag=`cat $statedir/buildroottag`]
+    ==== build ====
     -b|--builddir <dir>
         Where to put the build targets and output. This location is saved in the
         file $statedir/builddir.
@@ -74,6 +113,7 @@ Usage: ./buildmistify [options] [target]
         changing one of the other directories.
         WARNING: This overrides the Buildroot configuration option.
         [downloaddir=`cat $statedir/downloaddir`]
+    ==== configuration ====
     -c|--config
         Use this config file. The config file is copied to the build directory
         before running the buildroot make. NOTE: The latest Buildroot from the
@@ -93,6 +133,7 @@ Usage: ./buildmistify [options] [target]
         directory before running the buildroot make. The file name is saved in 
         the file $statedir/bbconfig.
         [bbconfig=`cat $statedir/bbconfig 2>/dev/null || echo \\`]
+    ==== other ====
     -l|--logfile
         Use this log file name instead of the generated log file name.
     --viewlog
@@ -128,6 +169,168 @@ error () {
     echo -e "$green$prefix$red ERROR$nc: $*"
 }
 
+install-toolchain () {
+    #+
+    # Determine the location of the toolchain directory.
+    #-
+    if [ -z "$toolchaindir" ]; then
+	if [ -f $statedir/toolchaindir ]; then
+	    toolchaindir=`cat $statedir/toolchaindir`
+	else
+	    toolchaindir=$toolchaindirdefault
+	fi
+	message "Using toolchain located at: $toolchaindir"
+    fi
+    echo $toolchaindir >$statedir/toolchaindir
+    #+
+    # Determine the toolchain variation to use.
+    #-
+    if [ -z "$toolchainprefix" ]; then
+	if [ -f $statedir/toolchainprefix ]; then
+	    toolchainprefix=`cat $statedir/toolchainprefix`
+	else
+	    toolchainprefix=$toolchainprefixdefault
+	fi
+	message "Using toolchain variation: $toolchainprefix"
+    fi
+    echo $toolchainprefix >$statedir/toolchainprefix
+    #+
+    # Start by fetching the Buildroot build environment.
+    #-
+    if [ -z "$tcuri" ]; then
+	if [ -f $statedir/tcuri ]; then
+	    tcuri=`cat $statedir/tcuri`
+	else
+	    tcuri=$tcuridefault
+	fi
+    fi
+    message "The toolchain build tool repository is: $tcuri"
+    echo $tcuri >$statedir/tcuri
+
+    #+
+    # If the toolchainbranch option is used then ignore the toolchaintag option.
+    # NOTE: Specifying a branch overrides using a tag.
+    #-
+    if [ ! -z "$toolchainbranch" ]; then
+	message "Switching to toolchain build tool branch: $toolchainbranch"
+	if [ ! -z "$toolchaintag" ]; then
+	    warning "Ignoring --toolchaintag"
+	    toolchaintag=
+	fi
+	rm -f $statedir/toolchaintag
+    else
+	if [ -f $statedir/toolchainbranch ]; then
+	    toolchainbranch=`cat $statedir/toolchainbranch`
+	else
+	    toolchainbranch=$toolchainbranchdefault
+	fi
+    fi
+    echo $toolchainbranch >$statedir/toolchainbranch
+
+    if [ ! -f $toolchaindir/README ]; then
+	message 'Fetching toolchain build tool branch "master" from the toolchain repository.'
+	git clone $tcuri $toolchaindir
+	#+
+	# TODO: It is possible that the previous clone failed. Might want to use
+	# git again to update just in case.
+	#-
+	if [ $? -gt 0 ]; then
+	    error "Fetching the toolchain encountered an error."
+	    exit 1
+	fi
+    fi
+    cd $toolchaindir
+
+    #+
+    # Determine the tag to use to sync toolchain to.
+    # NOTE: Having branch and tag separate helps avoid an ambiguity which could
+    # result in accidentally creating a branch when a tag was intended.
+    # NOTE: If toolchaintag is set at this point then it wasn't overridden by  
+    # specifying a branch.
+    #-
+    if [ ! -z "$toolchaintag" ]; then
+	buildrootbranch=
+	message "Switching to toolchain build tool tag: $toolchaintag"
+	echo $toolchaintag >$statedir/buildroottag
+	else
+	if [ -f $statedir/toolchaintag ]; then
+	    toolchainbranch=
+	    toolchaintag=`cat $statedir/toolchaintag`
+	fi
+    fi
+
+    #+
+    # Verify using the desired toolchain version. If the branch or tag doesn't exist
+    # locally then fetch an update from the repo.
+    #-
+    if [ ! -z "$toolchaintag" ]; then
+	message "Using toolchain tag: $toolchaintag"
+	git tag | grep $toolchaintag
+	if [ $? -ne 0 ]; then
+	    message "Local toolchain build tool tag $toolchaintag doesn't exist."
+	    message "Fetching toolchain update from remote repository."
+	    git fetch
+	fi
+	toolchainlabel="tags/$toolchaintag"
+    else
+	message "Using toolchain build tool branch: $toolchainbranch"
+	git branch | grep $toolchainbranch
+	if [ $? -ne 0 ]; then
+	    message "Local toolchain branch $toolchainbranch doesn't exist."
+	    message "Fetching update from remote toolchain repository."
+	    git fetch
+	fi
+	toolchainlabel=$toolchainbranch
+    fi
+
+    git checkout $toolchainlabel
+    if [ $? -ne 0 ]; then
+	error "Attempted to checkout the toolchain build tool using an invalid tag or branch: $toolchainlabel"
+	exit 1
+    fi
+    message "The toolchain build tool synced to: $toolchainlabel"
+    #+
+    # These variables are used within the crosstool-ng config file which helps
+    # avoid having to modify the config when changing toolchain branches or
+    # tags.
+    #-
+    export TC_ARCH_SUFFIX=-$toolchainlabel
+    export TC_PREFIX_DIR=$toolchaindir/variations/$toolchainlabel
+    export TC_LOCAL_TARBALLS_DIR=$toolchaindir/downloads
+    message "TC_ARCH_SUFFIX: $TC_ARCH_SUFFIX"
+    message "TC_PREFIX_DIR: $TC_PREFIX_DIR"
+    message "TC_LOCAL_TARBALLS_DIR: $TC_LOCAL_TARBALLS_DIR"
+
+    if [ -f $TC_PREFIX_DIR/.toolchain-built ]; then
+	message "Using toolchain installed at: $TC_PREFIX_DIR"
+	#+
+	# TODO: Sync to the desired branch or tag.
+	#-
+	return
+    fi
+    #+
+    # Download, build and install the toolchain.
+    #-
+    message "Toolchain not detected."
+    message "Installing toolchain to: $TC_PREFIX_DIR"
+    #+
+    # Now configure and build the toolchain.
+    #-
+    cd $toolchaindir
+    ./bootstrap
+    ./configure --enable-local --prefix=$toolchaindir
+    make
+    
+    ctng="./ct-ng"
+    cp $projectdir/configs/mistify-tc.config .config
+    mkdir -p $TC_LOCAL_TARBALLS_DIR
+    $ctng build
+    if [ $? -gt 0 ]; then
+	error "The toolchain build failed."
+	exit 1
+    fi
+    touch $TC_PREFIX_DIR/.toolchain-built
+}
 
 #+
 # TODO: Add some quick checks to verify required tools are installed.
@@ -137,15 +340,20 @@ error () {
 # Handle the command line options.
 #-
 a=`getopt -l "\
-config:,\
-kconfig:,\
-bbconfig:,\
-test,\
+tcuri:,\
+toolchain:,\
+toolchainprefix:,\
+toolchainbranch:,\
+toolchainroottag:,\
+bruri:,\
 buildroot:,\
 buildrootbranch:,\
 buildroottag:,\
 builddir:,\
-bruri:,\
+config:,\
+kconfig:,\
+bbconfig:,\
+test,\
 downloaddir:,\
 logfile:,\
 viewlog,\
@@ -165,12 +373,32 @@ while [ $# -ge 1 ]; do
 	    shift
 	    break
 	    ;;
-	--buildroot)
-	    buildrootdir=$2
+	--tcuri)
+	    tcuri=$2
+	    shift
+	    ;;
+	--toolchain)
+	    toolchaindir=$2
+	    shift
+	    ;;
+	--toolchainprefix)
+	    toolchainprefix=$2
+	    shift
+	    ;;
+	--toolchainbranch)
+	    toolchainbranch=$2
+	    shift
+	    ;;
+	--toolchaintag)
+	    toolchaintag=$2
 	    shift
 	    ;;
 	--bruri)
 	    bruri=$2
+	    shift
+	    ;;
+	--buildroot)
+	    buildrootdir=$2
 	    shift
 	    ;;
 	--buildrootbranch)
@@ -458,7 +686,8 @@ if [ -f $bbc ]; then
     fi
   else
     if [[ "$target" != "busybox-menuconfig" ]]; then
-      error "The BusyBox config file doesn't exist. Run ./buildmistify busybox-menuconfig."
+      error "The BusyBox config file doesn't exist."
+      message "Run ./buildmistify busybox-menuconfig."
       exit 1
     fi
   fi
@@ -486,10 +715,19 @@ message "The Buildroot download directory is: $downloaddir"
 message "Project dir: $projectdir"
 
 #+
+# Be sure the toolchain is installed.
+#-
+install-toolchain
+
+#+
 # Now run the build.
 #-
 export MISTIFY_DIR=$projectdir
-makecommand="make O=$builddir BR2_DL_DIR=$downloaddir BR2_EXTERNAL=$projectdir $target"
+makecommand="\
+make O=$builddir \
+CROSSTOOL_DIR=$toolchaindir CROSSTOOL_PREFIX=$toolchainprefix \
+BR2_DL_DIR=$downloaddir BR2_EXTERNAL=$projectdir \
+$target"
 
 #+
 # Don't run the build if changing configurations.

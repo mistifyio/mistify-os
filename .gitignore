@@ -3,3 +3,5 @@ build/*
 downloads
 *.iso
 .vagrant
+toolchain
+
