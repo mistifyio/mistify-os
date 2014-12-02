@@ -31,6 +31,7 @@ toolchaindirdefault=$PWD/toolchain
 toolchainprefixdefault=x86_64-unknown-linux-gnu
 toolchainbranchdefault="master"
 toolchaintagdefault=
+
 #+
 # TODO: buildroottag needs to be updated at release time to use the tag corresponding
 # to the release.
@@ -45,6 +46,7 @@ downloaddirdefault=$PWD/downloads
 mistifycfgdefault=$PWD/configs/mistify_defconfig
 kernelcfgdefault=$PWD/configs/mistify-kernel.config
 busyboxcfgdefault=$PWD/configs/mistify-busybox.config
+
 
 usage () {
     cat << EOF
@@ -61,15 +63,17 @@ Usage: ./buildmistify [options] [target]
         The repository from which to clone Buildroot. This is saved in the file
         $statedir/tcuri.
         [tcuri=`cat $statedir/tcuri`]
-    --toolchain <dir>
-        Where the toolchain is to be installed. Using this option simplifies 
-        using a single toolchain install for multiple projects OR using
-        different toolchain versions for different projects. This is saved in
-        the file $statedir/toolchain.
-        [toolchain=`cat $statedir/toolchain`]
+    --toolchaindir <dir>
+        Where the toolchain is to be installed and defaults to:
+        <builddir>/toolchain. Using this option simplifies using a single
+        toolchain install for multiple projects OR using different toolchain
+        versions for different projects. This is saved in the file
+        $statedir/toolchaindir.
+        [toolchaindir=`cat $statedir/toolchaindir`]
     --toolchainprefix <prefix>
         This is the toolchain prefix to use to select a specific build of the
-        toolchain. This is saved in the file $statedir/toolchainprefix
+        toolchain. This is saved in the file
+        $statedir/toolchainprefix
         [toolchainprefix=`cat $statedir/toolchainprefix`]
     --toolchainbranch <label>
         Checkout the toolchain using a specified branch. NOTE: This option
@@ -296,12 +300,12 @@ install-toolchain () {
     #-
     export TC_ARCH_SUFFIX=-$toolchainlabel
     export TC_PREFIX_DIR=$toolchaindir/variations/$toolchainlabel
-    export TC_LOCAL_TARBALLS_DIR=$toolchaindir/downloads
+    export TC_LOCAL_TARBALLS_DIR=$downloaddir
     message "TC_ARCH_SUFFIX: $TC_ARCH_SUFFIX"
     message "TC_PREFIX_DIR: $TC_PREFIX_DIR"
     message "TC_LOCAL_TARBALLS_DIR: $TC_LOCAL_TARBALLS_DIR"
 
-    if [ -f $TC_PREFIX_DIR/.toolchain-built ]; then
+    if [ -f $TC_PREFIX_DIR/../.$toolchainlabel-built ]; then
 	message "Using toolchain installed at: $TC_PREFIX_DIR"
 	#+
 	# TODO: Sync to the desired branch or tag.
@@ -329,7 +333,7 @@ install-toolchain () {
 	error "The toolchain build failed."
 	exit 1
     fi
-    touch $TC_PREFIX_DIR/.toolchain-built
+    touch $TC_PREFIX_DIR/../.$toolchainlabel-built
 }
 
 #+
@@ -341,7 +345,7 @@ install-toolchain () {
 #-
 a=`getopt -l "\
 tcuri:,\
-toolchain:,\
+toolchaindir:,\
 toolchainprefix:,\
 toolchainbranch:,\
 toolchainroottag:,\
@@ -377,7 +381,7 @@ while [ $# -ge 1 ]; do
 	    tcuri=$2
 	    shift
 	    ;;
-	--toolchain)
+	--toolchaindir)
 	    toolchaindir=$2
 	    shift
 	    ;;
@@ -694,11 +698,6 @@ if [ -f $bbc ]; then
 fi
 
 #+
-# Enter the buildroot tree.
-#-
-cd $buildrootdir
-
-#+
 # Setup the downloads directory.
 #-
 if [ -z "$downloaddir" ]; then
@@ -720,12 +719,17 @@ message "Project dir: $projectdir"
 install-toolchain
 
 #+
+# Enter the buildroot tree.
+#-
+cd $buildrootdir
+
+#+
 # Now run the build.
 #-
 export MISTIFY_DIR=$projectdir
 makecommand="\
 make O=$builddir \
-CROSSTOOL_DIR=$toolchaindir CROSSTOOL_PREFIX=$toolchainprefix \
+TOOLCHAIN_PATH=$TC_PREFIX_DIR TOOLCHAIN_PREFIX=$toolchainprefix \
 BR2_DL_DIR=$downloaddir BR2_EXTERNAL=$projectdir \
 $target"
 
