@@ -15,9 +15,9 @@ START_STOP_DAEMON_DEPENDENCIES += host-autoconf
 START_STOP_DAEMON_DEPENDENCIES += host-automake
 
 START_STOP_DAEMON_AUTORECONF = YES
-START_STOP_DAEMON_AUTORECONF_OPT = -fiv
+START_STOP_DAEMON_AUTORECONF_OPTS = -fiv
 
-START_STOP_DAEMON_CONF_OPT += --disable-dselect --disable-update-alternatives --disable-shared
+START_STOP_DAEMON_CONF_OPTS += --disable-dselect --disable-update-alternatives --disable-shared
 
 define START_STOP_DAEMON_GENVERSION
 	echo $(START_STOP_DAEMON_VERSION) > $(START_STOP_DAEMON_DIR)/.dist-version

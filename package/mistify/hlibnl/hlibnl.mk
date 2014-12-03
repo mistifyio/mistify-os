@@ -13,9 +13,9 @@ HLIBNL_INSTALL_STAGING = YES
 HLIBNL_DEPENDENCIES = host-bison host-flex
 
 ifeq ($(BR2_PACKAGE_HOST_HLIBNL_TOOLS),y)
-HOST_HLIBNL_CONF_OPT += --enable-cli
+HOST_HLIBNL_CONF_OPTS += --enable-cli
 else
-HOST_HLIBNL_CONF_OPT += --disable-cli
+HOST_HLIBNL_CONF_OPTS += --disable-cli
 endif
 
 $(eval $(host-autotools-package))
