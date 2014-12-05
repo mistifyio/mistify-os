@@ -6,7 +6,7 @@
 OPENVSWITCH_VERSION = 2.3.0
 OPENVSWITCH_SOURCE = openvswitch-$(OPENVSWITCH_VERSION).tar.gz
 OPENVSWITCH_SITE = http://openvswitch.org/releases/
-OPENVSWITCH_DEPENDENCIES += linux-headers iproute2 vtun
+OPENVSWITCH_DEPENDENCIES += iproute2 vtun
 OPENVSWITCH_DEPENDENCIES += iproute2
 OPENVSWITCH_DEPENDENCIES += vtun
 OPENVSWITCH_LICENSE = Apache-2.0
@@ -14,6 +14,11 @@ OPENVSWITCH_CONF_OPT = \
 		--with-linux=$(LINUX_DIR) \
 		--with-linux-source=$(LINUX_DIR) \
 		--localstatedir=/var
+
+#+
+# When using an external toolchain libatomic is not installed by default.
+#-
+LIB_EXTERNAL_LIBS += libatomic.so*
 
 # Add --with-openssl
 # ifeq ($(BR2_PACKAGE_OPENSSL),y)
