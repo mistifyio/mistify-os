@@ -38,19 +38,5 @@ define AUFS_UTIL_INSTALL_TARGET_CMDS
 		install_sbin install_ubin install_etc
 endef
 
-define AUFS_UTIL_HEADERS_INSTALL_STAGING_CMDS
-	(cd $(LINUX_HEADERS_DIR); \
-		$(TARGET_MAKE_ENV) $(MAKE) \
-		ARCH=$(KERNEL_ARCH) \
-		HOSTCC="$(HOSTCC)" \
-		HOSTCFLAGS="$(HOSTCFLAGS)" \
-		HOSTCXX="$(HOSTCXX)" \
-		INSTALL_HDR_PATH=$(STAGING_DIR)/usr \
-		headers_install)
-	cp $(GLIBC_DIR)/sysdeps/unix/sysv/linux/scsi/* \
-		$(STAGING_DIR)/usr/include/scsi/
-endef
-
-AUFS_UTIL_PRE_BUILD_HOOKS += AUFS_UTIL_HEADERS_INSTALL_STAGING_CMDS
 
 $(eval $(generic-package))
