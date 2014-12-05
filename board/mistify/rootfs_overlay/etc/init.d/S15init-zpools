@@ -14,106 +14,107 @@ if [ $? -ne 0 ]; then
         PRODUCTID=`echo "$DISKINFO" | grep $d | cut -d ':' -f 7 | awk '{print $2}'`
         DSIZE=`echo "$DISKINFO" | grep $d | cut -d ':' -f 2`
         printf "%s\t%s\t%s %s\n" $d $DSIZE $VENDORID $PRODUCTID
-done)
+    done)
 
-ZPOOLCANDIDATES=`echo "$DISKLIST" | awk '{print $1}'`
-# Don't use the boot drive.
-for D in $ZPOOLCANDIDATES; do
-    if sfdisk -l $D | grep "\*"; then
-	echo "Excluding boot drive $D."
-	continue
-    else
-	DISKS="$DISKS $D"
-    fi
-done
-    
-echo "No zpool detected."
-echo "enter y and a zpool will be created using all disks."
-echo "enter any other input to drop to a shell to setup manually"
-echo "DISKS:"
-echo "$DISKLIST"
-echo "WARNING: This will erase the following drives: $DISKS"
-echo -n "input: "
-read ANSWER
-
-zpool list $ZPOOL > /dev/null 2>&1
-
-if [ $? -ne 0 ]; then
-    DISKLIST=`lsblk --ascii --noheadings --output type,name,size,model --nodeps | grep ^disk`
-    DISKS=`echo "$DISKLIST" | awk '{print "/dev/"$2}'`
-
-    ZFS=""
-    read -r cmdline < /proc/cmdline
-    for param in $cmdline ; do
-        case $param in
-            zfs=*)
-                ZFS=${param#zfs=}
-                ;;
-        esac
+    ZPOOLCANDIDATES=`echo "$DISKLIST" | awk '{print $1}'`
+    # Don't use the boot drive.
+    for D in $ZPOOLCANDIDATES; do
+	if sfdisk -l $D | grep "\*"; then
+	    echo "Excluding boot drive $D."
+	    continue
+	else
+	    DISKS="$DISKS $D"
+	fi
     done
-    ANSWER=n
-    if [ "$ZFS" = "auto" ]; then
-        ANSWER=y
-    else
-        echo "No $ZPOOL zpool detected."
-        echo "enter y and a zpool will be created using all disks."
-        echo "enter any other input to drop to a shell to setup manually"
-        echo "DISKS:"
-        echo "$DISKLIST"
-        echo
-        echo -n "input: "
-        read ANSWER
+	
+    echo "No zpool detected."
+    echo "enter y and a zpool will be created using all disks."
+    echo "enter any other input to drop to a shell to setup manually"
+    echo "DISKS:"
+    echo "$DISKLIST"
+    echo "WARNING: This will erase the following drives: $DISKS"
+    echo -n "input: "
+    read ANSWER
+
+    zpool list $ZPOOL > /dev/null 2>&1
+
+    if [ $? -ne 0 ]; then
+	DISKLIST=`lsblk --ascii --noheadings --output type,name,size,model --nodeps | grep ^disk`
+	DISKS=`echo "$DISKLIST" | awk '{print "/dev/"$2}'`
+
+	ZFS=""
+	read -r cmdline < /proc/cmdline
+	for param in $cmdline ; do
+	    case $param in
+		zfs=*)
+		    ZFS=${param#zfs=}
+		    ;;
+	    esac
+	done
+	ANSWER=n
+	if [ "$ZFS" = "auto" ]; then
+	    ANSWER=y
+	else
+	    echo "No $ZPOOL zpool detected."
+	    echo "enter y and a zpool will be created using all disks."
+	    echo "enter any other input to drop to a shell to setup manually"
+	    echo "DISKS:"
+	    echo "$DISKLIST"
+	    echo
+	    echo -n "input: "
+	    read ANSWER
+	fi
+
+	if [ "$ANSWER" == "y" ]; then
+	    TYPE=raidz
+	    read -a ARRAY <<< "$DISKS"
+
+	    if [ ${#ARRAY[@]} -eq 1 ]; then
+		TYPE=""
+	    fi
+
+	    # Be sure the drives are starting fresh.
+	    for D in $DISKS; do
+		echo "Cleaning $D..."
+		parted -s $D mklabel 2>/dev/null
+	    done
+	    
+	    zpool create -f \
+		    -o cachefile=none \
+		    $ZPOOL $TYPE $DISKS
+
+	    if [ $? -ne 0 ]; then
+		exit -4
+	    fi
+	    /sbin/udevadm settle
+	else
+	    # TODO: we could allow bootflags that will set it up for us
+	    # possibly using certain options
+	    echo "You need to create a zpool named mistify"
+	    echo "Reboot after setting it up"
+	    # the init wrapper will exec bash for us
+	    exit -3
+	fi
     fi
 
-    if [ "$ANSWER" == "y" ]; then
-        TYPE=raidz
-        read -a ARRAY <<< "$DISKS"
+    # Pause until the mistify zpool is imported and mounted
+    while [ ! -d /$ZPOOL ]
+    do
+	    sleep 2
+    done
 
-        if [ ${#ARRAY[@]} -eq 1 ]; then
-            TYPE=""
-        fi
+    # Create base zfs filesystems and set their properies
+    for D in private images guests; do
+	zfs list $ZPOOL/$D > /dev/null 2>&1 || zfs create $ZPOOL/$D
+    done
 
-        # Be sure the drives are starting fresh.
-        for D in $DISKS; do
-	    echo "Cleaning $D..."
-	    parted -s $D mklabel 2>/dev/null
-        done
-        
-        zpool create -f \
-		-o cachefile=none \
-		$ZPOOL $TYPE $DISKS
-
-        if [ $? -ne 0 ]; then
-            exit -4
-        fi
-	/sbin/udevadm settle
-    else
-        # TODO: we could allow bootflags that will set it up for us
-        # possibly using certain options
-        echo "You need to create a zpool named mistify"
-        echo "Reboot after setting it up"
-        # the init wrapper will exec bash for us
-        exit -3
+    COMPRESSION=$(zfs get compression -Ho value mistify)
+    if [ "$COMPRESSION" = "off" ]; then
+	zfs set compression=lz4 $ZPOOL
     fi
-fi
 
-# Pause until the mistify zpool is imported and mounted
-while [ ! -d /$ZPOOL ]
-do
-	sleep 2
-done
-
-# Create base zfs filesystems and set their properies
-for D in private images guests; do
-    zfs list $ZPOOL/$D > /dev/null 2>&1 || zfs create $ZPOOL/$D
-done
-
-COMPRESSION=$(zfs get compression -Ho value mistify)
-if [ "$COMPRESSION" = "off" ]; then
-    zfs set compression=lz4 $ZPOOL
-fi
-
-QUOTA=$(zfs get quota -Ho value $ZPOOL/private)
-if [ "$QUOTA" = "none" ]; then
-    zfs set quota=4G $ZPOOL/private
+    QUOTA=$(zfs get quota -Ho value $ZPOOL/private)
+    if [ "$QUOTA" = "none" ]; then
+	zfs set quota=4G $ZPOOL/private
+    fi
 fi
