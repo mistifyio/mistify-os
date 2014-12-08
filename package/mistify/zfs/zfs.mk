@@ -12,7 +12,7 @@ ZFS_LICENSE_FILES = OPENSOLARIS.LICENSE
 ZFS_INSTALL_STAGING = YES
 
 ZFS_AUTORECONF = YES
-ZFS_AUTORECONF_OPT = -fiv
+ZFS_AUTORECONF_OPTS = -fiv
 
 ZFS_DEPENDENCIES = linux spl
 
@@ -37,7 +37,7 @@ endef
 
 ZFS_POST_INSTALL_TARGET_HOOKS += ZFS_REMOVE_INIT_SCRIPT
 
-ZFS_CONF_OPT = \
+ZFS_CONF_OPTS = \
     --prefix=/ \
     --includedir=/usr/include \
     --libdir=/lib \
