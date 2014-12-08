@@ -53,9 +53,9 @@ Usage: ./buildmistify [options] [target]
         versions of Buildroot for different projects. This is saved in the file
         $statedir/buildroot.
         [buildroot=`cat $statedir/buildroot`]
-    -t:--buildroottag <tag>
-        Checkout Buildroot using a specific tag. To reset to the master branch
-        use \master\ as the tag name. The tag is saved in the file
+    -t:--buildroottag <tag|branch>
+        Checkout Buildroot using a specific tag or branch name. To reset to the
+        master branch use \master\ as the tag name. The tag is saved in the file
         $statedir/buildroottag.
         [buildroottag=`cat $statedir/buildroottag`]
     -b|--builddir <dir>
@@ -304,14 +304,12 @@ cd $buildrootdir
 if [[ "$buildroottag" == "master" ]]; then
   git checkout master
 else
-  if [[ `git status | grep "HEAD detached" | grep $buildroottag | cut -d' ' -f 4` != "$buildroottag" ]]; then
-    git checkout tags/$buildroottag
-    if [ $? -gt 0 ]; then
-      error "Attempted to checkout Buildroot using an invalid tag: $buildroottag"
-      exit 1
-    fi
-    message "Buildroot synced to tag: $buildroottag"
+  git checkout $buildroottag
+  if [ $? -gt 0 ]; then
+    error "Attempted to checkout Buildroot using an invalid tag: $buildroottag"
+    exit 1
   fi
+  message "Buildroot synced to tag: $buildroottag"
 fi
 cd $projectdir
 
