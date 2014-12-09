@@ -17,6 +17,13 @@ toolchainprefixdefault=x86_64-unknown-linux-gnu
 toolchainbranchdefault="master"
 toolchaintagdefault=
 
+config-toolchain () {
+    cd $1
+    run ./bootstrap
+    run ./configure --enable-local --prefix=$1
+    run make
+}
+
 install-toolchain () {
     #+
     # Determine the location of the toolchain directory.
@@ -166,7 +173,6 @@ install-toolchain () {
     message "Toolchain kernel headers version is: $toolchainkernelheaders"
 
     ctng="./ct-ng"
-    ct_config="./bootstrap && ./configure --enable-local --prefix=$toolchaindir && make"
     tcc=$toolchaindir/.config
 
     if [ -f $tcc ]; then
@@ -189,7 +195,7 @@ install-toolchain () {
     if [[ "$target" == "toolchain-menuconfig" ]]; then
 	cd $toolchaindir
 	if [ ! -f $ctng ]; then
-	    $ct_config
+	    config-toolchain $toolchaindir
 	fi
 	$ctng menuconfig
 	if [[ ! -f $tcconfig || $tcc -nt $tcconfig ]]; then
@@ -221,10 +227,10 @@ install-toolchain () {
     #+
     # Now configure and build the toolchain.
     #-
-    cd $toolchaindir
-    $ct_config
+    config-toolchain $toolchaindir
     cp $tcconfig $tcc
     mkdir -p $TC_LOCAL_TARBALLS_DIR
+    cd $toolchaindir
     $ctng build
     if [ $? -gt 0 ]; then
 	error "The toolchain build failed."
