@@ -11,9 +11,9 @@ zpool list $ZPOOL > /dev/null 2>&1
 
 if [ $? -ne 0 ]; then
     DISKLIST=`lsblk --ascii --noheadings --output type,name,size,model --nodeps | grep ^disk`
-    DISKS=`echo "$DISKLIST" | awk '{print "/dev/"$2}'`
+    DISKDEVS=`echo "$DISKLIST" | awk '{print "/dev/"$2}'`
 
-    ZPOOLCANDIDATES=`echo "$DISKLIST" | awk '{print $1}'`
+    ZPOOLCANDIDATES=`echo "$DISKDEVS" | awk '{print $1}'`
     # Don't use the boot drive.
     for D in $ZPOOLCANDIDATES; do
 	if sfdisk -l $D | grep "\*"; then
@@ -58,9 +58,11 @@ if [ $? -ne 0 ]; then
 	# Be sure the drives are starting fresh.
 	for D in $DISKS; do
 	    echo "Cleaning $D..."
-	    parted -s $D mklabel 2>/dev/null
+	    sgdisk -o $D > /dev/null 2>&1
 	done
-	
+
+	/sbin/udevadm settle
+
 	zpool create -f \
 		-o cachefile=none \
 		$ZPOOL $TYPE $DISKS

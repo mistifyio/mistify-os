@@ -5,29 +5,16 @@
 # The intent is to use a copy of the Buildroot build envirnment for Buildroot 
 # unmodified and using an external project directory.
 #-
-green='\e[0;32m'
-yellow='\e[0;33m'
-red='\e[0;31m'
-blue='\e[0;34m'
-lightblue='\e[1;34m'
-white='\e[1;37m'
-nc='\e[0m'
-prefix="buildmistify"
 
-projectdir=$PWD	# Save this directory for later.
-# Where to maintain buildmistify settings.
-statedir=$projectdir/.buildmistify
 
-#+
-# Defaults
-#-
 #+
 # TODO: buildroottag needs to be updated at release time to use the tag corresponding
 # to the release.
 #-
-buildroottagdefault="master"
-buildrootdirdefault=$PWD/build/buildroot
 bruridefault=git@github.com:mistifyio/buildroot.git
+buildrootdirdefault=$PWD/build/buildroot
+buildrootbranchdefault="master"
+buildroottagdefault=
 
 builddirdefault=$PWD/build/mistify
 downloaddirdefault=$PWD/downloads
@@ -42,22 +29,58 @@ Usage: ./buildmistify [options] [target]
   Buildroot build environment to build Mistify-OS using Buildroot.
   If the Buildroot build environment is not present then it is first cloned from
   the Mistify repository.
+  Buildroot is configured to use an external toolchain. If the external
+  toolchain is not present then it is installed before starting Buildroot.
   Options:
+    ==== external toolchain ====
+    --tcuri <uri>
+        The repository from which to clone Buildroot. This is saved in the file
+        $statedir/tcuri.
+        [tcuri=`cat $statedir/tcuri`]
+    --toolchaindir <dir>
+        Where the toolchain is to be installed and defaults to:
+        <builddir>/toolchain. Using this option simplifies using a single
+        toolchain install for multiple projects OR using different toolchain
+        versions for different projects. This is saved in the file
+        $statedir/toolchaindir.
+        [toolchaindir=`cat $statedir/toolchaindir`]
+    --toolchainprefix <prefix>
+        This is the toolchain prefix to use to select a specific build of the
+        toolchain. This is saved in the file
+        $statedir/toolchainprefix
+        [toolchainprefix=`cat $statedir/toolchainprefix`]
+    --toolchainbranch <label>
+        Checkout the toolchain using a specified branch. NOTE: This option
+        supercedes the --toolchaintag option. The branch name is saved in the
+        file $statedir/toolchainbranch.
+        [toolchainbranch=`cat $statedir/toolchainbranch`]
+    --toolchaintag <tag>
+        Checkout the toolchain using a specific tag. To reset to the master
+        branch use the --toolchainbranch option. The tag is saved in the file
+        $statedir/toolchaintag.
+        [toolchaintag=`cat $statedir/toolchaintag`]
+    ==== buildroot ====
     --bruri <uri>
         The repository from which to clone Buildroot. This is saved in the file
         $statedir/bruri.
         [bruri=`cat $statedir/bruri`]
     --buildroot <dir>
         Where Buildroot is to be installed. Using this option simplifies using a
-        single Buildroot install for multiple projects. OR using different
+        single Buildroot install for multiple projects OR using different
         versions of Buildroot for different projects. This is saved in the file
         $statedir/buildroot.
         [buildroot=`cat $statedir/buildroot`]
+    --buildrootbranch <label>
+        Checkout Buildroot using a specified branch. NOTE: This option
+        supercedes the --buildroottag option. The branch name is saved in the
+        file $statedir/buildrootbranch.
+        [buildrootbranch=`cat $statedir/buildrootbranch`]
     -t:--buildroottag <tag>
         Checkout Buildroot using a specific tag. To reset to the master branch
-        use \master\ as the tag name. The tag is saved in the file
+        use the --buildrootbranch option. The tag is saved in the file
         $statedir/buildroottag.
         [buildroottag=`cat $statedir/buildroottag`]
+    ==== build ====
     -b|--builddir <dir>
         Where to put the build targets and output. This location is saved in the
         file $statedir/builddir.
@@ -68,6 +91,7 @@ Usage: ./buildmistify [options] [target]
         changing one of the other directories.
         WARNING: This overrides the Buildroot configuration option.
         [downloaddir=`cat $statedir/downloaddir`]
+    ==== configuration ====
     -c|--config
         Use this config file. The config file is copied to the build directory
         before running the buildroot make. NOTE: The latest Buildroot from the
@@ -87,17 +111,35 @@ Usage: ./buildmistify [options] [target]
         directory before running the buildroot make. The file name is saved in 
         the file $statedir/bbconfig.
         [bbconfig=`cat $statedir/bbconfig 2>/dev/null || echo \\`]
+    --tcconfig
+        Use this toolchain config file. The config file is copied to the
+        toolchain build directory before running the toolchain build. The file
+        name is saved in the file $statedir/tcconfig.
+        [tcconfig=`cat $statedir/tcconfig 2>/dev/null || echo \\`]
+    ==== other ====
     -l|--logfile
         Use this log file name instead of the generated log file name.
     --viewlog
-        When make returns an error view the log file.
+        If the Buildroot make returns an error then view the log file.
     --test
-        Just testing what will happen with this script. Don't run the make.
+        Just testing what will happen with this script. Don't run the Buildroot
+        make.
     -h|--help
         Display this usage.
+    ==== special targets ====
+    toolchain-menuconfig
+        Run the toolchain configuration utility.
+    menuconfig
+        Run the Buildroot configuration utility.
+    busybox-menuconfig
+        Run the Busybox configuration utility.
+    linux-menuconfig
+        Run the Linux kernel configuration utility.
+
   NOTE: This script maintains state in $statedir.
-  The targets menuconfig and linux-menuconfig exit immediately after exiting the
-  corresponding configuration utilities.
+  The targets toolchain-menuconfig, menuconfig, busybox-menuconfig and
+  linux-menuconfig exit immediately after exiting the corresponding
+  configuration utilities.
   Custom environment variables:
     MISTIFY_DIR = Points to the directory in which buildmistify resides. This
     can then be used in the buildroot config to specify locations of files such
@@ -105,22 +147,8 @@ Usage: ./buildmistify [options] [target]
 EOF
 }
 
-message () {
-    echo -e "$green$prefix$nc: $*"
-}
-
-tip () {
-    echo -e "$green$prefix$nc: $white$*$nc"
-}
-
-warning () {
-    echo -e "$green$prefix$yellow WARNING$nc: $*"
-}
-
-error () {
-    echo -e "$green$prefix$red ERROR$nc: $*"
-}
-
+source scripts/mistify-functions.sh
+source scripts/install-toolchain.sh
 
 #+
 # TODO: Add some quick checks to verify required tools are installed.
@@ -130,14 +158,21 @@ error () {
 # Handle the command line options.
 #-
 a=`getopt -l "\
+tcuri:,\
+toolchaindir:,\
+toolchainprefix:,\
+toolchainbranch:,\
+toolchainroottag:,\
+bruri:,\
+buildroot:,\
+buildrootbranch:,\
+buildroottag:,\
+builddir:,\
 config:,\
 kconfig:,\
 bbconfig:,\
+tcconfig:,\
 test,\
-buildroot:,\
-buildroottag:,\
-builddir:,\
-bruri:,\
 downloaddir:,\
 logfile:,\
 viewlog,\
@@ -157,12 +192,36 @@ while [ $# -ge 1 ]; do
 	    shift
 	    break
 	    ;;
-	--buildroot)
-	    buildrootdir=$2
+	--tcuri)
+	    tcuri=$2
+	    shift
+	    ;;
+	--toolchaindir)
+	    toolchaindir=$2
+	    shift
+	    ;;
+	--toolchainprefix)
+	    toolchainprefix=$2
+	    shift
+	    ;;
+	--toolchainbranch)
+	    toolchainbranch=$2
+	    shift
+	    ;;
+	--toolchaintag)
+	    toolchaintag=$2
 	    shift
 	    ;;
 	--bruri)
 	    bruri=$2
+	    shift
+	    ;;
+	--buildroot)
+	    buildrootdir=$2
+	    shift
+	    ;;
+	--buildrootbranch)
+	    buildrootbranch=$2
 	    shift
 	    ;;
 	-t|--buildroottag)
@@ -187,6 +246,10 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--bbconfig)
 	    busyboxcfg=$2
+	    shift
+	    ;;
+	--tcconfig)
+	    tcconfig=$2
 	    shift
 	    ;;
 	-l|--logfile)
@@ -240,18 +303,6 @@ if [ -z "$buildrootdir" ]; then
 fi
 echo $buildrootdir >$statedir/buildroot
 
-#+
-# Determine the tag to use to sync Buildroot to.
-#-
-if [ -z "$buildroottag" ]; then
-  if [ -f $statedir/buildroottag ]; then
-    buildroottag=`cat $statedir/buildroottag`
-  else
-    buildroottag=$buildroottagdefault
-  fi
-  message "Using Buildroot tag: $buildroottag"
-fi
-echo $buildroottag >$statedir/buildroottag
 
 #+
 # Determine the location of the build directory.
@@ -272,7 +323,7 @@ message "Build output directory is: $builddir"
 echo $builddir >$statedir/builddir
 
 #+
-# Start by fetching the Buildroot build environment.
+# Determine the uri to use to fetch the Buildroot tool.
 #-
 if [ -z "$bruri" ]; then
   if [ -f $statedir/bruri ]; then
@@ -283,6 +334,26 @@ if [ -z "$bruri" ]; then
 fi
 message "The Buildroot repository is: $bruri"
 echo $bruri >$statedir/bruri
+
+#+
+# If the buildrootbranch option is used then ignore the buildroottag option.
+# NOTE: Specifying a branch overrides using a tag.
+#-
+if [ ! -z "$buildrootbranch" ]; then
+  message "Switching to branch: $buildrootbranch"
+  if [ ! -z "$buildroottag" ]; then
+    warning "Ignoring --buildroottag"
+    buildroottag=
+  fi
+  rm -f $statedir/buildroottag
+else
+  if [ -f $statedir/buildrootbranch ]; then
+    buildrootbranch=`cat $statedir/buildrootbranch`
+  else
+    buildrootbranch=$buildrootbranchdefault
+  fi
+fi
+echo $buildrootbranch >$statedir/buildrootbranch
 
 if [ ! -f $buildrootdir/README ]; then
   message 'Fetching Buildroot branch "master" from the Buildroot project repository.'
@@ -296,23 +367,56 @@ if [ ! -f $buildrootdir/README ]; then
     exit 1
   fi
 fi
+cd $buildrootdir
 
 #+
-# Verify using the desired Buildroot version.
+# Determine the tag to use to sync Buildroot to.
+# NOTE: Having branch and tag separate helps avoid an ambiguity which could
+# result in accidentally creating a branch when a tag was intended.
+# NOTE: If buildroottag is set at this point then it wasn't overridden by  
+# specifying a branch.
 #-
-cd $buildrootdir
-if [[ "$buildroottag" == "master" ]]; then
-  git checkout master
+if [ ! -z "$buildroottag" ]; then
+  buildrootbranch=
+  message "Switching to buildroot tag: $buildroottag"
+  echo $buildroottag >$statedir/buildroottag
 else
-  if [[ `git status | grep "HEAD detached" | grep $buildroottag | cut -d' ' -f 4` != "$buildroottag" ]]; then
-    git checkout tags/$buildroottag
-    if [ $? -gt 0 ]; then
-      error "Attempted to checkout Buildroot using an invalid tag: $buildroottag"
-      exit 1
-    fi
-    message "Buildroot synced to tag: $buildroottag"
+  if [ -f $statedir/buildroottag ]; then
+    buildrootbranch=
+    buildroottag=`cat $statedir/buildroottag`
   fi
 fi
+
+#+
+# Verify using the desired Buildroot version. If the branch or tag doesn't exist
+# locally then fetch an update from the repo.
+#-
+if [ ! -z "$buildroottag" ]; then
+  message "Using Buildroot tag: $buildroottag"
+  git tag | grep $buildroottag
+  if [ $? -ne 0 ]; then
+    message "Local tag $buildroottag doesn't exist."
+    message "Fetching update from remote repository."
+    git fetch
+  fi
+  buildrootlabel="tags/$buildroottag"
+else
+  message "Using Buildroot branch: $buildrootbranch"
+  git branch | grep $buildrootbranch
+  if [ $? -ne 0 ]; then
+    message "Local branch $buildrootbranch doesn't exist."
+    message "Fetching update from remote repository."
+    git fetch
+  fi
+  buildrootlabel=$buildrootbranch
+fi
+
+git checkout $buildrootlabel
+if [ $? -ne 0 ]; then
+  error "Attempted to checkout Buildroot using an invalid tag or branch: $buildrootlabel"
+  exit 1
+fi
+message "Buildroot synced to: $buildrootlabel"
 cd $projectdir
 
 #+
@@ -325,7 +429,11 @@ if [ -z "$mistifycfg" ]; then
     mistifycfg=$mistifycfgdefault
   fi
 fi
+
+buildrootkernelheaders=`grep BR2_LINUX_KERNEL_VERSION $mistifycfg | cut -d \" -f 2`
+
 message "The Buildroot config file is: $mistifycfg"
+message "The kernel headers version is: $buildrootkernelheaders"
 
 brc=$builddir/.config
 if [ -f $mistifycfg ]; then
@@ -405,16 +513,12 @@ if [ -f $bbc ]; then
     fi
   else
     if [[ "$target" != "busybox-menuconfig" ]]; then
-      error "The BusyBox config file doesn't exist. Run ./buildmistify busybox-menuconfig."
+      error "The BusyBox config file doesn't exist."
+      message "Run ./buildmistify busybox-menuconfig."
       exit 1
     fi
   fi
 fi
-
-#+
-# Enter the buildroot tree.
-#-
-cd $buildrootdir
 
 #+
 # Setup the downloads directory.
@@ -433,76 +537,91 @@ message "The Buildroot download directory is: $downloaddir"
 message "Project dir: $projectdir"
 
 #+
+# Be sure the toolchain is installed.
+#-
+install-toolchain
+
+#+
+# Enter the buildroot tree.
+#-
+cd $buildrootdir
+
+#+
 # Now run the build.
 #-
 export MISTIFY_DIR=$projectdir
-makecommand="make O=$builddir BR2_DL_DIR=$downloaddir BR2_EXTERNAL=$projectdir $target"
+makecommand="\
+make O=$builddir \
+TOOLCHAIN_PATH=$TC_PREFIX_DIR TOOLCHAIN_PREFIX=$toolchainprefix \
+BR2_DL_DIR=$downloaddir BR2_EXTERNAL=$projectdir \
+BR2_DEFAULT_KERNEL_HEADERS=$buildrootkernelheaders \
+$target"
 
 #+
 # Don't run the build if changing configurations.
 #-
 case "$target" in
-  "menuconfig" | "nconfig")
-    $makecommand
-    if [[ ! -f $mistifycfg || $brc -nt $mistifycfg ]]; then
-    #+
-    # NOTE: The buildroot config option BR2_DEFCONFIG
-    # needs to point to the config file so that buildroot will copy the correct
-    # file on the first build.
-    #-
-      cp $brc $mistifycfg
-      if [ $? -gt 0 ]; then
-        error "Failed to save $mistifycfg"
-        exit 1
-      fi
-      tip "Use $0 to build Mistify using the new configuration."
-      message "New config file at $brc saved to $mistifycfg"
-    fi
-    exit
-    ;;
-  "xconfig" | "gconfig")
-    error "Configuration tool $target is not supported."
-    exit 1
-    ;;
-  "linux-menuconfig")
-    #+
-    # NOTE: The buildroot config option BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE
-    # needs to point to the config file so that buildroot will copy the correct
-    # file on the first build.
-    #-
-    $makecommand
-    if [[ ! -f $kernelcfg || $brkc -nt $kernelcfg ]]; then
-      cp $brkc $kernelcfg
-      if [ $? -gt 0 ]; then
-        error "Failed to save $kernelcfg"
-        exit 1
-      fi
-      tip "Use $0 to build Mistify using the new configuration."
-      message "New kernel config file at $brkc saved to $kernelcfg"
-    fi
-    exit
-    ;;
-  "busybox-menuconfig")
-    #+
-    # NOTE: The buildroot config option BR2_PACKAGE_BUSYBOX_CONFIG
-    # needs to point to the config file so that buildroot will copy the correct
-    # file on the first build.
-    #-
-    $makecommand
-    # NOTE: May want to use grep instead of a timestamp compare.
-    if [[ ! -f $busyboxcfg || $bbc -nt $busyboxcfg ]]; then
-      cp $bbc $busyboxcfg
-      if [ $? -gt 0 ]; then
-        error "Failed to save $busyboxcfg"
-        exit 1
-      fi
-      tip "Use $0 to build Mistify using the new configuration."
-      message "New BusyBox config file $bbc saved to $busyboxcfg"
-    fi
-    exit
-    ;;
-  *)
-    ;;
+    "menuconfig" | "nconfig")
+	$makecommand
+	if [[ ! -f $mistifycfg || $brc -nt $mistifycfg ]]; then
+	    #+
+	    # NOTE: The buildroot config option BR2_DEFCONFIG
+	    # needs to point to the config file so that buildroot will copy the correct
+	    # file on the first build.
+	    #-
+	    cp $brc $mistifycfg
+	    if [ $? -gt 0 ]; then
+		error "Failed to save $mistifycfg"
+		exit 1
+	    fi
+	    tip "Use $0 to build Mistify using the new configuration."
+	    message "New config file at $brc saved to $mistifycfg"
+	fi
+	exit
+	;;
+    "xconfig" | "gconfig")
+	error "Configuration tool $target is not supported."
+	exit 1
+	;;
+    "linux-menuconfig")
+	#+
+	# NOTE: The buildroot config option BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE
+	# needs to point to the config file so that buildroot will copy the correct
+	# file on the first build.
+	#-
+	$makecommand
+	if [[ ! -f $kernelcfg || $brkc -nt $kernelcfg ]]; then
+	    cp $brkc $kernelcfg
+	    if [ $? -gt 0 ]; then
+		error "Failed to save $kernelcfg"
+		exit 1
+	    fi
+	    tip "Use $0 to build Mistify using the new configuration."
+	    message "New kernel config file at $brkc saved to $kernelcfg"
+	fi
+	exit
+	;;
+    "busybox-menuconfig")
+	#+
+	# NOTE: The buildroot config option BR2_PACKAGE_BUSYBOX_CONFIG
+	# needs to point to the config file so that buildroot will copy the correct
+	# file on the first build.
+	#-
+	$makecommand
+	# NOTE: May want to use grep instead of a timestamp compare.
+	if [[ ! -f $busyboxcfg || $bbc -nt $busyboxcfg ]]; then
+	    cp $bbc $busyboxcfg
+	    if [ $? -gt 0 ]; then
+		error "Failed to save $busyboxcfg"
+		exit 1
+	    fi
+	    tip "Use $0 to build Mistify using the new configuration."
+	    message "New BusyBox config file $bbc saved to $busyboxcfg"
+	fi
+	exit
+	;;
+    *)
+	;;
 esac
 
 #+

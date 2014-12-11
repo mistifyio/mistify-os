@@ -9,7 +9,6 @@ AUFS_SITE = git://git.code.sf.net/p/aufs/aufs3-standalone
 AUFS_LICENSE = GPLv2
 AUFS_LICENSE_FILES = COPYING
 AUFS_DEPENDENCIES += linux-headers
-AUFS_DEPENDENCIES += glibc
 
 define AUFS_CREATE_SERIES
 	printf "aufs3-kbuild.patch\naufs3-base.patch\naufs3-mmap.patch\n" \
@@ -33,13 +32,21 @@ define AUFS_HEADERS_INSTALL_STAGING_CMDS
 		HOSTCFLAGS="$(HOSTCFLAGS)" \
 		HOSTCXX="$(HOSTCXX)" \
 		INSTALL_HDR_PATH=$(STAGING_DIR)/usr \
-		headers_install) ; \
-	cp $(GLIBC_DIR)/sysdeps/unix/sysv/linux/scsi/* \
+		headers_install)
+endef
+
+#+
+# The install of the kernel headers removes some header files which are installed
+# with glibc. Restore them.
+#-
+define AUFS_FIX_USR_INCLUDE
+	cp -r $(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)/sysroot/usr/include/scsi/* \
 		$(STAGING_DIR)/usr/include/scsi/
 endef
 
 AUFS_POST_BUILD_HOOKS += AUFS_CREATE_SERIES
 AUFS_POST_BUILD_HOOKS += AUFS_INSTALL_HEADERS
 AUFS_POST_BUILD_HOOKS += AUFS_HEADERS_INSTALL_STAGING_CMDS
+AUFS_POST_BUILD_HOOKS += AUFS_FIX_USR_INCLUDE
 
 $(eval $(generic-package))

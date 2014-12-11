@@ -13,7 +13,7 @@ SPL_INSTALL_STAGING = YES
 
 SPL_DEPENDENCIES = linux
 
-SPL_CONF_OPT = \
+SPL_CONF_OPTS = \
     --prefix=/ \
     --libdir=/lib \
     --includedir=/usr/include \
@@ -22,7 +22,7 @@ SPL_CONF_OPT = \
     --with-linux-obj=$(LINUX_DIR)
 
 SPL_AUTORECONF = YES
-SPL_AUTORECONF_OPT = -fiv
+SPL_AUTORECONF_OPTS = -fiv
 
 SPL_MAKE = $(MAKE1)
 

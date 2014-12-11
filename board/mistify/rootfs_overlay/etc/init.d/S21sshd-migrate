@@ -1,0 +1,29 @@
+#!/bin/sh
+
+declare -a SSH_FILES=(
+    moduli
+    sshd_config
+    ssh_config
+    ssh_host_dsa_key
+    ssh_host_dsa_key.pub
+    ssh_host_ecdsa_key
+    ssh_host_ecdsa_key.pub
+    ssh_host_ed25519_key
+    ssh_host_ed25519_key.pub
+    ssh_host_key
+    ssh_host_key.pub
+    ssh_host_rsa_key
+    ssh_host_rsa_key.pub
+)
+
+if [ ! -d /etc/ssh ]; then
+    mkdir /etc/ssh
+    chown root:root /etc/ssh
+    chmod 775 /etc/ssh
+fi
+
+for D in ${SSH_FILES[@]}; do
+    test -f /etc/$D && mv /etc/$D /etc/ssh/$D
+done
+
+exit 0
