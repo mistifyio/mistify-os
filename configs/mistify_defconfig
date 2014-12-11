@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2014.11-00022-g303632c Configuration
+# Buildroot 2014.11-g271c79b Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 
@@ -237,7 +237,6 @@ BR2_ROOTFS_POST_SCRIPT_ARGS=""
 #
 BR2_LINUX_KERNEL=y
 # BR2_LINUX_KERNEL_LATEST_VERSION is not set
-# BR2_LINUX_KERNEL_SAME_AS_HEADERS is not set
 BR2_LINUX_KERNEL_CUSTOM_VERSION=y
 # BR2_LINUX_KERNEL_CUSTOM_TARBALL is not set
 # BR2_LINUX_KERNEL_CUSTOM_GIT is not set
