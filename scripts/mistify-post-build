@@ -21,7 +21,7 @@
 # recopied to this directory by a package install or from the rootfs
 # overlay it is possible that the older version of the script will be used.
 #-
-scriptlist="kmod udev hostid init-zpools zfs aufs acpid"
+scriptlist="kmod hostid init-zpools zfs aufs"
 #+
 # This is the list of inittab entries which are disabled.
 #-
@@ -136,3 +136,12 @@ for p in $inittablist; do
 done
 sed -e "$pattern" -i $targetdir/etc/inittab
 
+#
+# Install a symlink for /sbin/getty that points to /sbin/agetty.
+# A lot of things expect /sbin/getty to be present.
+#
+if [ ! -f $targetdir/sbin/getty ]; then
+  if [ -x $targetdir/sbin/agetty ]; then
+    (cd $targetdir/sbin && ln -s agetty getty)
+  fi
+fi
