@@ -4,4 +4,4 @@ downloads
 *.iso
 .vagrant
 toolchain
-
+*.swp

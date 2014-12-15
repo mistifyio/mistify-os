@@ -2,4 +2,4 @@
 Name=eno*
 
 [Network]
-DHCP=yes
+DHCP=v4
