@@ -145,3 +145,18 @@ if [ ! -f $targetdir/sbin/getty ]; then
     (cd $targetdir/sbin && ln -s agetty getty)
   fi
 fi
+
+#
+# Ensure /var/lock/subsys exists
+#
+if [ ! -d $targetdir/var/lock/subsys ]; then
+  mkdir -p $targetdir/var/lock/subsys
+fi
+
+#
+# Ensure /var/tmp is a directory and not a symlink
+#
+if [ ! -d $targetdir/var/tmp ]; then
+  rm -f $targetdir/var/tmp
+  mkdir -p $targetdir/var/tmp
+fi
