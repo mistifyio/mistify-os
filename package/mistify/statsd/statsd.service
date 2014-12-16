@@ -4,7 +4,6 @@ After=syslog.target network.target
 
 [Service]
 EnvironmentFile=/etc/sysconfig/statsd
-Type=forking
 ExecStart=/usr/bin/node $STATSD_ARGS
 
 [Install]
