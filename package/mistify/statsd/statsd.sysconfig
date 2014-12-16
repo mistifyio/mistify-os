@@ -1,0 +1,1 @@
+STATSD_ARGS="/usr/share/statsd/stats.js /etc/statsd/Config.js"
