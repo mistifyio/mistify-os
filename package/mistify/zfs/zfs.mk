@@ -38,7 +38,7 @@ endef
 define ZFS_INSTALL_MOUNT_SYMLINK
 	# zfs installs mount.zfs to /usr/sbin, when it really should be in /sbin
 	# so that mount(1M) can find it.
-	ln -fs /sbin/mount.zfs $(TARGET_DIR)/usr/sbin/mount.zfs
+	(cd $(TARGET_DIR)/sbin && ln -fs ../usr/sbin/mount.zfs .)
 endef
 
 define ZFS_INSTALL_INIT_SYSTEMD
