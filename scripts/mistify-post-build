@@ -21,7 +21,7 @@
 # recopied to this directory by a package install or from the rootfs
 # overlay it is possible that the older version of the script will be used.
 #-
-scriptlist="hostid init-zpools zfs aufs"
+scriptlist=""
 #+
 # This is the list of inittab entries which are disabled.
 #-
