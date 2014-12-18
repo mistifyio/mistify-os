@@ -1,15 +1,13 @@
 #!/bin/bash
-cd /tmp
-
-sleep 5
 
 ZPOOL=mistify
 
-zpool import -f $ZPOOL > /dev/null 2>&1 || echo "Mistify zpool is not present"
+zpool import -f $ZPOOL > /dev/null 2>&1
 
 zpool list $ZPOOL > /dev/null 2>&1
 
 if [ $? -ne 0 ]; then
+    echo "Mistify zpool is not present"
     DISKLIST=`lsblk --ascii --noheadings --output type,name,size,model --nodeps | grep ^disk`
     DISKDEVS=`echo "$DISKLIST" | awk '{print "/dev/"$2}'`
 
@@ -61,7 +59,7 @@ if [ $? -ne 0 ]; then
 	    sgdisk -o $D > /dev/null 2>&1
 	done
 
-	/sbin/udevadm settle
+	udevadm settle
 
 	zpool create -f \
 		-o cachefile=none \
@@ -70,7 +68,7 @@ if [ $? -ne 0 ]; then
 	if [ $? -ne 0 ]; then
 	    exit -4
 	fi
-	/sbin/udevadm settle
+	udevadm settle
     else
 	# TODO: we could allow bootflags that will set it up for us
 	# possibly using certain options

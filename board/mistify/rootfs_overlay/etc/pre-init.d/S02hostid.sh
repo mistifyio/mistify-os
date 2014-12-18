@@ -4,7 +4,11 @@
 
 . /lib/lsb/init-functions
 
-uuid_file=/sys/class/dmi/id/product_uuid
+if [ -f /sys/class/dmi/id/product_uuid ]; then
+  uuid_file=/sys/class/dmi/id/product_uuid
+else
+  uuid_file=`uuidgen`
+fi
 
 if [ -f $uuid_file ]; then
   uuid=`cat $uuid_file | tr '[:upper:]' '[:lower:]'`
