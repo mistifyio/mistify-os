@@ -1,6 +1,5 @@
 config BR2_PACKAGE_MISTIFY_AGENT_IMAGE
         bool "mistify-agent-image"
-        select BR2_PACKAGE_HOST_GO
         select BR2_PACKAGE_MISTIFY_AGENT
         help
           The Mistify Image Sub-Agent

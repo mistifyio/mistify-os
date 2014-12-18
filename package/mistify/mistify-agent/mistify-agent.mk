@@ -18,7 +18,7 @@ define MISTIFY_AGENT_BUILD_CMDS
 	mkdir -p $(GOPATH)/src/github.com/mistifyio/mistify-agent
 	rsync -av --exclude .git $(@D)/* $(GOPATH)/src/github.com/mistifyio/mistify-agent/
 	GOROOT=$(GOROOT) \
-	PATH=$(PATH):$(GOROOT)/bin \
+	PATH=$(GOROOT)/bin:$(PATH) \
         GOPATH=$(GOPATH) make install DESTDIR=$(TARGET_DIR) \
           -C $(GOPATH)/src/github.com/mistifyio/mistify-agent
     $(INSTALL) -m 755 -D $(BR2_EXTERNAL)/package/mistify/mistify-agent/run \

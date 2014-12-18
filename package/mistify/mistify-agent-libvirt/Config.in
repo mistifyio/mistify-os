@@ -1,6 +1,5 @@
 config BR2_PACKAGE_MISTIFY_AGENT_LIBVIRT
         bool "mistify-agent-libvirt"
-        select BR2_PACKAGE_HOST_GO
         select BR2_PACKAGE_RUNIT
         select BR2_PACKAGE_LIBVIRT
          select BR2_PACKAGE_MISTIFY_AGENT
