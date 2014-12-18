@@ -59,6 +59,15 @@ Usage: ./buildmistify [options] [target]
         branch use the --toolchainbranch option. The tag is saved in the file
         $statedir/toolchaintag.
         [toolchaintag=`cat $statedir/toolchaintag`]
+    ==== go ====
+    --gouri <uri>
+        The repository from which to clone the GO source code. This is saved in
+        the file $statedir/gouri.
+        [gouri=`cat $statedir/gouri`]
+    --godir <dir>
+        Where the GO source code is cloned to before building. This is saved in
+        the file $statedir/godir.
+        [godir=`cat $statedir/godir`]
     ==== buildroot ====
     --bruri <uri>
         The repository from which to clone Buildroot. This is saved in the file
@@ -149,6 +158,7 @@ EOF
 
 source scripts/mistify-functions.sh
 source scripts/install-toolchain.sh
+source scripts/install-go.sh
 
 #+
 # TODO: Add some quick checks to verify required tools are installed.
@@ -163,6 +173,8 @@ toolchaindir:,\
 toolchainprefix:,\
 toolchainbranch:,\
 toolchainroottag:,\
+gouri:,\
+godir:,\
 bruri:,\
 buildroot:,\
 buildrootbranch:,\
@@ -210,6 +222,14 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--toolchaintag)
 	    toolchaintag=$2
+	    shift
+	    ;;
+	--gouri)
+	    gouri=$2
+	    shift
+	    ;;
+	--godir)
+	    godir=$2
 	    shift
 	    ;;
 	--bruri)
@@ -540,6 +560,7 @@ message "Project dir: $projectdir"
 # Be sure the toolchain is installed.
 #-
 install-toolchain
+install-go
 
 #+
 # Enter the buildroot tree.
@@ -555,6 +576,7 @@ make O=$builddir \
 TOOLCHAIN_PATH=$TC_PREFIX_DIR TOOLCHAIN_PREFIX=$toolchainprefix \
 BR2_DL_DIR=$downloaddir BR2_EXTERNAL=$projectdir \
 BR2_DEFAULT_KERNEL_HEADERS=$buildrootkernelheaders \
+GOROOT=$GOROOT \
 $target"
 
 #+
