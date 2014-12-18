@@ -4,4 +4,5 @@ downloads
 *.iso
 .vagrant
 toolchain
+go
 
