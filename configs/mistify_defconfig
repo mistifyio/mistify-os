@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2014.11-g271c79b Configuration
+# Buildroot 2014.11-g6cf5fea Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 
@@ -336,7 +336,7 @@ BR2_PACKAGE_GOOGLE_BREAKPAD_ARCH_SUPPORTS=y
 # BR2_PACKAGE_GOOGLE_BREAKPAD is not set
 # BR2_PACKAGE_IOZONE is not set
 # BR2_PACKAGE_KEXEC is not set
-# BR2_PACKAGE_KTAP is not set
+BR2_PACKAGE_KTAP=y
 # BR2_PACKAGE_LATENCYTOP is not set
 # BR2_PACKAGE_LMBENCH is not set
 BR2_PACKAGE_LSOF=y
@@ -991,7 +991,8 @@ BR2_PACKAGE_LIBPCAP=y
 # BR2_PACKAGE_CLAPACK is not set
 # BR2_PACKAGE_CPPCMS is not set
 # BR2_PACKAGE_EIGEN is not set
-# BR2_PACKAGE_ELFUTILS is not set
+BR2_PACKAGE_ELFUTILS=y
+BR2_PACKAGE_ELFUTILS_PROGS=y
 # BR2_PACKAGE_FFTW is not set
 # BR2_PACKAGE_FLANN is not set
 # BR2_PACKAGE_GLIBMM is not set
