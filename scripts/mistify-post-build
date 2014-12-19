@@ -1,11 +1,7 @@
 #!/bin/bash
 
-#+
+
 # This script runs following a build of the target file system, $(TARGET_DIR).
-# At the moment its primary purpose is to re-order key init scripts which are
-# named by the individual packages. The ordering assumed by the packages doesn't
-# suite the needs of Mistify-OS. Using this script avoids having to modify
-# packages to suite Mistify-OS.
 #
 # NOTE: In order for this script to execute the defconfig must point to it.
 # For more information see: 
@@ -13,128 +9,7 @@
 # TODO: Maybe move the lists to a config file?
 #-
 
-#+
-# This is the correct order of the init scripts. Scripts not in this list
-# are not affected.
-#
-# WARNING: When this list is re-ordered and a low numbered init script is
-# recopied to this directory by a package install or from the rootfs
-# overlay it is possible that the older version of the script will be used.
-#-
-scriptlist=""
-#+
-# This is the list of inittab entries which are disabled.
-#-
-inittablist="sysl klog sklo ssys"
-
-
-
-
-green='\e[0;32m'
-yellow='\e[0;33m'
-red='\e[0;31m'
-blue='\e[0;34m'
-lightblue='\e[1;34m'
-white='\e[1;37m'
-nc='\e[0m'
-id=$(basename $0)
-
-message () {
-    echo -e "$green$id$nc: $*"
-}
-
-tip () {
-    echo -e "$green$id$nc: $white$*$nc"
-}
-
-warning () {
-    echo -e "$green$id$yellow WARNING$nc: $*"
-}
-
-error () {
-    echo -e "$green$id$red ERROR$nc: $*"
-}
-
 targetdir=$1
-cd $targetdir/etc/init.d
-init_n=2
-top=100
-increment=2
-
-message "Initial init file list."
-ls -l --color
-
-for script in $scriptlist; do
-  init_prefix=`printf "S%0*d" 2 $init_n`
-  #+
-  # Buildroot copies the rootfs overlay before running this script which can
-  # produce duplicates with the same name but different prefixes. Remove the
-  # previous one and use the version from the overlay in this case.
-  # This same situation can also occur if a package which installs an init
-  # script is rebuilt.
-  #+
-  if ! stat -f S*$script >/dev/null 2>&1; then
-    error "Init script for $script doesn't exist."
-    exit 1
-  fi
-  if (( `ls S*$script | wc -w` > 1 )); then
-    t=`ls S*$script`
-    f=`echo $t | cut -d ' ' -f 1`
-    # WARNING: This test could do the wrong thing if the sequence in scriptlist
-    # has changed. Some things just have to be dealt with manually.
-    if [ "$f" != "$init_prefix$script" ]; then
-      f=$init_prefix$script
-    fi
-    message "Removing $f"
-    rm $f
-  fi
-  if [ ! -f $init_prefix$script ]; then
-    message Renaming S*$script to $init_prefix$script
-    mv S*$script $init_prefix$script
-  fi
-  #+
-  # Files may have symlinks for shutdown. e.g. cleanly unmounting file systems.
-  # These should be executed in the an order opposite of their start sequence.
-  #
-  # WARNING: The unwritten rule here is the shutdown should be a symlink pointing
-  # to the init script and the init script needs to support the start, stop and
-  # restart options.
-  #-
-  if (( `ls K*$script 2>/dev/null | wc -w` > 0 )); then
-    for f in `ls K*$script`; do
-      # When the rootfs overlay is copied again it is possible another symlink
-      # can appear. Remove them all.
-      if [ -h $f ]; then
-        message "Removing symlink: $f"
-        rm $f
-      else
-        error "`ls K*$script` is not a symbolic link."
-        ls -l K*$script
-        exit 1
-      fi
-    done
-    n=$((top-init_n))
-    stop_prefix=`printf "K%0*d" 2 $n`
-    ln -sf $init_prefix$script $stop_prefix$script
-    message "Updating symlink: $stop_prefix$script -> $init_prefix$script"
-  fi
-
-  init_n=$((init_n+increment))
-done
-
-message "Init scripts reordered to:"
-ls -l --color
-
-#+
-# The next problem for this script is the inittab starts syslogd and klogd.
-# This is also done by S*logging producing two instances. We want the init script
-# to start them -- not init from inittab.
-#-
-pattern=''
-for p in $inittablist; do
-  pattern="$pattern/$p/ s/^#*/#/;"
-done
-sed -e "$pattern" -i $targetdir/etc/inittab
 
 #
 # Install a symlink for /sbin/getty that points to /sbin/agetty.
@@ -159,4 +34,19 @@ fi
 if [ ! -d $targetdir/var/tmp ]; then
   rm -f $targetdir/var/tmp
   mkdir -p $targetdir/var/tmp
+fi
+
+#
+# Ensure /run is a directory and not a symlink
+#
+if [ ! -d $targetdir/run ]; then
+  rm -f $targetdir/run
+  mkdir -p $targetdir/run
+fi
+
+#
+# Clean out the /src directory
+#
+if [ -d $targetdir/src ]; then
+  rm -rf $targetdir/src
 fi
