@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-. /lib/lsb/init-functions
-
 declare -a OVERLAYS=(
     etc
     var
@@ -18,30 +16,11 @@ mount_aufs () {
 		[ -d /mistify/private/$D ] || mkdir /mistify/private/$D
 		chmod $mode /mistify/private/$D
 
-		log_action_msg "Mounting AUFS filesystem /$D"
+		echo "Mounting AUFS filesystem /$D"
 		mount -t aufs -o br:/mistify/private/$D:/$D=ro none $D
 	done
 }
 
-# Unmount AUFS filesystems
-umount_aufs () {
-	for D in ${OVERLAYS[@]}; do
-		log_action_msg "Unmounting AUFS filesystem /$D"
-		umount /$D
-	done
-}
-
-case "$1" in
-	start)
-		mount_aufs
-	;;
-
-	stop)
-		umount_aufs
-	;;
-	*)
-		echo "Usage: $0 {start|stop}"
-		exit 1
-esac
+mount_aufs
 
 exit 0

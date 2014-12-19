@@ -18,11 +18,11 @@ exec 2>/dev/console
 /bin/udevadm trigger
 /bin/udevadm settle
 
-/etc/pre-init.d/S02hostid.sh
+/etc/pre-init.d/gen-hostid.sh
 
-/etc/pre-init.d/S15init-zpools.sh 
+/etc/pre-init.d/init-zpools.sh 
 
-/etc/pre-init.d/S16aufs.sh start
+/etc/pre-init.d/mount-aufs.sh
 
 if [ -f /etc/machine-id ]; then
   cp /etc/machine-id /tmp
