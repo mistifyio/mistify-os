@@ -1,5 +1,0 @@
-#!/bin/sh
-set -e
-exec 2>&1
-mkdir -p /mistify/private/var/log/mistify-agent
-exec svlogd /mistify/private/var/log/mistify-agent

@@ -1,0 +1,13 @@
+[Unit]
+Description=Mistify Core Agent
+After=syslog.target network.target openvswitch-nonetwork.service zfs.target libvirtd.service libvirt-guests.service
+Requires=libvirtd.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/sysconfig/mistify-agent
+ExecStart=/opt/mistify/sbin/mistify-agent $OPTIONS
+LimitNOFILE=32768
+
+[Install]
+WantedBy=multi-user.target
