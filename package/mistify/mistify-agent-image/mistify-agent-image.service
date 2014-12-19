@@ -1,0 +1,13 @@
+[Unit]
+Description=Mistify Image Sub-agent
+After=syslog.target network.target openvswitch-nonetwork.service zfs.target libvirtd.service libvirt-guests.service mistify-agent.service
+Requires=mistify-agent.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/sysconfig/mistify-agent-image
+ExecStart=/opt/mistify/sbin/mistify-agent-image $OPTIONS
+LimitNOFILE=32768
+
+[Install]
+WantedBy=multi-user.target

@@ -1,7 +1,0 @@
-#!/bin/sh
-set -e
-exec 2>&1
-ulimit -n 32768
-exec /opt/mistify/sbin/mistify-agent-image -p 16000 -z mistify
-
-
