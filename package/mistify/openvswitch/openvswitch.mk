@@ -26,17 +26,18 @@ LIB_EXTERNAL_LIBS += libatomic.so*
 #	OPENVSWITCH_CONF_OPT += --with-openssl=$(STAGING_DIR)
 # endif
 
-define OPENVSWITCH_INSTALL_INIT_SYSV
- 	$(INSTALL) -m 755 -D \
-		$(BR2_EXTERNAL)/package/mistify/openvswitch/S59openvswitch-vtep \
- 		$(TARGET_DIR)/etc/init.d/S59openvswitch-vtep
- 	$(INSTALL) -m 755 -D \
-		$(BR2_EXTERNAL)/package/mistify/openvswitch/S60openvswitch-switch \
- 		$(TARGET_DIR)/etc/init.d/S60openvswitch-switch
- 	$(INSTALL) -m 755 -D \
-		$(BR2_EXTERNAL)/package/mistify/openvswitch/S61openvswitch-ipsec \
- 		$(TARGET_DIR)/etc/init.d/S61openvswitch-ipsec
+define OPENVSWITCH_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -m 644 -D $(OPENVSWITCH_DIR)/rhel/usr_lib_systemd_system_openvswitch-nonetwork.service \
+		$(TARGET_DIR)/etc/systemd/system/openvswitch-nonetwork.service
 
+	$(INSTALL) -m 644 -D $(OPENVSWITCH_DIR)/rhel/usr_lib_systemd_system_openvswitch.service \
+		$(TARGET_DIR)/etc/systemd/system/openvswitch.service
+
+	ln -sf ../openvswitch-nonetwork.service \
+		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/openvswitch-nonetwork.service
+
+	ln -sf ../openvswitch.service \
+		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/openvswitch.service
 endef
 
 define OPENVSWITCH_INSTALL_STUFF
@@ -45,18 +46,6 @@ define OPENVSWITCH_INSTALL_STUFF
 
 	test -d $(TARGET_DIR)/var/log/openvswitch || \
 		$(MKDIR) -p $(TARGET_DIR)/var/log/openvswitch
-
-	test -s $(TARGET_DIR)/etc/init.d/K50openvswitch-ipsec || \
-		(cd $(TARGET_DIR)/etc/init.d && ln -s ./S61openvswitch-ipsec \
-			K50openvswitch-ipsec)
-
-	test -s $(TARGET_DIR)/etc/init.d/K51openvswitch-swtitch || \
-		(cd $(TARGET_DIR)/etc/init.d && ln -s ./S60openvswitch-switch \
-			K51openvswitch-switch)
-
-	test -s $(TARGET_DIR)/etc/init.d/K52openvswitch-vtep || \
-		(cd $(TARGET_DIR)/etc/init.d && ln -s ./S59openvswitch-vtep \
-			K52openvswitch-vtep)
 endef
 
 OPENVSWITCH_POST_INSTALL_TARGET_HOOKS = OPENVSWITCH_INSTALL_STUFF

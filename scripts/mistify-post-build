@@ -29,29 +29,6 @@ if [ -d $targetdir/etc/init.d ]; then
 fi
 
 #
-# Ensure /var/lock/subsys exists
-#
-if [ ! -d $targetdir/var/lock/subsys ]; then
-  mkdir -p $targetdir/var/lock/subsys
-fi
-
-#
-# Ensure /var/tmp is a directory and not a symlink
-#
-if [ ! -d $targetdir/var/tmp ]; then
-  rm -f $targetdir/var/tmp
-  mkdir -p $targetdir/var/tmp
-fi
-
-#
-# Ensure /run is a directory and not a symlink
-#
-if [ ! -d $targetdir/run ]; then
-  rm -f $targetdir/run
-  mkdir -p $targetdir/run
-fi
-
-#
 # Clean out the /src directory
 #
 if [ -d $targetdir/src ]; then
