@@ -57,3 +57,8 @@ fi
 if [ -d $targetdir/src ]; then
   rm -rf $targetdir/src
 fi
+
+#
+# Create a missing symlink for the UTC timezone
+#
+ln -sf Etc/UTC $targetdir/usr/share/zoneinfo/UTC
