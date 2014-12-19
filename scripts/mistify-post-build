@@ -22,6 +22,13 @@ if [ ! -f $targetdir/sbin/getty ]; then
 fi
 
 #
+# Remove /etc/init.d
+#
+if [ -d $targetdir/etc/init.d ]; then
+  rm -rf $targetdir/etc/init.d
+fi
+
+#
 # Ensure /var/lock/subsys exists
 #
 if [ ! -d $targetdir/var/lock/subsys ]; then
