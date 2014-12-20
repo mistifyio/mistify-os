@@ -9,7 +9,10 @@ OPENVSWITCH_SITE = http://openvswitch.org/releases/
 OPENVSWITCH_DEPENDENCIES += iproute2 vtun
 OPENVSWITCH_DEPENDENCIES += iproute2
 OPENVSWITCH_DEPENDENCIES += vtun
+OPENVSWITCH_DEPENDENCIES += python
+OPENVSWITCH_DEPENDENCIES += host-python
 OPENVSWITCH_LICENSE = Apache-2.0
+OPENVSWITCH_CONF_ENV += PYTHON=/usr/bin/python
 OPENVSWITCH_CONF_OPTS = \
 		--with-linux=$(LINUX_DIR) \
 		--with-linux-source=$(LINUX_DIR) \
