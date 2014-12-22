@@ -31,4 +31,14 @@ define STATSD_INSTALL_TARGET_CMDS
 	  $(TARGET_DIR)/etc/statsd/Config.js
 endef
 
+define STATSD_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/statsd/statsd.service \
+		$(TARGET_DIR)/etc/systemd/system/statsd.service
+	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/statsd/statsd.sysconfig \
+		$(TARGET_DIR)/etc/sysconfig/statsd
+	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
+	ln -fs ../statsd.service \
+		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/statsd.service
+endef
+
 $(eval $(generic-package))

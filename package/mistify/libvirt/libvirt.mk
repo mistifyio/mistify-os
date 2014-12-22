@@ -9,29 +9,36 @@ LIBVIRT_SOURCE        = libvirt-$(LIBVIRT_VERSION).tar.gz
 LIBVIRT_SITE          = http://libvirt.org/sources/
 LIBVIRT_LICENSE       = GPLv2 LGPLv2.1
 LIBVIRT_LICENSE_FILES = COPYING COPYING.LESSER
-LIBVIRT_DEPENDENCIES  = host-pkgconf lvm2 libnl libxml2 yajl libpciaccess
-HOST_LIBVIRT_DEPENDENCIES = host-pkgconf host-libxml2 host-hlibnl host-hyajl host-lvm2
+LIBVIRT_DEPENDENCIES  = host-pkgconf lvm2 libnl libxml2 yajl libpciaccess systemd iptables ebtables
+HOST_LIBVIRT_DEPENDENCIES = host-pkgconf host-libxml2 host-hlibnl host-hyajl host-lvm2 systemd iptables ebtables
 
-define LIBVIRT_INSTALL_INIT_SYSV
-	$(INSTALL) -m 755 -D \
-		$(BR2_EXTERNAL)/package/mistify/libvirt/libvirt-bin.init \
-	$(TARGET_DIR)/etc/init.d/S65libvirt-bin
+LIBVIRT_CONF_ENV += IPTABLES_PATH=/usr/sbin/iptables
+LIBVIRT_CONF_ENV += IP6TABLES_PATH=/usr/sbin/ip6tables
+
+HOST_LIBVIRT_CONF_ENV += IPTABLES_PATH=/usr/sbin/iptables
+HOST_LIBVIRT_CONF_ENV += IP6TABLES_PATH=/usr/sbin/ip6tables
+
+LIBVIRT_CONF_OPTS += --with-init-script=systemd
+HOST_LIBVIRT_CONF_OPTS += --with-init-script=systemd
+
+define LIBVIRT_INSTALL_SYSCONFIG
+	mkdir -p $(TARGET_DIR)/etc/sysconfig
+	$(INSTALL) -D -m 644 \
+		$(BR2_EXTERNAL)/package/mistify/libvirt/libvirtd.sysconfig \
+		$(TARGET_DIR)/etc/sysconfig/libvirtd
 endef
 
-define LIBVIRT_INSTALL_DEFAULTS
-	$(INSTALL) -m 644 -D \
-		$(BR2_EXTERNAL)/package/mistify/libvirt/libvirt-bin.defaults \
-		$(TARGET_DIR)/etc/default/libvirt-bin
+define LIBVIRT_INSTALL_INIT_SYSTEMD
+	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
+	ln -fs /usr/lib/systemd/system/libvirtd.service \
+		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/libvirtd.service
+	ln -fs /usr/lib/systemd/system/libvirt-guests.service \
+		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/libvirt-guests.service
+	ln -fs /usr/lib/systemd/system/virtlockd.service \
+		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/virtlockd.service
 endef
 
-define LIBVIRT_INSTALL_STOPSCRIPT
-	test -s $(TARGET_DIR)/etc/init.d/K40libvirt-bin || \
-		(cd $(TARGET_DIR)/etc/init.d && ln -s ./S65libvirt-bin \
-			K40libvirt-bin)
-endef
-
-LIBVIRT_POST_INSTALL_TARGET_HOOKS += LIBVIRT_INSTALL_DEFAULTS
-LIBVIRT_POST_INSTALL_TARGET_HOOKS += LIBVIRT_INSTALL_STOPSCRIPT
+LIBVIRT_POST_INSTALL_TARGET_HOOKS += LIBVIRT_INSTALL_SYSCONFIG
 
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))

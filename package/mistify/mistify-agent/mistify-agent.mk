@@ -21,12 +21,6 @@ define MISTIFY_AGENT_BUILD_CMDS
 	PATH=$(PATH):$(GOROOT)/bin \
         GOPATH=$(GOPATH) make install DESTDIR=$(TARGET_DIR) \
           -C $(GOPATH)/src/github.com/mistifyio/mistify-agent
-    $(INSTALL) -m 755 -D $(BR2_EXTERNAL)/package/mistify/mistify-agent/run \
-	    $(TARGET_DIR)/etc/sv/mistify-agent/run
-	$(INSTALL) -m 755 -D $(BR2_EXTERNAL)/package/mistify/mistify-agent/log.run \
-	    $(TARGET_DIR)/etc/sv/mistify-agent/log/run
-	mkdir -p $(TARGET_DIR)/etc/service
-    cd $(TARGET_DIR)/etc/service && ln -sf ../sv/mistify-agent .
 	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/mistify-agent/agent.json \
 	    $(TARGET_DIR)/etc/mistify/agent.json
 
@@ -34,6 +28,18 @@ endef
 
 define MISTIFY_AGENT_INSTALL_CMDS
 	# The install was done as part of the build.
+endef
+
+define MISTIFY_AGENT_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/mistify-agent/mistify-agent.service \
+		$(TARGET_DIR)/etc/systemd/system/mistify-agent.service
+
+	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/mistify-agent/mistify-agent.sysconfig \
+		$(TARGET_DIR)/etc/sysconfig/mistify-agent
+
+	ln -sf ../mistify-agent.service \
+		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/mistify-agent.service
+
 endef
 
 $(eval $(generic-package))

@@ -1,0 +1,10 @@
+[Unit]
+Description=statsd daemon
+After=syslog.target network.target
+
+[Service]
+EnvironmentFile=/etc/sysconfig/statsd
+ExecStart=/usr/bin/node $STATSD_ARGS
+
+[Install]
+WantedBy=multi-user.target

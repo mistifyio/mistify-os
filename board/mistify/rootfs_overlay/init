@@ -1,0 +1,39 @@
+#!/bin/sh
+
+/bin/mount -t devtmpfs devtmpfs /dev
+/bin/mount -t proc -o nodev,noexec,nosuid proc /proc
+/bin/mount -t sysfs -o nodev,noexec,nosuid sysfs /sys
+/bin/mount -t tmpfs -o mode=755,nodev tmpfs /run
+/bin/mount -t tmpfs -o mode=1777 tmpfs /tmp
+/bin/mount -t tmpfs -o mode=1777 tmpfs /var/tmp
+
+exec 0</dev/console
+exec 1>/dev/console
+exec 2>/dev/console
+
+/lib/systemd/systemd-modules-load
+
+/lib/systemd/systemd-udevd --daemon
+
+/bin/udevadm trigger
+/bin/udevadm settle
+
+/etc/pre-init.d/gen-hostid.sh
+
+/etc/pre-init.d/init-zpools.sh 
+
+/etc/pre-init.d/mount-aufs.sh
+
+if [ -f /etc/machine-id ]; then
+  cp /etc/machine-id /tmp
+  mv /tmp/machine-id /etc/machine-id
+fi
+
+if [ -f /etc/hostid ]; then
+  cp /etc/hostid /tmp
+  mv /tmp/hostid /etc/hostid
+fi
+
+kill `pgrep systemd-udevd`
+
+exec /sbin/init $*

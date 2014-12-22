@@ -1,4 +1,0 @@
-config BR2_PACKAGE_RUNIT
-	bool "runit"
-	help
-	  runit is a cross-platform Unix init scheme with service supervision
