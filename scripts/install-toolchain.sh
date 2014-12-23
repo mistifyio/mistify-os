@@ -11,7 +11,7 @@
 # to the release.
 #-
 tcconfigdefault=$PWD/configs/mistify-tc.config
-tcuridefault=git://crosstool-ng.org/crosstool-ng
+tcuridefault=git@github.com:crosstool-ng/crosstool-ng.git
 toolchaindirdefault=$PWD/toolchain
 toolchainprefixdefault=x86_64-unknown-linux-gnu
 toolchainbranchdefault="master"
@@ -200,7 +200,7 @@ install-toolchain () {
 	$ctng menuconfig
 	if [[ ! -f $tcconfig || $tcc -nt $tcconfig ]]; then
 	    ls -l $tcc $tcconfig
-	    #cp $tcc $tcconfig
+	    cp $tcc $tcconfig
 	    if [ $? -gt 0 ]; then
 		error "Failed to save $tcconfig"
 		exit 1
