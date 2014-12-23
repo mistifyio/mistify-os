@@ -9,13 +9,21 @@ btw: The resulting images have been proven and are currently running on a Dell R
 
 ## Latest developments
 
+### External toolchain
+
+The system build now uses an external toolchain built from source using [crosstool-NG](http://crosstool-ng.org). This serves two purposes. One, the time to rebuild Mistify-OS is reduced once the external toolchain has been built and two, the toolchain can be better optimized for Mistify-OS.
+
+### systemd
+
+Mistify-OS has been updated to use [systemd](http://en.wikipedia.org/wiki/Systemd).
+
 ### GO
 
-[GO](https://golang.org) projects can now be built using *buildmistify*.
+[GO](https://golang.org) projects can now be built using *buildmistify*. The compiler is built from source to allow for situations where the host architecture is different from the target architecture (e.g. 32 bit host)
 
 ### mistify-agent
 
-The [mistify-agent](https://github.com/mistifyio/mistify-agent) is now built under Buildroot and runs on the test box.
+The [mistify-agent](https://github.com/mistifyio/mistify-agent) is now built using Buildroot and runs on the test box.
 
 ### Virtualization
 
@@ -23,14 +31,9 @@ QEMU and libvirt are now available.
 
 ## Known problems
 
-### The Ethernet interface has to be started twice
-
-The Ethernet interface eno3 requires some settle time before attempting a DHCP request. This is currently being dealt with using pre-up steps in the */etc/network/interfaces* file. A sleep of 4 seconds following bringing the interface up.
+None reported at this time.
 
 ## ToDo
-
-### Kernel configuration
-Kernel configuration needs to be tuned for what Mistify-OS will actually need.
 
 ### Verification testing
 A test suite for verifying Mistify-OS is needed.
