@@ -57,13 +57,18 @@ install-go () {
     #+
     # The go binaries don't exist.
     #-
-    run mkdir -p $godir/$gotag
-    cd $godir/$gotag
-    verbose "Working directory is: $PWD"
-    run hg clone -u $gotag $gouri
-    cd go/src
-    export GOOS=linux
-    export GOARCH=amd64
-    run ./all.bash
-    touch $godir/.$gotag-built
+    if [ -n "$testing" ]; then
+	message "Just a test run -- not building the toolchain."
+	verbose "./all.bash"
+    else
+	run mkdir -p $godir/$gotag
+	cd $godir/$gotag
+	verbose "Working directory is: $PWD"
+	run hg clone -u $gotag $gouri
+	cd go/src
+	export GOOS=linux
+	export GOARCH=amd64
+	run ./all.bash
+	touch $godir/.$gotag-built
+    fi
 }
