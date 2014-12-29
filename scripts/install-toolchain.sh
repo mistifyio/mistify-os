@@ -24,6 +24,26 @@ config-toolchain () {
     run make
 }
 
+build-toolchain () {
+    #+
+    # Now configure and build the toolchain.
+    #-
+    if [ ! -f $toolchainconfigured ]; then
+	message "Configuring the toolchain build."
+	config-toolchain $toolchaindir
+	touch $toolchainconfigured
+    fi
+    cp $tcconfig $tcc
+    message "Config file $tcconfig copied to $tcc"
+    mkdir -p $TC_LOCAL_TARBALLS_DIR
+    cd $toolchaindir
+    time $ctng build 2>&1 | tee $logdir/tc-`date +%y%m%d%H%M%S`.log
+    if [ $? -gt 0 ]; then
+	error "The toolchain build failed."
+	exit 1
+    fi
+}
+
 install-toolchain () {
     #+
     # Determine the location of the toolchain directory.
@@ -186,6 +206,9 @@ install-toolchain () {
 		rm -f $toolchainbuilt
 	    fi
 	    echo $tcconfig >$statedir/tcconfig
+	    build-toolchain
+	    touch $toolchainbuilt
+	    return 1
 	else
 	    if [[ "$target" != "toolchain-menuconfig" ]]; then
 		error "The toolchain config file doesn't exist."
@@ -229,26 +252,9 @@ install-toolchain () {
     if [ -n "$testing" ]; then
 	message "Just a test run -- not building the toolchain."
 	verbose "$ctng build"
-	return 1
     else
-	#+
-	# Now configure and build the toolchain.
-	#-
-	if [ ! -f $toolchainconfigured ]; then
-	    message "Configuring the toolchain build."
-	    config-toolchain $toolchaindir
-	    touch $toolchainconfigured
-	fi
-	cp $tcconfig $tcc
-	message "Config file $tcconfig copied to $tcc"
-	mkdir -p $TC_LOCAL_TARBALLS_DIR
-	cd $toolchaindir
-	time $ctng build 2>&1 | tee $logdir/tc-`date +%y%m%d%H%M%S`.log
-	if [ $? -gt 0 ]; then
-	    error "The toolchain build failed."
-	    exit 1
-	fi
+	build-toolchain
 	touch $toolchainbuilt
     fi
-    return 1
+    return 0
 }
