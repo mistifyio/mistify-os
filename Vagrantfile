@@ -14,7 +14,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.provision "shell", privileged: true, inline: <<EOS
 apt-get update
 apt-get install -y build-essential git mercurial unzip bc libncurses5-dev syslinux genisoimage libdevmapper-dev libnl-dev \
-   autoconf automake libtool gettext autopoint pkg-config flex
+   autoconf automake libtool gettext autopoint pkg-config flex gperf bison texinfo gawk subversion
 
 mkdir -p /home/vagrant/.ssh
 cat << END  > /home/vagrant/.ssh/config
