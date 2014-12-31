@@ -3,7 +3,7 @@
 #-
 gouridefault=https://code.google.com/p/go
 godirdefault=$PWD/go
-gotagdefault=release
+gotagdefault=go1.4
 
 install-go () {
     #+
