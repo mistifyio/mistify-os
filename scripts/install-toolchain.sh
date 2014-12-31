@@ -198,25 +198,6 @@ install-toolchain () {
     toolchainconfigured=$TC_PREFIX_DIR/../.$toolchainlabel-configured
     toolchainbuilt=$TC_PREFIX_DIR/../.$toolchainlabel-built
 
-    if [ -f $tcc ]; then
-	if [ -f $tcconfig ]; then
-	    diff $tcconfig $tcc >/dev/null
-	    if [ $? -gt 0 ]; then
-		warning "The toolchain configuration has changed -- rebuilding the toolchain."
-		rm -f $toolchainbuilt
-	    fi
-	    echo $tcconfig >$statedir/tcconfig
-	    build-toolchain
-	    touch $toolchainbuilt
-	    return 1
-	else
-	    if [[ "$target" != "toolchain-menuconfig" ]]; then
-		error "The toolchain config file doesn't exist."
-		message "Run ./buildmistify toolchain-menuconfig."
-		exit 1
-	    fi
-	fi
-    fi
     if [[ "$target" == "toolchain-menuconfig" ]]; then
 	cd $toolchaindir
 	if [ ! -f $ctng ]; then
@@ -236,6 +217,25 @@ install-toolchain () {
 	    fi
 	fi
 	exit 0
+    fi
+    if [ -f $tcc ]; then
+	if [ -f $tcconfig ]; then
+	    diff $tcconfig $tcc >/dev/null
+	    if [ $? -gt 0 ]; then
+		warning "The toolchain configuration has changed -- rebuilding the toolchain."
+		rm -f $toolchainbuilt
+	    fi
+	    echo $tcconfig >$statedir/tcconfig
+	    if [ ! -f $toolchainbuilt ]; then
+	        build-toolchain
+		touch $toolchainbuilt
+		return 1
+	    fi
+	else
+	    error "The toolchain config file doesn't exist."
+	    message "Run ./buildmistify toolchain-menuconfig."
+	    exit 1
+	fi
     fi
     #+
     # Don't build the toolchain if it has already been built. If
