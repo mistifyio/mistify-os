@@ -68,6 +68,10 @@ Usage: ./buildmistify [options] [target]
         Where the GO source code is cloned to before building. This is saved in
         the file $statedir/godir.
         [godir=`cat $statedir/godir`]
+    --gotag <tag>
+        The tag to use when fetching the GO source code from the repository. 
+        This is saved in the file $statedir/gotag.
+        [gotag=`cat $statedir/gotag`]
     ==== buildroot ====
     --bruri <uri>
         The repository from which to clone Buildroot. This is saved in the file
@@ -175,6 +179,7 @@ toolchainbranch:,\
 toolchainroottag:,\
 gouri:,\
 godir:,\
+gotag:,\
 bruri:,\
 buildroot:,\
 buildrootbranch:,\
@@ -230,6 +235,10 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--godir)
 	    godir=$2
+	    shift
+	    ;;
+	--gotag)
+	    gotag=$2
 	    shift
 	    ;;
 	--bruri)
@@ -341,6 +350,9 @@ if [ ! -d "$builddir" ]; then
 fi
 message "Build output directory is: $builddir"
 echo $builddir >$statedir/builddir
+
+logdir=$builddir/logs
+mkdir -p $logdir
 
 #+
 # Determine the uri to use to fetch the Buildroot tool.
@@ -560,6 +572,14 @@ message "Project dir: $projectdir"
 # Be sure the toolchain is installed.
 #-
 install-toolchain
+if [[ $? -gt 0 ]]; then
+    #+
+    # If the toolchain was built then a full rebuild is needed.
+    #-
+    warning "The toolchain has changed. A full target rebuild is recommended."
+    warning "Run ./buildmistify clean and then ./buildmistify to rebuild."
+    exit
+fi
 install-go
 
 #+
@@ -649,8 +669,6 @@ esac
 #+
 # Setup the build log file.
 #-
-logdir=$builddir/logs
-mkdir -p $logdir
 if [ -n "$logfilename" ]; then
   logfile=$logdir/$logfilename
 else
@@ -663,7 +681,7 @@ message "Logging the build output to: $logfile"
 #-
 if [ -n "$testing" ]; then
   message "Just a test run -- not running make."
-  echo $makecommand
+  verbose $makecommand
 else
   #+
   # Run the buildroot make.
@@ -679,8 +697,6 @@ else
 fi
 
 imagedir=$builddir/images
-# TODO: This needs some cleanup work to deal with the situation where the
-# output file no longer exists but the symlink does.
 if [ -f $imagedir/rootfs.cpio.gz ]; then
   ln -sf $imagedir/rootfs.cpio.gz $imagedir/initrd.buildroot
 else

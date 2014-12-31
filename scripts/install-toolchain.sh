@@ -11,7 +11,7 @@
 # to the release.
 #-
 tcconfigdefault=$PWD/configs/mistify-tc.config
-tcuridefault=git://crosstool-ng.org/crosstool-ng
+tcuridefault=git@github.com:crosstool-ng/crosstool-ng.git
 toolchaindirdefault=$PWD/toolchain
 toolchainprefixdefault=x86_64-unknown-linux-gnu
 toolchainbranchdefault="master"
@@ -22,6 +22,26 @@ config-toolchain () {
     run ./bootstrap
     run ./configure --enable-local --prefix=$1
     run make
+}
+
+build-toolchain () {
+    #+
+    # Now configure and build the toolchain.
+    #-
+    if [ ! -f $toolchainconfigured ]; then
+	message "Configuring the toolchain build."
+	config-toolchain $toolchaindir
+	touch $toolchainconfigured
+    fi
+    cp $tcconfig $tcc
+    message "Config file $tcconfig copied to $tcc"
+    mkdir -p $TC_LOCAL_TARBALLS_DIR
+    cd $toolchaindir
+    time $ctng build 2>&1 | tee $logdir/tc-`date +%y%m%d%H%M%S`.log
+    if [ $? -gt 0 ]; then
+	error "The toolchain build failed."
+	exit 1
+    fi
 }
 
 install-toolchain () {
@@ -175,23 +195,9 @@ install-toolchain () {
     ctng="./ct-ng"
     tcc=$toolchaindir/.config
 
-    if [ -f $tcc ]; then
-	if [ -f $tcconfig ]; then
-	    if [[ $tcconfig -nt $tcc ]]; then
-		if [ $? -gt 0 ]; then
-		    warning "The toolchain hasn't been built yet."
-		fi
-		message "Config file $tcconfig copied to $tcc"
-		echo $tcconfig >$statedir/tcconfig
-	    fi
-	else
-	    if [[ "$target" != "toolchain-menuconfig" ]]; then
-		error "The toolchain config file doesn't exist."
-		message "Run ./buildmistify toolchain-menuconfig."
-		exit 1
-	    fi
-	fi
-    fi
+    toolchainconfigured=$TC_PREFIX_DIR/../.$toolchainlabel-configured
+    toolchainbuilt=$TC_PREFIX_DIR/../.$toolchainlabel-built
+
     if [[ "$target" == "toolchain-menuconfig" ]]; then
 	cd $toolchaindir
 	if [ ! -f $ctng ]; then
@@ -200,41 +206,55 @@ install-toolchain () {
 	$ctng menuconfig
 	if [[ ! -f $tcconfig || $tcc -nt $tcconfig ]]; then
 	    ls -l $tcc $tcconfig
-	    #cp $tcc $tcconfig
+	    cp $tcc $tcconfig
 	    if [ $? -gt 0 ]; then
 		error "Failed to save $tcconfig"
 		exit 1
 	    else
-		#rm $TC_PREFIX_DIR/../.$toolchainlabel-built
+		rm $toolchainbuilt
 		message "Toolchain config file has been saved to: $tcconfig"
 		message "Run ./buildmistify to rebuild the toolchain."
 	    fi
 	fi
 	exit 0
     fi
+    if [ -f $tcc ]; then
+	if [ -f $tcconfig ]; then
+	    diff $tcconfig $tcc >/dev/null
+	    if [ $? -gt 0 ]; then
+		warning "The toolchain configuration has changed -- rebuilding the toolchain."
+		rm -f $toolchainbuilt
+	    fi
+	    echo $tcconfig >$statedir/tcconfig
+	    if [ ! -f $toolchainbuilt ]; then
+	        build-toolchain
+		touch $toolchainbuilt
+		return 1
+	    fi
+	else
+	    error "The toolchain config file doesn't exist."
+	    message "Run ./buildmistify toolchain-menuconfig."
+	    exit 1
+	fi
+    fi
     #+
     # Don't build the toolchain if it has already been built. If
-    if [ -f $TC_PREFIX_DIR/../.$toolchainlabel-built ]; then
+    if [ -f $toolchainbuilt ]; then
 	    message "Using toolchain installed at: $TC_PREFIX_DIR"
-	    return
+	    return 0
     fi
     #+
     # Download, build and install the toolchain.
     #-
-    message "Toolchain not detected."
+    message "Toolchain not built."
     message "Installing toolchain to: $TC_PREFIX_DIR"
 
-    #+
-    # Now configure and build the toolchain.
-    #-
-    config-toolchain $toolchaindir
-    cp $tcconfig $tcc
-    mkdir -p $TC_LOCAL_TARBALLS_DIR
-    cd $toolchaindir
-    $ctng build
-    if [ $? -gt 0 ]; then
-	error "The toolchain build failed."
-	exit 1
+    if [ -n "$testing" ]; then
+	message "Just a test run -- not building the toolchain."
+	verbose "$ctng build"
+    else
+	build-toolchain
+	touch $toolchainbuilt
     fi
-    touch $TC_PREFIX_DIR/../.$toolchainlabel-built
+    return 0
 }
