@@ -35,27 +35,23 @@ define ZFS_REMOVE_INIT_SCRIPT
 	rm $(TARGET_DIR)/etc/init.d/zfs
 endef
 
-define ZFS_INSTALL_MOUNT_SYMLINK
-	# zfs installs mount.zfs to /usr/sbin, when it really should be in /sbin
-	# so that mount(1M) can find it.
-	(cd $(TARGET_DIR)/sbin && ln -fs ../usr/sbin/mount.zfs .)
-endef
-
 define ZFS_INSTALL_INIT_SYSTEMD
+	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
 	ln -fs /usr/lib/systemd/system/zfs.target \
 		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/zfs.target
 endef
 
 ZFS_POST_INSTALL_TARGET_HOOKS += ZFS_REMOVE_INIT_SCRIPT
-ZFS_POST_INSTALL_TARGET_HOOKS += ZFS_INSTALL_MOUNT_SYMLINK
 
 ZFS_CONF_OPTS = \
-    --prefix=/ \
-    --includedir=/usr/include \
+    --prefix=/usr \
+    --bindir=/bin \
+    --sbindir=/sbin \
     --libdir=/lib \
+    --sysconfdir=/etc \
+    --with-udevdir=/lib/udev \
     --with-linux=$(LINUX_DIR) \
     --with-linux-obj=$(LINUX_DIR) \
-    --datarootdir=/usr/share \
     --with-spl=$(SPL_DIR)  \
     --with-spl-obj=$(SPL_DIR) \
     --with-blkid=yes \
