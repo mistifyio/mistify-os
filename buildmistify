@@ -68,6 +68,8 @@ Usage: ./buildmistify [options] [target]
         Where the GO source code is cloned to before building. This is saved in
         the file $statedir/godir.
         [godir=`cat $statedir/godir`]
+    --gotag <tag>
+        The tag to use when fetching the GO source code from the repository.
     ==== buildroot ====
     --bruri <uri>
         The repository from which to clone Buildroot. This is saved in the file
@@ -175,6 +177,7 @@ toolchainbranch:,\
 toolchainroottag:,\
 gouri:,\
 godir:,\
+gotag:,\
 bruri:,\
 buildroot:,\
 buildrootbranch:,\
@@ -230,6 +233,10 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--godir)
 	    godir=$2
+	    shift
+	    ;;
+	--gotag)
+	    gotag=$2
 	    shift
 	    ;;
 	--bruri)
