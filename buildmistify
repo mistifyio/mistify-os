@@ -69,7 +69,9 @@ Usage: ./buildmistify [options] [target]
         the file $statedir/godir.
         [godir=`cat $statedir/godir`]
     --gotag <tag>
-        The tag to use when fetching the GO source code from the repository.
+        The tag to use when fetching the GO source code from the repository. 
+        This is saved in the file $statedir/gotag.
+        [gotag=`cat $statedir/gotag`]
     ==== buildroot ====
     --bruri <uri>
         The repository from which to clone Buildroot. This is saved in the file
