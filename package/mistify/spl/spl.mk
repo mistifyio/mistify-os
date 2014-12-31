@@ -14,10 +14,8 @@ SPL_INSTALL_STAGING = YES
 SPL_DEPENDENCIES = linux
 
 SPL_CONF_OPTS = \
-    --prefix=/ \
+    --prefix=/usr \
     --libdir=/lib \
-    --includedir=/usr/include \
-    --datarootdir=/usr/share \
     --with-linux=$(LINUX_DIR) \
     --with-linux-obj=$(LINUX_DIR)
 
