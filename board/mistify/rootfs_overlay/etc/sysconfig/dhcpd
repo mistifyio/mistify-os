@@ -1,0 +1,6 @@
+##
+## Service configuration file for ISC DHCPD
+##
+
+## Interface dhcpd should listen on. Leave this blank for all interfaces.
+INTERFACES=
