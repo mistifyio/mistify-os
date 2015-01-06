@@ -39,3 +39,10 @@ fi
 # Create a missing symlink for the UTC timezone
 #
 ln -sf Etc/UTC $targetdir/usr/share/zoneinfo/UTC
+
+#
+# Disable ISC DHCPD from starting up automatically
+#
+if [ -f $targetdir/etc/systemd/system/multi-user.target.wants/dhcpd.service ]; then
+  rm -f $targetdir/etc/systemd/system/multi-user.target.wants/dhcpd.service
+fi

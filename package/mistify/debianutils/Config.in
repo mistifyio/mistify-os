@@ -1,4 +1,0 @@
-config BR2_PACKAGE_DEBIANUTILS
-        bool "debianutils"
-        help
-          Debian's debianutils suite. 
