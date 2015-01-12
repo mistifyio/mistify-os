@@ -7,6 +7,8 @@ Type=simple
 EnvironmentFile=/etc/sysconfig/mistify-agent-image
 ExecStart=/opt/mistify/sbin/mistify-agent-image $OPTIONS
 LimitNOFILE=32768
+RestartSec=30s
+Restart=always
 
 [Install]
 WantedBy=multi-user.target

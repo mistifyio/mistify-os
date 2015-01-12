@@ -8,6 +8,8 @@ Type=simple
 EnvironmentFile=/etc/sysconfig/mistify-agent-libvirt
 ExecStart=/opt/mistify/sbin/mistify-agent-libvirt $OPTIONS
 LimitNOFILE=32768
+RestartSec=30s
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
