@@ -1,13 +1,15 @@
 [Unit]
 Description=Mistify Libvirt Sub-agent
-After=syslog.target network.target openvswitch-nonetwork.service zfs.target libvirtd.service libvirt-guests.service mistify-agent.service
-Requires=mistify-agent.service
+After=network.target libvirtd.service
+
 
 [Service]
 Type=simple
 EnvironmentFile=/etc/sysconfig/mistify-agent-libvirt
 ExecStart=/opt/mistify/sbin/mistify-agent-libvirt $OPTIONS
 LimitNOFILE=32768
+RestartSec=30s
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
