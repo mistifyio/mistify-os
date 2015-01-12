@@ -1,7 +1,6 @@
 [Unit]
 Description=Mistify Image Sub-agent
-After=syslog.target network.target openvswitch-nonetwork.service zfs.target libvirtd.service libvirt-guests.service mistify-agent.service
-Requires=mistify-agent.service
+After=network.target zfs.target
 
 [Service]
 Type=simple
