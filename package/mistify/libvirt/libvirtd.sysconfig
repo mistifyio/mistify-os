@@ -1,5 +1,5 @@
 # options passed to libvirtd, add "-l" to listen on tcp
-LIBVIRTD_ARGS="-d"
+LIBVIRTD_ARGS=""
 
 # pass in location of kerberos keytab
 KRB5_KTNAME=/etc/libvirt/libvirt.keytab
