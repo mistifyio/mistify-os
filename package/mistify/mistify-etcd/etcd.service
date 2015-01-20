@@ -1,0 +1,13 @@
+[Unit]
+Description=etcd
+
+[Service]
+User=etcd
+EnvironmentFile=/etc/sysconfig/etcd
+PermissionsStartOnly=true
+ExecStart=/usr/sbin/etcd $OPTIONS -data-dir $DATA_DIR
+Restart=always
+RestartSec=10s
+
+[Install]
+WantedBy=default.target
