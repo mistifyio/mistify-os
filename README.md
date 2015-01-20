@@ -19,19 +19,19 @@ Mistify-OS has been updated to use [systemd](http://en.wikipedia.org/wiki/System
 
 ### GO
 
-[GO](https://golang.org) projects can now be built using *buildmistify*. The compiler is built from source to allow for situations where the host architecture is different from the target architecture (e.g. 32 bit host)
+[GO](https://golang.org) projects can now be built using *buildmistify*. The compiler is built from source to allow for situations where the host architecture is different from the target architecture (e.g. 32 bit host).
 
 ### mistify-agent
 
-The [mistify-agent](https://github.com/mistifyio/mistify-agent) is now built using Buildroot and runs on the test box.
+The [mistify-agent](https://github.com/mistifyio/mistify-agent) is now built under Buildroot and runs on the test box.
 
 ### Virtualization
 
-QEMU and libvirt are now available.
+QEMU/KVM and libvirt are now available.
 
-## Known problems
+## Release notes
 
-None reported at this time.
+Release notes for the various releases can be found on the [project wiki](https://github.com/mistifyio/mistify-os/wiki). 
 
 ## ToDo
 
@@ -40,9 +40,6 @@ A test suite for verifying Mistify-OS is needed.
 
 ### Multi-platform
 At this time only the Dell R620 has been used as a target platform. The build needs to be verified to work for a range of platforms. NOTE: At this time only **x86_64** based architectures will be supported.
-
-### Build tools and kernel CPU optimizations
-When best performance is a requirement it's sometimes necessary to tune the kernel and compiler to take advantage of specific CPU features. This needs to be studied in the Mistify-OS context to determine what --if anything-- needs to be done.
 
 ### Proper user configuration
 At the moment the Buildroot built bootable image only supports the *root* user. A non-superuser account is needed and the *root* console login disabled for security reasons. The user needs to have sudo capability so that *root* tasks can be performed when necessary.
@@ -55,6 +52,10 @@ The *buildmistify* script also simplifies maintenance of configuration files for
 
 The *buildmistify* script uses Buildroot features to maintain the Mistify-OS sources and builds outside the Buildroot tree. This simplifies updates of Buildroot when necessary. Read the [Building out-of-tree](http://buildroot.uclibc.org/downloads/manual/manual.html#_building_out_of_tree) and [Keeping customizations outside of Buildroot](http://buildroot.uclibc.org/downloads/manual/manual.html#outside-br-custom) sections of the Buildroot manual for more information.
 
+## Building Mistify-OS
+
+Release specific instructions for building Mistify-OS on OS X can be found in the [release notes](https://github.com/mistifyio/mistify-os/wiki).
+
 ### Help options
 
 The *buildmistify* script supports two forms of help. Using the *--help* option will display the usage for *buildmistify*. On the other hand, *help* is treated as a target and passed to Buildroot which will then display its help information. 
@@ -63,9 +64,11 @@ The *buildmistify* script supports two forms of help. Using the *--help* option 
 
 Use of a virtual machine greatly accelerates some development tasks. Targets already exist for this but not in a direct Mistify-OS context. The Buildroot build process doesn't support building for multiple "machines" in one pass. Instead, the config file needs to be changed to switch to a different target. The *buildmistify* script can help simplify this task. NOTE: Not yet implemented.
 
-## Booting your test box -- OmniTI internal
+## Booting your test box
 
 ### An example:
+
+This example assumes two boxes. One box serves as the boot server configured to support DHCP and the PXE boot protocol. The other box serves as the target. Change the IP addresses to match your network environment.
 
 The boot server at IP:10.8.30.15 serves the boot files to the target machine. The boot process itself uses *ipxe*. The *ipxe* configuration resides on the server in the directory **/var/www/html**.
 
