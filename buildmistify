@@ -60,16 +60,18 @@ Usage: ./buildmistify [options] [target]
         $statedir/toolchaintag.
         [toolchaintag=`cat $statedir/toolchaintag`]
     ==== go ====
-    --gouri <uri>
-        The repository from which to clone the GO source code. This is saved in
-        the file $statedir/gouri.
-        [gouri=`cat $statedir/gouri`]
     --godir <dir>
         Where the GO source code is cloned to before building. This is saved in
         the file $statedir/godir.
         [godir=`cat $statedir/godir`]
-    --gotag <tag>
-        The tag to use when fetching the GO source code from the repository. 
+    --gouri default|<uri>
+        The repository from which to clone the GO source code. Use "default"
+        to reset to the default URI. 
+        This is saved in the file $statedir/gouri.
+        [gouri=`cat $statedir/gouri`]
+    --gotag default|<tag>
+        The tag to use when fetching the GO source code from the repository.
+        Use "default" to reset to the default repository tag.
         This is saved in the file $statedir/gotag.
         [gotag=`cat $statedir/gotag`]
     ==== buildroot ====

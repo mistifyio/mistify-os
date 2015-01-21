@@ -1,9 +1,12 @@
 #+
 # Compile go from source and install it into the previously built toolchain.
+# NOTE: The go repo is mirrored on github. The install instructions point to
+# the googlesource repo so that URL is the default for this script. Of course
+# it can be overridden using the --gouri command line option.
 #-
-gouridefault=https://code.google.com/p/go
+gouridefault=https://go.googlesource.com/go
 godirdefault=$PWD/go
-gotagdefault=go1.4
+gotagdefault=go1.4.1
 
 install-go () {
     #+
@@ -31,6 +34,10 @@ install-go () {
 	    gouri=$gouridefault
 	fi
     fi
+    if [[ "$gouri" == "default" ]]; then
+      warning "Resetting the GO repository URI to the default: $gouridefault."
+      gouri=$gouridefault
+    fi
     message "The go source repository is: $gouri"
     echo $gouri >$statedir/gouri
 
@@ -43,6 +50,10 @@ install-go () {
 	else
 	    gotag=$gotagdefault
 	fi
+    fi
+    if [[ "$gotag" == "default" ]]; then
+      warning "Resetting the GO repository tag to the default: $gotagdefault."
+      gotag=$gotagdefault
     fi
     message "The go branch or tag is: $gotag"
     echo $gotag >$statedir/gotag
@@ -64,8 +75,10 @@ install-go () {
 	run mkdir -p $godir/$gotag
 	cd $godir/$gotag
 	verbose "Working directory is: $PWD"
-	run hg clone -u $gotag $gouri
-	cd go/src
+	run git clone $gouri
+	cd go
+	run git checkout $gotag
+	cd src
 	export GOOS=linux
 	export GOARCH=amd64
 	run ./all.bash
