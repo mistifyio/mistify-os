@@ -1,0 +1,6 @@
+##
+## options for etcd.service
+##
+
+$OPTIONS=
+$DATA_DIR=/etc/etcd
