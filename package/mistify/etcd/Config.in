@@ -1,5 +1,5 @@
-config BR2_PACKAGE_MISTIFY_ETCD
-        bool "mistify-etcd"
+config BR2_PACKAGE_ETCD
+        bool "etcd"
         help
           CoreOS etcd
 
