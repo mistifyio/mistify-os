@@ -3,8 +3,6 @@ Description=Etcd Initialization and Setup
 
 [Service]
 ExecStart=/usr/lib/systemd/scripts/etcd-setup
-Restart=always
-RestartSec=10s
 
 [Install]
 WantedBy=default.target
