@@ -1,5 +1,6 @@
 [Unit]
-Description=etcd
+Description=Etcd
+After=etcd-setup.service
 
 [Service]
 User=etcd

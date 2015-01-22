@@ -1,0 +1,31 @@
+##
+## This script is a pre-requisite to etcd.service
+##
+## It ensures that the data directory and basic configuration is in place
+## under the mistify zpool so that etcd runs on first boot.
+##
+
+# Read in etcd runtime options
+if [ -f /etc/sysconfig/etcd ]; then
+	. /etc/sysconfig/etcd
+else
+	exit 1
+fi
+
+function etcd_setup {
+
+	# Create etcd's data_dir if it does not exist
+	if [ -d /mistify/data -a ! -d $DATA_DIR ]; then
+		mkdir -p $DATA_DIR
+	fi
+
+	# Ensure the data_dir has the correct ownership
+	DATA_DIR_OWNER=`stat -c "%U %G" $DATA_DIR`
+	if [ "$DATA_DIR_OWNER" != "etcd etcd" ]; then
+		chown etcd:etcd $DATA_DIR
+	fi
+}
+
+etcd_setup
+
+exit 0

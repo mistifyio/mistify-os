@@ -3,4 +3,4 @@
 ##
 
 $OPTIONS=
-$DATA_DIR=/etc/etcd
+$DATA_DIR=/mistify/data/etcd/data
