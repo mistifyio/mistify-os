@@ -34,7 +34,7 @@ define ETCD_INSTALL_TARGET_CMDS
 endef
 
 define ETCD_USERS
-	etcd 500 etcd 500 * - - - etcd daemon
+	etcd -1 daemon -1 * - - - Etcd Daemon
 endef
 
 define ETCD_INSTALL_INIT_SYSTEMD
@@ -42,13 +42,15 @@ define ETCD_INSTALL_INIT_SYSTEMD
 		$(TARGET_DIR)/lib/systemd/system/etcd.service
 
 	$(INSTALL) -m 755 -D $(BR2_EXTERNAL)/package/mistify/etcd/etcd-setup \
-		$(TARGET_DIR)/lib/systemd/scripts/etcd-setup
+		$(TARGET_DIR)/usr/lib/systemd/scripts/etcd-setup
 	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/etcd/etcd-setup.service \
 		$(TARGET_DIR)/lib/systemd/system/etcd-setup.service
 
 	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/etcd/etcd.sysconfig \
 		$(TARGET_DIR)/etc/sysconfig/etcd
 
+	ln -sf ../etcd-setup.service \
+		$(TARGET_DIR)/lib/systemd/system/multi-user.target.wants/etcd-setup.service
 	ln -sf ../etcd.service \
 		$(TARGET_DIR)/lib/systemd/system/multi-user.target.wants/etcd.service
 
