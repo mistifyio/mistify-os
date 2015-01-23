@@ -1,0 +1,8 @@
+[Unit]
+Description=Etcd Initialization and Setup
+
+[Service]
+ExecStart=/usr/lib/systemd/scripts/etcd-setup
+
+[Install]
+WantedBy=default.target

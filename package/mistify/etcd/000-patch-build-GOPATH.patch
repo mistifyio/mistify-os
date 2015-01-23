@@ -1,0 +1,22 @@
+diff --git a/build b/build
+index 3cbce5b..3bab45d 100755
+--- a/build
++++ b/build
+@@ -3,14 +3,12 @@
+ ORG_PATH="github.com/coreos"
+ REPO_PATH="${ORG_PATH}/etcd"
+ 
+-export GOPATH=${PWD}/gopath
+-
+ rm -f $GOPATH/src/${REPO_PATH}
+ mkdir -p $GOPATH/src/${ORG_PATH}
+ ln -s ${PWD} $GOPATH/src/${REPO_PATH}
+ 
+ eval $(go env)
+ 
+-go build -o bin/etcd ${REPO_PATH}
+-CGO_ENABLED=0 go build -a -ldflags '-s' -o bin/etcdctl ${REPO_PATH}/etcdctl
+-go build -o bin/etcd-migrate ${REPO_PATH}/migrate/cmd/etcd-migrate
++go build -x -o bin/etcd ${REPO_PATH}
++CGO_ENABLED=0 go build -x -a -ldflags '-s' -o bin/etcdctl ${REPO_PATH}/etcdctl
++go build -x -o bin/etcd-migrate ${REPO_PATH}/migrate/cmd/etcd-migrate

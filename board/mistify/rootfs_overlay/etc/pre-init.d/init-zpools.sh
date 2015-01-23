@@ -86,7 +86,7 @@ do
 done
 
 # Create base zfs filesystems and set their properies
-for D in private images guests; do
+for D in data private images guests; do
     zfs list $ZPOOL/$D > /dev/null 2>&1 || zfs create $ZPOOL/$D
 done
 
