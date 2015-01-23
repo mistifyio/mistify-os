@@ -41,7 +41,7 @@ define ETCD_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/etcd/etcd.service \
 		$(TARGET_DIR)/lib/systemd/system/etcd.service
 
-	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/etcd/etcd-setup \
+	$(INSTALL) -m 755 -D $(BR2_EXTERNAL)/package/mistify/etcd/etcd-setup \
 		$(TARGET_DIR)/lib/systemd/scripts/etcd-setup
 	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/etcd/etcd-setup.service \
 		$(TARGET_DIR)/lib/systemd/system/etcd-setup.service
