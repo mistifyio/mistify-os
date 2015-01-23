@@ -1,0 +1,17 @@
+--- /home/sisaacs/projects/mistify-os/configs/mistify_defconfig	2015-01-23 11:01:02.949198285 -0500
++++ /home/sisaacs/builds/lochness-variant/.config	2015-01-23 14:38:46.484964342 -0500
+@@ -1,6 +1,6 @@
+ #
+ # Automatically generated file; DO NOT EDIT.
+-# Buildroot 2014.11-g00e4556 Configuration
++# Buildroot 2014.11-g3ed5150 Configuration
+ #
+ BR2_HAVE_DOT_CONFIG=y
+ 
+@@ -1821,5 +1821,5 @@
+ BR2_PACKAGE_MISTIFY_AGENT_IMAGE=y
+ BR2_PACKAGE_MISTIFY_AGENT_LIBVIRT=y
+ BR2_PACKAGE_IFUPDOWN=y
+-# BR2_PACKAGE_DEBIANUTILS is not set
+ BR2_PACKAGE_STATSD=y
++BR2_PACKAGE_LOCHNESS=y
