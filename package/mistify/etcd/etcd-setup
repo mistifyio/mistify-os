@@ -1,3 +1,4 @@
+#!/bin/bash
 ##
 ## This script is a pre-requisite to etcd.service
 ##
@@ -22,7 +23,8 @@ function etcd_setup {
 	# Ensure the data_dir has the correct ownership
 	DATA_DIR_OWNER=`stat -c "%U %G" $DATA_DIR`
 	if [ "$DATA_DIR_OWNER" != "etcd etcd" ]; then
-		chown etcd:etcd $DATA_DIR
+		chown -R etcd $DATA_DIR
+		chgrp -R etcd $DATA_DIR
 	fi
 }
 
