@@ -1,6 +1,9 @@
 #+
 # Some standard functions for Mistify-OS scripts.
 #-
+projectdir=$PWD	# Save this directory for later.
+# Where to maintain buildmistify settings.
+statedir=$projectdir/.buildmistify
 
 green='\e[0;32m'
 yellow='\e[0;33m'
@@ -28,8 +31,9 @@ error () {
 }
 
 verbose () {
-    # TODO: Add a test for a verbose flag.
-    echo >&2 -e "$lightblue$id$nc: $*"
+    if [[ "$verbose" == "y" ]]; then
+	echo >&2 -e "$lightblue$id$nc: $*"
+    fi
 }
 
 function die() {
@@ -38,17 +42,30 @@ function die() {
 }
 
 function run() {
-    # : This message can be removed or used with a verbose flag.
     verbose "Running: '$@'"
-    "$@"; code=$?; [ $code -ne 0 ] && die "Command [$*] failed with error code $code"; 
+    "$@"; code=$?; [ $code -ne 0 ] && die "Command [$*] failed with status code $code"; 
+}
+
+function run_ignore {
+    verbose "Running: '$@'"
+    "$@"; code=$?; [ $code -ne 0 ] && verbose "Command [$*] returned status code $code"; 
+    return $code
+}
+
+function confirm () {
+    read -r -p "${1:-Are you sure? [y/N]} " response
+    case $response in
+	[yY][eE][sS]|[yY])
+	    true
+	    ;;
+	*)
+	    false
+	    ;;
+    esac
 }
 
 is_mounted () {
     mount | grep $1
     return $?
 }
-
-projectdir=$PWD	# Save this directory for later.
-# Where to maintain buildmistify settings.
-statedir=$projectdir/.buildmistify
 
