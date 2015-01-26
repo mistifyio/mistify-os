@@ -1,0 +1,10 @@
+##
+## options for confd.service
+##
+
+# The conf directory for confd (-confdir)
+CONF_DIR=/mistify/data/confd/data
+
+# General confd options
+OPTIONS=
+

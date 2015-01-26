@@ -28,6 +28,11 @@ define LIBVIRT_INSTALL_SYSCONFIG
 		$(TARGET_DIR)/etc/sysconfig/libvirtd
 endef
 
+define LIBVIRT_REMOVE_VIRBR
+	rm -f $(TARGET_DIR)/etc/libvirt/qemu/networks/default.xml
+	rm -f $(TARGET_DIR)/etc/libvirt/qemu/networks/autostart/default.xml
+endef
+
 define LIBVIRT_INSTALL_INIT_SYSTEMD
 	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
 	ln -fs /usr/lib/systemd/system/libvirtd.service \
@@ -39,6 +44,7 @@ define LIBVIRT_INSTALL_INIT_SYSTEMD
 endef
 
 LIBVIRT_POST_INSTALL_TARGET_HOOKS += LIBVIRT_INSTALL_SYSCONFIG
+LIBVIRT_POST_INSTALL_TARGET_HOOKS += LIBVIRT_REMOVE_VIRBR
 
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))
