@@ -25,30 +25,5 @@ define CONFD_INSTALL_TARGET_CMDS
 		$(TARGET_DIR)/usr/sbin/confd
 endef
 
-define CONFD_USERS
-	confd -1 demon -1 * - - - ConfD Daemon
-endef
-
-define CONFD_INSTALL_INIT_SYSTEMD
-	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/confd/confd.service \
-		$(TARGET_DIR)/lib/systemd/system/confd.service
-
-	$(INSTALL) -m 755 -D $(BR2_EXTERNAL)/package/mistify/confd/confd-setup \
-		$(TARGET_DIR)/usr/lib/systemd/scripts/confd-setup
-	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/confd/confd-setup.service \
-		$(TARGET_DIR)/lib/systemd/system/confd-setup.service
-
-
-	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/confd/confd.sysconfig \
-		$(TARGET_DIR)/etc/sysconfig/confd
-
-	ln -sf ../confd-setup.service \
-		$(TARGET_DIR)/lib/systemd/system/multi-user.target.wants/confd-setup.service
-
-	ln -sf ../confd.service \
-		$(TARGET_DIR)/lib/systemd/system/multi-user.target.wants/confd.service
-
-endef
-
 $(eval $(generic-package))
 
