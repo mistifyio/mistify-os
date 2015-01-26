@@ -1,0 +1,8 @@
+[Unit]
+Description=ConfD Initialization and Setup
+
+[Service]
+ExecStart=/usr/lib/systemd/scripts/confd-setup
+
+[Install]
+WantedBy=default.target

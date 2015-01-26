@@ -1,0 +1,13 @@
+[Unit]
+Description=ConfD
+After=confd-setup.service etcd.service
+
+[Service]
+User=confd
+PermissionsStartOnly=true
+EnvironmentFile=/etc/sysconfig/confd
+ExecStart=/usr/sbin/confd $OPTIONS -confdir $CONF_DIR
+Restart=always
+
+[Install]
+WantedBy=default.target
