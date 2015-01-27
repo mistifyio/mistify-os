@@ -1,0 +1,12 @@
+config BR2_PACKAGE_ANSIBLE
+        bool "ansible"
+	select BR2_PACAKGE_PYTHON_HTTPLIB2
+	select BR2_PACAKGE_PYTHON_PARAMIKO
+	select BR2_PACAKGE_PYTHON_PYYAML
+	select BR2_PACAKGE_PYTHON_JINJA2
+        help
+	  Ansible is an IT automation tool. It can configure systems, deploy
+	  software, and orchestrate more advanced IT tasks such as continuous
+	  deployments or zero downtime rolling updates.
+
+	  http://www.ansible.com/
