@@ -1,0 +1,12 @@
+config BR2_PACKAGE_PYTHON_PYYAML
+	bool "python-pyyaml"
+	select BR2_PACKAGE_PYTHON_MARKUPSAFE # runtime
+	select BR2_PACKAGE_LIBYAML
+	help
+	  PyYAML features a complete YAML 1.1 parser, Unicode support,
+	  pickle support, capable extension API, and sensible error messages.
+	  PyYAML supports standard YAML tags and provides Python-specific tags
+	  that allow to represent an arbitrary Python object.
+
+	  http://pyyaml.org/wiki/PyYAML
+
