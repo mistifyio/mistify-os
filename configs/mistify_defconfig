@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2014.11-gcd18c26 Configuration
+# Buildroot 2014.11-g66df69b Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 
@@ -1310,7 +1310,9 @@ BR2_PACKAGE_ARPTABLES=y
 # BR2_PACKAGE_AXEL is not set
 # BR2_PACKAGE_BANDWIDTHD is not set
 # BR2_PACKAGE_BCUSDK is not set
-# BR2_PACKAGE_BIND is not set
+BR2_PACKAGE_BIND=y
+BR2_PACKAGE_BIND_SERVER=y
+BR2_PACKAGE_BIND_TOOLS=y
 # BR2_PACKAGE_BLUEZ_UTILS is not set
 # BR2_PACKAGE_BLUEZ5_UTILS is not set
 # BR2_PACKAGE_BMON is not set
