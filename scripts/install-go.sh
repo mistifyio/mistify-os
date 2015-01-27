@@ -21,6 +21,10 @@ install-go () {
     verbose "Building go in: $godir"
     echo $godir >$statedir/godir
 
+    if [ -n "$TC_PREFIX_DIR" ]; then
+	    verbose "Using toolchain for target in: $TC_PREFIX_DIR"
+    fi
+
     #+
     # Determine the uri to use to fetch the go source.
     #-
@@ -64,11 +68,22 @@ install-go () {
 	run mkdir -p $godir/$gotag
 	cd $godir/$gotag
 	verbose "Working directory is: $PWD"
-	run hg clone -u $gotag $gouri
+	if [ -d $godir/$gotag/go ]; then
+	    run hg -R go pull -u -r $gotag $gouri
+	else
+	    run hg clone -u $gotag $gouri
+	fi
 	cd go/src
 	export GOOS=linux
 	export GOARCH=amd64
-	run ./all.bash
+	export CGO_ENABLED=1
+	if [ -n "$TC_PREFIX_DIR" ]; then
+	    export CC_FOR_TARGET="$TC_PREFIX_DIR/bin/${toolchainprefix}-cc"
+	    export CXX_FOR_TARGET="$TC_PREFIX_DIR/bin/${toolchainprefix}-c++"
+	fi
+	# all.bash runtime tests are not suitable for cross-compile toolchain:
+	# https://github.com/golang/go/issues/6172
+	run ./make.bash
 	touch $godir/.$gotag-built
     fi
 }
