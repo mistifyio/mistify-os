@@ -4,11 +4,12 @@
 #
 ################################################################################
 
-MISTIFY_AGENT_VERSION = 925caf45a50ffbd71630b3091685c7baa2a14f56
+MISTIFY_AGENT_VERSION = eeab83c45845c0fc4436452595abe0fc106a4c66
 MISTIFY_AGENT_SITE    = https://github.com/mistifyio/mistify-agent.git
 MISTIFY_AGENT_SITE_METHOD = git
 MISTIFY_AGENT_LICENSE = Apache
 MISTIFY_AGENT_LICENSE_FILES = LICENSE
+MISTIFY_AGENT_DEPENDENCIES = systemd
 
 GOPATH=$(O)/tmp/GOPATH
 

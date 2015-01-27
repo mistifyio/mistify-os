@@ -17,6 +17,7 @@ buildrootbranchdefault="master"
 buildroottagdefault=
 
 builddirdefault=$PWD/build/mistify
+variantdirdefault=base
 downloaddirdefault=$PWD/downloads
 mistifycfgdefault=$PWD/configs/mistify_defconfig
 kernelcfgdefault=$PWD/configs/mistify-kernel.config
@@ -60,16 +61,18 @@ Usage: ./buildmistify [options] [target]
         $statedir/toolchaintag.
         [toolchaintag=`cat $statedir/toolchaintag`]
     ==== go ====
-    --gouri <uri>
-        The repository from which to clone the GO source code. This is saved in
-        the file $statedir/gouri.
-        [gouri=`cat $statedir/gouri`]
     --godir <dir>
         Where the GO source code is cloned to before building. This is saved in
         the file $statedir/godir.
         [godir=`cat $statedir/godir`]
-    --gotag <tag>
-        The tag to use when fetching the GO source code from the repository. 
+    --gouri default|<uri>
+        The repository from which to clone the GO source code. Use "default"
+        to reset to the default URI. 
+        This is saved in the file $statedir/gouri.
+        [gouri=`cat $statedir/gouri`]
+    --gotag default|<tag>
+        The tag to use when fetching the GO source code from the repository.
+        Use "default" to reset to the default repository tag.
         This is saved in the file $statedir/gotag.
         [gotag=`cat $statedir/gotag`]
     ==== buildroot ====
@@ -105,31 +108,41 @@ Usage: ./buildmistify [options] [target]
         WARNING: This overrides the Buildroot configuration option.
         [downloaddir=`cat $statedir/downloaddir`]
     ==== configuration ====
-    -c|--config
+    --variant <variant>
+        Use a configuration variant. The variant is always based upon the
+        base configuration files indicated by the --config, --kconfig, 
+        --bbconfig and --tcconfig options. To reset to the base configuration
+        use an empty string as the variant name. e.g. --variant ''
+        The active variant name is saved in the file
+        $statedir/variant.
+        [variant=`cat $statedir/variant`]
+    -c|--config <configfile>
         Use this config file. The config file is copied to the build directory
         before running the buildroot make. NOTE: The latest Buildroot from the
         repository supports a configuration option for this but the make file
         doesn't use it yet. The file name is saved in the file 
         $statedir/config.
         [config=`cat $statedir/config`]
-    -k|--kconfig
+    -k|--kconfig <configfile>
         Use this kernel config file. The config file is copied to the build
         directory before running the buildroot make. NOTE: The latest Buildroot
         from the repository supports a configuration option for this but the
         make file doesn't use it yet.  The file name is saved in the file
         $statedir/config.
         [kconfig=`cat $statedir/kconfig`]
-    --bbconfig
+    --bbconfig <configfile>
         Use this Busybox config file. The config file is copied to the build
         directory before running the buildroot make. The file name is saved in 
         the file $statedir/bbconfig.
         [bbconfig=`cat $statedir/bbconfig 2>/dev/null || echo \\`]
-    --tcconfig
+    --tcconfig <configfile>
         Use this toolchain config file. The config file is copied to the
         toolchain build directory before running the toolchain build. The file
         name is saved in the file $statedir/tcconfig.
         [tcconfig=`cat $statedir/tcconfig 2>/dev/null || echo \\`]
     ==== other ====
+    --verbose
+        Enble verbose output from this script.
     -l|--logfile
         Use this log file name instead of the generated log file name.
     --viewlog
@@ -163,6 +176,7 @@ EOF
 source scripts/mistify-functions.sh
 source scripts/install-toolchain.sh
 source scripts/install-go.sh
+source scripts/variants.sh
 
 #+
 # TODO: Add some quick checks to verify required tools are installed.
@@ -185,12 +199,14 @@ buildroot:,\
 buildrootbranch:,\
 buildroottag:,\
 builddir:,\
+variant:,\
 config:,\
 kconfig:,\
 bbconfig:,\
 tcconfig:,\
 test,\
 downloaddir:,\
+verbose,\
 logfile:,\
 viewlog,\
 help" \
@@ -265,6 +281,13 @@ while [ $# -ge 1 ]; do
 	    downloaddir=$2
 	    shift
 	    ;;
+	--variant)
+	    variant=$2
+	    # This variable helps handle the case where the variant is being
+	    # reset to the base ('').
+	    variantset=y
+	    shift
+	    ;;
 	-c|--config)
 	    mistifycfg=$2
 	    shift
@@ -280,6 +303,9 @@ while [ $# -ge 1 ]; do
 	--tcconfig)
 	    tcconfig=$2
 	    shift
+	    ;;
+	--verbose)
+	    verbose=y
 	    ;;
 	-l|--logfile)
 	    logfilename=$2
@@ -332,6 +358,26 @@ if [ -z "$buildrootdir" ]; then
 fi
 echo $buildrootdir >$statedir/buildroot
 
+#+
+# Determine the configuration variant to use.
+# If variant is null but was set on the command line then reset to the base.
+#-
+if [ -z "$variant" ]; then
+  if [ "$variantset" == "y" ]; then
+     rm $statedir/variant
+  fi
+  if [ -f $statedir/variant ]; then
+    variant=`cat $statedir/variant`
+  fi
+fi
+if [ -z "$variant" ]; then
+  message "Using base configuration."
+  variantdir=$variantdirdefault
+else
+  message "The configuration variant is: $variant"
+  variantdir=$variant
+  echo $variant >$statedir/variant
+fi
 
 #+
 # Determine the location of the build directory.
@@ -351,7 +397,9 @@ fi
 message "Build output directory is: $builddir"
 echo $builddir >$statedir/builddir
 
-logdir=$builddir/logs
+variantbuilddir=$builddir/$variantdir
+
+logdir=$variantbuilddir/logs
 mkdir -p $logdir
 
 #+
@@ -467,9 +515,9 @@ buildrootkernelheaders=`grep BR2_LINUX_KERNEL_VERSION $mistifycfg | cut -d \" -f
 message "The Buildroot config file is: $mistifycfg"
 message "The kernel headers version is: $buildrootkernelheaders"
 
-brc=$builddir/.config
+brc=$variantbuilddir/.config
 if [ -f $mistifycfg ]; then
-  cp $mistifycfg $brc
+  use_variant $mistifycfg $brc $variant
   if [ $? -gt 0 ]; then
     error "Could not copy the Buildroot config file."
     exit 1
@@ -500,11 +548,11 @@ if [ -z "$kernelcfg" ]; then
 fi
 message "The Buildroot kernel config file is: $kernelcfg"
 
-brkc=$builddir/build/linux-`grep BR2_LINUX_KERNEL_VERSION $brc | cut -d "\"" -f 2`/.config
+brkc=$variantbuilddir/build/linux-`grep BR2_LINUX_KERNEL_VERSION $brc | cut -d "\"" -f 2`/.config
 
 if [ -f $brkc ]; then
   if [ -f $kernelcfg ]; then
-    cp $kernelcfg $brkc
+    use_variant $kernelcfg $brkc $variant
     if [ $? -gt 0 ]; then
       error "Could not copy the kernel config file."
       exit 1
@@ -531,12 +579,12 @@ if [ -z "$busyboxcfg" ]; then
 fi
 message "The Buildroot BusyBox config file is: $busyboxcfg"
 
-bbc=`ls -d $builddir/build/busybox-*`/.config
+bbc=`ls -d $variantbuilddir/build/busybox-*`/.config
 
 if [ -f $bbc ]; then
   if [ -f $busyboxcfg ]; then
     if [[ $busyboxcfg -nt $bbc ]]; then
-      cp $busyboxcfg $bbc
+      use_variant $busyboxcfg $bbc $variant
       if [ $? -gt 0 ]; then
         warning "Busybox hasn't been built yet."
       fi
@@ -592,8 +640,9 @@ cd $buildrootdir
 #-
 export MISTIFY_DIR=$projectdir
 makecommand="\
-make O=$builddir \
+make O=$variantbuilddir \
 TOOLCHAIN_PATH=$TC_PREFIX_DIR TOOLCHAIN_PREFIX=$toolchainprefix \
+BR2_CCACHE_DIR=$builddir/.buildroot_ccache \
 BR2_DL_DIR=$downloaddir BR2_EXTERNAL=$projectdir \
 BR2_DEFAULT_KERNEL_HEADERS=$buildrootkernelheaders \
 GOROOT=$GOROOT \
@@ -611,7 +660,7 @@ case "$target" in
 	    # needs to point to the config file so that buildroot will copy the correct
 	    # file on the first build.
 	    #-
-	    cp $brc $mistifycfg
+	   update_variant $brc $mistifycfg $variant
 	    if [ $? -gt 0 ]; then
 		error "Failed to save $mistifycfg"
 		exit 1
@@ -633,7 +682,7 @@ case "$target" in
 	#-
 	$makecommand
 	if [[ ! -f $kernelcfg || $brkc -nt $kernelcfg ]]; then
-	    cp $brkc $kernelcfg
+	    update_variant $brkc $kernelcfg $variant
 	    if [ $? -gt 0 ]; then
 		error "Failed to save $kernelcfg"
 		exit 1
@@ -652,7 +701,7 @@ case "$target" in
 	$makecommand
 	# NOTE: May want to use grep instead of a timestamp compare.
 	if [[ ! -f $busyboxcfg || $bbc -nt $busyboxcfg ]]; then
-	    cp $bbc $busyboxcfg
+	    update_variant $bbc $busyboxcfg $variant
 	    if [ $? -gt 0 ]; then
 		error "Failed to save $busyboxcfg"
 		exit 1
@@ -696,7 +745,7 @@ else
   fi
 fi
 
-imagedir=$builddir/images
+imagedir=$variantbuilddir/images
 if [ -f $imagedir/rootfs.cpio.gz ]; then
   ln -sf $imagedir/rootfs.cpio.gz $imagedir/initrd.buildroot
 else
@@ -714,5 +763,7 @@ message "The log file is: $logfile"
 message "Images are in $imagedir and can be uploaded to the server."
 message "bzImage.buildroot: The kernel image."
 message "initrd.buildroot: The RAM disk."
-ls -l $imagedir
+if [ -e $imagedir ]; then
+  ls -l $imagedir
+fi
 

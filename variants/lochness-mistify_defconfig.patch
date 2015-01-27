@@ -1,0 +1,8 @@
+--- /home/sisaacs/projects/mistify-os/configs/mistify_defconfig	2015-01-27 13:12:52.462867603 -0500
++++ /home/sisaacs/builds/variants/lochness/.config	2015-01-27 13:13:08.606867314 -0500
+@@ -1822,4 +1822,4 @@
+ BR2_PACKAGE_MISTIFY_AGENT_LIBVIRT=y
+ BR2_PACKAGE_IFUPDOWN=y
+ BR2_PACKAGE_STATSD=y
+-# BR2_PACKAGE_LOCHNESS is not set
++BR2_PACKAGE_LOCHNESS=y

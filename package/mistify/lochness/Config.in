@@ -1,0 +1,12 @@
+config BR2_PACKAGE_LOCHNESS
+        bool "lochness"
+        help
+          The LochNess Mistify-OS variation. 
+          
+          Loch Ness is a simple virtual machine manager ("cloud controller").
+          It is a proof-of-concept, straight forward implementation for testing
+          various ideas. It is targeted at clusters of up to 100 physical
+          machines.
+
+          https://github.com/mistifyio/lochness
+          

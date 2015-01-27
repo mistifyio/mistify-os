@@ -20,7 +20,6 @@ define MISTIFY_AGENT_LIBVIRT_BUILD_CMDS
 	rsync -av --exclude .git $(@D)/* $(GOPATH)/src/github.com/mistifyio/mistify-agent-libvirt/
 	GOROOT=$(GOROOT) \
 	PATH=$(GOROOT)/bin:$(PATH) \
-	PATH=$(PATH):$(GOROOT)/bin \
 	CGO_CPPFLAGS=-I$(HOST_DIR)/usr/include \
 	CGO_LDFLAGS="-L$(TARGET_DIR)/lib -L$(TARGET_DIR)/usr/lib -lsystemd" \
 	GOPATH=$(GOPATH) make install DESTDIR=$(TARGET_DIR) \
