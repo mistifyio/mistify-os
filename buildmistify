@@ -642,6 +642,7 @@ export MISTIFY_DIR=$projectdir
 makecommand="\
 make O=$variantbuilddir \
 TOOLCHAIN_PATH=$TC_PREFIX_DIR TOOLCHAIN_PREFIX=$toolchainprefix \
+BR2_CCACHE_DIR=$builddir/.buildroot_ccache \
 BR2_DL_DIR=$downloaddir BR2_EXTERNAL=$projectdir \
 BR2_DEFAULT_KERNEL_HEADERS=$buildrootkernelheaders \
 GOROOT=$GOROOT \
