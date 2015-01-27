@@ -1,7 +1,7 @@
 #+
 # Some functions for managing configuration variants.
 #-
-variantsdir=$projectdir/variants
+variantsconfigdir=$projectdir/variants
 
 function variant_file () {
   #+
@@ -10,7 +10,7 @@ function variant_file () {
   # 2 = variant name
   # 3 = return variable
   #-
-  vf=$variantsdir/$2-$(basename $1).patch
+  vf=$variantsconfigdir/$2-$(basename $1).patch
   verbose "Variant file is: $vf"
   eval "$3=$vf"
 }
@@ -68,7 +68,7 @@ update_variant () {
     if [ ! -z "$3" ]; then
 	vf=''
 	variant_file $2 $3 vf
-	mkdir -p $variantsdir
+	mkdir -p $variantsconfigdir
 	if [ ! -e $vf ]; then
 	    verbose "Using original $2 and new $1 to create patch file $vf"
 	    warning "Variant $3 doesn't exist."
