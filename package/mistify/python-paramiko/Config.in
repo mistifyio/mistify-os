@@ -1,0 +1,10 @@
+config BR2_PACKAGE_PYTHON_PARAMIKO
+	bool "python-paramiko"
+	select BR2_PACKAGE_PYTHON_MARKUPSAFE # runtime
+	select BR2_PACKAGE_PYTHON_PYCRYPTO
+	help
+	  "paramiko" is a combination of the esperanto words for "paranoid" and
+	  "friend".  it's a module for python 2.6+ that implements the SSH2 protocol
+	  for secure (encrypted and authenticated) connections to remote machines.
+
+	  https://github.com/paramiko/paramiko/
