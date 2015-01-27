@@ -1,8 +1,16 @@
---- /home/sisaacs/projects/mistify-os/configs/mistify_defconfig	2015-01-27 13:12:52.462867603 -0500
-+++ /home/sisaacs/builds/variants/lochness/.config	2015-01-27 13:13:08.606867314 -0500
-@@ -1822,4 +1822,4 @@
- BR2_PACKAGE_MISTIFY_AGENT_LIBVIRT=y
- BR2_PACKAGE_IFUPDOWN=y
- BR2_PACKAGE_STATSD=y
+--- /home/sisaacs/projects/mistify-os/configs/mistify_defconfig	2015-01-27 15:19:26.482731608 -0500
++++ /home/sisaacs/builds/variants/lochness/.config	2015-01-27 15:21:20.930729559 -0500
+@@ -1,6 +1,6 @@
+ #
+ # Automatically generated file; DO NOT EDIT.
+-# Buildroot 2014.11-g66df69b Configuration
++# Buildroot 2014.11-g7e0e56d Configuration
+ #
+ BR2_HAVE_DOT_CONFIG=y
+ 
+@@ -1831,4 +1831,4 @@
+ BR2_PACKAGE_PYTHON_PYYAML=y
+ BR2_PACKAGE_PYTHON_PARAMIKO=y
+ BR2_PACKAGE_ANSIBLE=y
 -# BR2_PACKAGE_LOCHNESS is not set
 +BR2_PACKAGE_LOCHNESS=y
