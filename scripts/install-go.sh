@@ -81,7 +81,19 @@ install-go () {
 	cd src
 	export GOOS=linux
 	export GOARCH=amd64
+	if [ -n "$TC_PREFIX_DIR" ]; then
+	    export CC_FOR_TARGET="$TC_PREFIX_DIR/bin/${TC_PREFIX}-cc"
+	    export CXX_FOR_TARGET="$TC_PREFIX_DIR/bin/${TC_PREFIX}-c++"
+	fi
+	export CGO_ENABLED=0
+
 	run ./all.bash
+	
+	# Clean up
+	unset CC_FOR_TARGET
+	unset CXX_FOR_TARGET
+	unset CGO_ENABLED
+
 	touch $godir/.$gotag-built
     fi
 }
