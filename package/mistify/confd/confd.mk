@@ -8,6 +8,7 @@ CONFD_VERSION = v0.7.1
 CONFD_SITE    = https://github.com/kelseyhightower/confd.git
 CONFD_SITE_METHOD = git
 CONFD_LICENSE_FILES = LICENSE
+CONFD_DEPENDENCIES += etcd
 
 GOPATH=$(O)/tmp/GOPATH
 
