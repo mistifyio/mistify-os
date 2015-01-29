@@ -15,9 +15,8 @@ GOPATH=$(O)/tmp/GOPATH
 define ETCD_BUILD_CMDS
 	# GO apparently wants the install path to be independent of the
 	# build path. Use a temporary directory to do the build.
-	GOROOT=$(GOROOT) \
-	PATH=$(GOROOT)/bin:$(PATH)
         (cd $(ETCD_DIR) && \
+		CGO_ENABLED=0 \
 		GOROOT=$(GOROOT) \
 		GOPATH=$(GOPATH) \
 		PATH=$(GOROOT)/bin:$(PATH) \
