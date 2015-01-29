@@ -85,7 +85,7 @@ install-go () {
 	    export CC_FOR_TARGET="$TC_PREFIX_DIR/bin/${TC_PREFIX}-cc"
 	    export CXX_FOR_TARGET="$TC_PREFIX_DIR/bin/${TC_PREFIX}-c++"
 	fi
-	export CGO_ENABLED=0
+	export CGO_ENABLED=1
 
 	run ./all.bash
 	
