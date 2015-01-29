@@ -184,6 +184,7 @@ install-toolchain () {
     # tags.
     #-
     export TC_ARCH_SUFFIX=-$toolchainlabel
+    export TC_PREFIX=$toolchainprefix
     export TC_PREFIX_DIR=$toolchaindir/variations/$toolchainlabel
     export TC_LOCAL_TARBALLS_DIR=$downloaddir
     toolchainkernelheaders=`grep CT_KERNEL_VERSION $tcconfig | cut -d \" -f 2`
