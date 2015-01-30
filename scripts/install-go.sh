@@ -75,8 +75,11 @@ install-go () {
 	run mkdir -p $godir/$gotag
 	cd $godir/$gotag
 	verbose "Working directory is: $PWD"
-	run git clone $gouri
+	if [ ! -d go ]; then
+	    run git clone $gouri
+	fi
 	cd go
+	run git fetch $gouri
 	run git checkout $gotag
 	cd src
 	export GOOS=linux
@@ -87,7 +90,7 @@ install-go () {
 	fi
 	export CGO_ENABLED=1
 
-	run ./all.bash
+	run ./make.bash
 	
 	# Clean up
 	unset CC_FOR_TARGET
