@@ -23,6 +23,8 @@ mistifycfgdefault=$PWD/configs/mistify_defconfig
 kernelcfgdefault=$PWD/configs/mistify-kernel.config
 busyboxcfgdefault=$PWD/configs/mistify-busybox.config
 
+timestampfile=/tmp/buildmistify-ts
+
 usage () {
     cat << EOF
 Usage: ./buildmistify [options] [target]
@@ -654,8 +656,9 @@ $target"
 #-
 case "$target" in
     "menuconfig" | "nconfig")
+	touch $timestampfile
 	$makecommand
-	if [[ ! -f $mistifycfg || $brc -nt $mistifycfg ]]; then
+	if [[ ! -f $mistifycfg || $brc -nt $timestampfile ]]; then
 	    #+
 	    # NOTE: The buildroot config option BR2_DEFCONFIG
 	    # needs to point to the config file so that buildroot will copy the correct
@@ -669,6 +672,7 @@ case "$target" in
 	    tip "Use $0 to build Mistify using the new configuration."
 	    message "New config file at $brc saved to $mistifycfg"
 	fi
+	rm -f $timestampfile
 	exit
 	;;
     "xconfig" | "gconfig")
@@ -681,8 +685,9 @@ case "$target" in
 	# needs to point to the config file so that buildroot will copy the correct
 	# file on the first build.
 	#-
+	touch $timestampfile
 	$makecommand
-	if [[ ! -f $kernelcfg || $brkc -nt $kernelcfg ]]; then
+	if [[ ! -f $kernelcfg || $brkc -nt $timestampfile ]]; then
 	    update_variant $brkc $kernelcfg $variant
 	    if [ $? -gt 0 ]; then
 		error "Failed to save $kernelcfg"
@@ -691,6 +696,7 @@ case "$target" in
 	    tip "Use $0 to build Mistify using the new configuration."
 	    message "New kernel config file at $brkc saved to $kernelcfg"
 	fi
+	rm -f $timestampfile
 	exit
 	;;
     "busybox-menuconfig")
@@ -699,9 +705,10 @@ case "$target" in
 	# needs to point to the config file so that buildroot will copy the correct
 	# file on the first build.
 	#-
+	touch $timestampfile
 	$makecommand
 	# NOTE: May want to use grep instead of a timestamp compare.
-	if [[ ! -f $busyboxcfg || $bbc -nt $busyboxcfg ]]; then
+	if [[ ! -f $busyboxcfg || $bbc -nt $timestampfile ]]; then
 	    update_variant $bbc $busyboxcfg $variant
 	    if [ $? -gt 0 ]; then
 		error "Failed to save $busyboxcfg"
@@ -710,6 +717,7 @@ case "$target" in
 	    tip "Use $0 to build Mistify using the new configuration."
 	    message "New BusyBox config file $bbc saved to $busyboxcfg"
 	fi
+	rm -f $timestampfile
 	exit
 	;;
     *)
