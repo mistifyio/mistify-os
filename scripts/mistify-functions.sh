@@ -44,6 +44,7 @@ function die() {
 function run() {
     verbose "Running: '$@'"
     "$@"; code=$?; [ $code -ne 0 ] && die "Command [$*] failed with status code $code"; 
+    return $code
 }
 
 function run_ignore {

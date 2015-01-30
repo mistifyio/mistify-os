@@ -477,25 +477,26 @@ if [ ! -z "$buildroottag" ]; then
   if [ $? -ne 0 ]; then
     message "Local tag $buildroottag doesn't exist."
     message "Fetching update from remote repository."
-    git fetch
+    run git fetch
   fi
   buildrootlabel="tags/$buildroottag"
 else
   message "Using Buildroot branch: $buildrootbranch"
-  git branch | grep $buildrootbranch
+  run git branch | grep $buildrootbranch
   if [ $? -ne 0 ]; then
     message "Local branch $buildrootbranch doesn't exist."
     message "Fetching update from remote repository."
-    git fetch
+    run git fetch
   fi
   buildrootlabel=$buildrootbranch
 fi
 
-git checkout $buildrootlabel
+run git checkout $buildrootlabel
 if [ $? -ne 0 ]; then
   error "Attempted to checkout Buildroot using an invalid tag or branch: $buildrootlabel"
   exit 1
 fi
+run git pull
 message "Buildroot synced to: $buildrootlabel"
 cd $projectdir
 
