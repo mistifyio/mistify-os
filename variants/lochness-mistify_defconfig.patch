@@ -1,5 +1,5 @@
---- /home/sisaacs/projects/mistify-os/configs/mistify_defconfig	2015-01-29 16:31:41.483559457 -0500
-+++ /home/sisaacs/builds/2/lochness/.config	2015-01-29 16:32:02.695559078 -0500
+--- /home/sisaacs/projects/mistify-os/configs/mistify_defconfig	2015-01-30 11:30:28.994335842 -0500
++++ /home/sisaacs/builds/2/lochness/.config	2015-01-30 11:31:19.002334946 -0500
 @@ -1,6 +1,6 @@
  #
  # Automatically generated file; DO NOT EDIT.
