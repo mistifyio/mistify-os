@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2014.11-g7e0e56d Configuration
+# Buildroot 2014.11-gd8b2d5d Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 
@@ -205,7 +205,7 @@ BR2_ROOTFS_SKELETON_CUSTOM=y
 BR2_ROOTFS_SKELETON_CUSTOM_PATH="$(BR2_EXTERNAL)/skeleton"
 BR2_TARGET_TZ_INFO=y
 BR2_TARGET_TZ_ZONELIST="default"
-BR2_TARGET_LOCALTIME=""
+BR2_TARGET_LOCALTIME="Etc/UTC"
 BR2_ROOTFS_USERS_TABLES=""
 BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL)/board/mistify/rootfs_overlay"
 BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL)/scripts/mistify-post-build"
