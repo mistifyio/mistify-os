@@ -1,0 +1,9 @@
+config BR2_PACKAGE_LIBCONTAINER
+        bool "libcontainer"
+        help
+          libcontainer container management API
+          
+          Go API for container management from Docker.
+
+          https://github.com/docker/libcontainer
+          
