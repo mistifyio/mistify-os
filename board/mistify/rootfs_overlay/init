@@ -24,6 +24,13 @@ exec 2>/dev/console
 
 /etc/pre-init.d/mount-aufs.sh
 
+if [ -f /etc/timezone ]; then
+  TZ=`cat /etc/timezone`
+  export TZ
+  echo "Setting system time zone to $TZ"
+  ln -sf ../usr/share/zoneinfo/${TZ} /etc/localtime
+fi
+
 if [ -f /etc/machine-id ]; then
   cp /etc/machine-id /tmp
   mv /tmp/machine-id /etc/machine-id
