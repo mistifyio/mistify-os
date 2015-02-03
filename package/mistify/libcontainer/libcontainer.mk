@@ -31,25 +31,28 @@ define LIBCONTAINER_BUILD_CMDS
 	go get github.com/docker/docker/pkg/term
 
 	cd $(GOPATH)/src/github.com/docker/libcontainer && \
-	GOROOT=$(GOROOT) \
-	PATH=$(GOROOT)/bin:$(PATH) \
-	GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/libcontainer/vendor \
-	GOROOT=$(GOROOT) \
-	go get -d -v ./...
+		GOROOT=$(GOROOT) \
+		PATH=$(GOROOT)/bin:$(PATH) \
+		GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/libcontainer/vendor \
+		GOROOT=$(GOROOT) \
+		go get -d -v ./...
 
 	GOROOT=$(GOROOT) \
 	PATH=$(GOROOT)/bin:$(PATH) \
 	GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/libcontainer/vendor \
 	make direct-build \
 	 -C $(GOPATH)/src/github.com/docker/libcontainer
-endef
 
-define LIBCONTAINER_INSTALL_CMDS
 	GOROOT=$(GOROOT) \
 	PATH=$(GOROOT)/bin:$(PATH) \
 	GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/libcontainer/vendor \
 	make direct-install \
 	 -C $(GOPATH)/src/github.com/docker/libcontainer
+endef
+
+define LIBCONTAINER_INSTALL_TARGET_CMDS
+	$(INSTALL) -m 755 -D $(GOPATH)/bin/nsinit \
+		$(TARGET_DIR)/usr/bin/nsinit
 endef
 
 $(eval $(generic-package))
