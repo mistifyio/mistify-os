@@ -520,6 +520,9 @@ message "The kernel headers version is: $buildrootkernelheaders"
 
 brc=$variantbuilddir/.config
 if [ -f $mistifycfg ]; then
+  verbose "Base config: $mistifycfg"
+  verbose "Target file: $brc"
+  verbose "Variant: $variant"
   use_variant $mistifycfg $brc $variant
   if [ $? -gt 0 ]; then
     error "Could not copy the Buildroot config file."
@@ -552,7 +555,7 @@ fi
 message "The Buildroot kernel config file is: $kernelcfg"
 
 brkc=$variantbuilddir/build/linux-`grep BR2_LINUX_KERNEL_VERSION $brc | cut -d "\"" -f 2`/.config
-
+verbose "Kernel configuration file: $brkc"
 if [ -f $brkc ]; then
   if [ -f $kernelcfg ]; then
     use_variant $kernelcfg $brkc $variant
@@ -634,11 +637,6 @@ fi
 install-go
 
 #+
-# Enter the buildroot tree.
-#-
-cd $buildrootdir
-
-#+
 # Now run the build.
 #-
 export MISTIFY_DIR=$projectdir
@@ -648,7 +646,7 @@ TOOLCHAIN_PATH=$TC_PREFIX_DIR TOOLCHAIN_PREFIX=$toolchainprefix \
 BR2_CCACHE_DIR=$builddir/.buildroot_ccache \
 BR2_DL_DIR=$downloaddir BR2_EXTERNAL=$projectdir \
 BR2_DEFAULT_KERNEL_HEADERS=$buildrootkernelheaders \
-GOROOT=$GOROOT \
+GOROOT=$GOROOT -C $buildrootdir \
 $target"
 
 #+
@@ -657,6 +655,7 @@ $target"
 case "$target" in
     "menuconfig" | "nconfig")
 	touch $timestampfile
+	verbose "Current directory is: $PWD"
 	$makecommand
 	if [[ ! -f $mistifycfg || $brc -nt $timestampfile ]]; then
 	    #+
@@ -670,7 +669,11 @@ case "$target" in
 		exit 1
 	    fi
 	    tip "Use $0 to build Mistify using the new configuration."
-	    message "New config file at $brc saved to $mistifycfg"
+	    if [ -z "$variant" ]; then
+		message "New config file at $brc saved to $mistifycfg"
+	    else
+		message "The configuration variant saved to $variant"
+	    fi
 	fi
 	rm -f $timestampfile
 	exit
@@ -694,7 +697,11 @@ case "$target" in
 		exit 1
 	    fi
 	    tip "Use $0 to build Mistify using the new configuration."
-	    message "New kernel config file at $brkc saved to $kernelcfg"
+	    if [ -z "$variant" ]; then
+		message "New kernel config file at $brkc saved to $kernelcfg"
+	    else
+		message "The kernel configuration variant saved to $variant"
+	    fi
 	fi
 	rm -f $timestampfile
 	exit
@@ -715,7 +722,11 @@ case "$target" in
 		exit 1
 	    fi
 	    tip "Use $0 to build Mistify using the new configuration."
-	    message "New BusyBox config file $bbc saved to $busyboxcfg"
+	    if [ -z "$variant" ]; then
+		message "New BusyBox config file $bbc saved to $busyboxcfg"
+	    else
+		message "The BusyBox configuration variant saved to $variant"
+	    fi
 	fi
 	rm -f $timestampfile
 	exit

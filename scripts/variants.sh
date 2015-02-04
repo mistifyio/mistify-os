@@ -3,6 +3,62 @@
 #-
 variantsconfigdir=$projectdir/variants
 
+function config_contains () {
+  #+
+  # Parameters:
+  # 1 = option to find
+  # x = list of options to search
+  # Returns:
+  # Status: 0 = OK, 1=not found
+  #-
+  opt=$1
+  shift
+ 
+  for o in $*; do
+    if [ "$1" == "$o" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+function find_prefix () {
+  echo `grep -m1 "^[A-Z|0-9]*_" $1 | cut -f1 -d '_'`
+}
+
+function merge_variant () {
+  #+
+  # Parameters:
+  # 1 = base file
+  # 2 = variant file
+  # 3 = output file
+  #-
+  verbose "base=$1, variant=$2, output=$3"
+  prefix=`find_prefix $1`
+  verbose "Configuration option prefix is: $prefix"
+  message "Merging files $1 and $2 into $3"
+  message "Base file is: $1"
+  sed_expression="s/^\(# \)\{0,1\}\(${prefix}_[a-zA-Z0-9_]*\)[= ].*/\2/p"
+  
+  baselist=$(sed -n "$sed_expression" $1)
+  variantlist=$(sed -n "$sed_expression" $2)
+  run cp $1 $3
+  for var in $variantlist; do
+    verbose "Checking variant option: $var"
+    config_contains $var $baselist
+    if [ $? -eq 0 ]; then
+      warning "Config option $var is redefined in $2"
+      verbose "Removing option $var from $3"
+      # This removes either the assignment or the "is not set" for the option.
+      sed -i "/$var[ =]/d" $3
+    fi
+    # The redefinitions have been removed from the base config so can
+    # simply concatenate the variant file.
+    verbose "Appending the variant configuration."
+    cat $2 >> $3
+  done
+}
+
 function variant_file () {
   #+
   # Parameters:
@@ -10,30 +66,15 @@ function variant_file () {
   # 2 = variant name
   # 3 = return variable
   #-
-  vf=$variantsconfigdir/$2-$(basename $1).patch
+  vf=$variantsconfigdir/$2-$(basename $1)
   verbose "Variant file is: $vf"
   eval "$3=$vf"
 }
 
-create_variant () {
-  #+
-  # Parameters:
-  # 1 = original file
-  # 2 = variant name
-  #-
-  vf=''
-  if [ $# -gt 1 ]; then
-    variant_file $1 $2 vf
-    if [ ! -e $vf ]; then
-	touch $vf
-    fi
-  fi
-}
-
-use_variant () {
+function use_variant () {
     #+
     # Parameters:
-    # 1 = file to patch.
+    # 1 = base file
     # 2 = output file.
     # 3 = variant name (empty indicates using base file)
     #-
@@ -43,25 +84,23 @@ use_variant () {
       variant_file $1 $3 vf
     fi
     if [ "$vf" ] && [ -f $vf ]; then
-	verbose "Patching $1 using variant $3 to produce $2"
-	run patch -i $vf -o $2 $1
-	verbose "Patch exit status is: $?"
+	merge_variant $1 $vf $2
     else
 	if [ -z "$3" ]; then
 	    verbose "Using base config file: $1"
 	else
-	    verbose "Patch file doesn't exist. Copying $1 to $2"
+	    verbose "Variant file doesn't exist. Copying $1 to $2"
 	fi
 	run cp $1 $2
 	return 0
     fi
 }
 
-update_variant () {
+function update_variant () {
     #+
     # Parameters:
     # 1 = new version of file
-    # 2 = original file
+    # 2 = base file
     # 3 = variation name (empty indicates using base file)
     #-
     verbose "update_variant: new file=$1, original=$2, variant=$3"
@@ -70,7 +109,7 @@ update_variant () {
 	variant_file $2 $3 vf
 	mkdir -p $variantsconfigdir
 	if [ ! -e $vf ]; then
-	    verbose "Using original $2 and new $1 to create patch file $vf"
+	    verbose "Using original $2 and new $1 to create variant file $vf"
 	    warning "Variant $3 doesn't exist."
 	    confirm "Would you like to create the variant?"
 	    if [ $? -gt 0 ]; then
@@ -79,10 +118,11 @@ update_variant () {
 		message "Creating variant $3 for $2".
 	    fi
 	fi
-	run_ignore diff -u $2 $1 > $vf
-	verbose "Diff exit status is: $?"
+	prefix=`find_prefix $2`
+	verbose "Using config option prefix: $prefix"
+	diff -e $2 $1 | grep $prefix >$vf
 	if [ $? -gt 1 ]; then
-	    error "An error occured when creating the patch $vf"
+	    error "An error occured when updating the variant: $vf"
 	    return 1
 	fi
 	return 0
