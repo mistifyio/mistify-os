@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2014.11-gd8b2d5d Configuration
+# Buildroot 2014.11-g74218e5 Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 
@@ -1536,6 +1536,7 @@ BR2_PACKAGE_FTOP=y
 # BR2_PACKAGE_GETENT is not set
 BR2_PACKAGE_HTOP=y
 # BR2_PACKAGE_IPRUTILS is not set
+BR2_PACKAGE_IRQBALANCE=y
 # BR2_PACKAGE_KEYUTILS is not set
 BR2_PACKAGE_KMOD=y
 BR2_PACKAGE_KMOD_TOOLS=y
