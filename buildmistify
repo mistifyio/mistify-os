@@ -109,6 +109,9 @@ Usage: ./buildmistify [options] [target]
         changing one of the other directories.
         WARNING: This overrides the Buildroot configuration option.
         [downloaddir=`cat $statedir/downloaddir`]
+    --resetmasters
+        Remove the download cache files for packages pulled from repository
+        master branches.
     ==== configuration ====
     --variant <variant>
         Use a configuration variant. The variant is always based upon the
@@ -120,16 +123,13 @@ Usage: ./buildmistify [options] [target]
         [variant=`cat $statedir/variant`]
     -c|--config <configfile>
         Use this config file. The config file is copied to the build directory
-        before running the buildroot make. NOTE: The latest Buildroot from the
-        repository supports a configuration option for this but the make file
-        doesn't use it yet. The file name is saved in the file 
+        before running the buildroot make. The file name is saved in the file
         $statedir/config.
         [config=`cat $statedir/config`]
     -k|--kconfig <configfile>
         Use this kernel config file. The config file is copied to the build
-        directory before running the buildroot make. NOTE: The latest Buildroot
-        from the repository supports a configuration option for this but the
-        make file doesn't use it yet.  The file name is saved in the file
+        directory before running the buildroot make.  The file name is saved in
+        the file
         $statedir/config.
         [kconfig=`cat $statedir/kconfig`]
     --bbconfig <configfile>
@@ -150,8 +150,8 @@ Usage: ./buildmistify [options] [target]
     --viewlog
         If the Buildroot make returns an error then view the log file.
     --test
-        Just testing what will happen with this script. Don't run the Buildroot
-        make.
+        Just testing what will happen with this script without running the
+        Buildroot make.
     -h|--help
         Display this usage.
     ==== special targets ====
@@ -208,6 +208,7 @@ bbconfig:,\
 tcconfig:,\
 test,\
 downloaddir:,\
+resetmasters,\
 verbose,\
 logfile:,\
 viewlog,\
@@ -283,6 +284,9 @@ while [ $# -ge 1 ]; do
 	    downloaddir=$2
 	    shift
 	    ;;
+    --resetmasters)
+        resetmasters=y
+        ;;
 	--variant)
 	    variant=$2
 	    # This variable helps handle the case where the variant is being
@@ -619,6 +623,19 @@ fi
 echo $downloaddir >$statedir/downloaddir
 
 message "The Buildroot download directory is: $downloaddir"
+
+if [ -n "$resetmasters" ]; then
+  if [ -d $downloaddir ]; then
+    p=$downloaddir/*-master.tar*
+    if ls $p 1> /dev/null 2>&1; then
+      for f in `ls $p`; do
+        warning "Removing cached master branch file: $f"
+        rm $f
+      done
+    fi
+  fi
+fi
+
 
 message "Project dir: $projectdir"
 
