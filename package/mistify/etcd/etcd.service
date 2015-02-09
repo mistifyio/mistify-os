@@ -1,12 +1,16 @@
 [Unit]
-Description=Etcd
-After=etcd-setup.service
+Description=etcd
+Wants=network.target
+After=network.target
 
 [Service]
 User=etcd
 EnvironmentFile=/etc/sysconfig/etcd
 PermissionsStartOnly=true
-ExecStart=/usr/sbin/etcd $OPTIONS -data-dir $DATA_DIR
+WorkingDirectory=$ETCD_DATA_DIR
+ExecStartPre=/bin/mkdir -p $ETCD_DATA_DIR
+ExecStartPre=/bin/chown -R etcd:daemon $ETCD_DATA_DIR
+ExecStart=/usr/sbin/etcd
 Restart=always
 RestartSec=10s
 

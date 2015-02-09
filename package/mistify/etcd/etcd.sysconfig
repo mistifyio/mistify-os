@@ -1,6 +1,7 @@
 ##
 ## options for etcd.service
+## etcd uses these for configuration:
+## https://github.com/coreos/etcd/blob/master/Documentation/configuration.md
 ##
 
-OPTIONS=""
-DATA_DIR=/mistify/data/etcd/data
+ETCD_DATA_DIR=/mistify/data/etcd
