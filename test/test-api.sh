@@ -1,4 +1,4 @@
-#/usr/bin/env bash
+#!/usr/bin/env bash
 set -e
 set -o pipefail
 set -x
@@ -26,7 +26,12 @@ until [ $STATUS = "complete" ]; do
     STATUS=$(http GET images | jq -r 'map(select(.id == "linux-test"))[0].status')
 done
 
-ID=$(http POST guests --data-binary '{"metadata": { "foo": "bar"}, "memory": 256, "cpu": 2, "nics": [ { "model": "virtio", "address": "10.10.10.10", "netmask": "255.255.255.0", "gateway": "10.10.10.1", "network": "virbr0"} ], "disks": [ {"image": "linux-test"}, {"size": 512} ] }' | jq -r .id)
+ID=$(http POST guests --data-binary \
+    '{"metadata": { "foo": "bar"}, "memory": 256, "cpu": 2, \
+    "nics": [ { "model": "virtio", "address": "10.10.10.10", \
+    "netmask": "255.255.255.0", "gateway": "10.10.10.1", \
+    "network": "virbr0"} ], \
+    "disks": [ {"image": "linux-test"}, {"size": 512} ] }' | jq -r .id)
 
 STATE=create
 until [ $STATE = "running" ]; do
