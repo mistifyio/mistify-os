@@ -35,7 +35,7 @@ Usage: $0 [options] [-- test suite options]
         [testsuite=`cat $testmistifystatedir/testsuite`]
     --testcase <testcase>
         Execute only a single test case.
-        The "testsuite" option is ignored when this option is used. 
+        The "testsuite" option is ignored when this option is used.
         This option is NOT saved.
     ==== other ====
     --verbose
@@ -182,9 +182,7 @@ fi
 #-
 
 mkdir $variantbuilddir/testlog
-
-pybotcommand="pybot -d $variantbuilddir/testlog $@ $target"
-
+pybotcommand="pybot -L debug -d $variantbuilddir/testlog $@ $target"
 verbose "Command is: $pybotcommand"
 
 if [ -n "$testing" ]; then
@@ -194,9 +192,7 @@ if [ -n "$testing" ]; then
 fi
 
 message "Running test case(s): $target"
-
 $pybotcommand
-
 if [ $? -gt 0 ]; then
   error "One or more test cases failed."
   exit 1
