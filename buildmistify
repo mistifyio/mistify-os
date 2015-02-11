@@ -284,9 +284,9 @@ while [ $# -ge 1 ]; do
 	    downloaddir=$2
 	    shift
 	    ;;
-    --resetmasters)
-        resetmasters=y
-        ;;
+	--resetmasters)
+	    resetmasters=y
+	    ;;
 	--variant)
 	    variant=$2
 	    # This variable helps handle the case where the variant is being
@@ -404,6 +404,9 @@ message "Build output directory is: $builddir"
 echo $builddir >$statedir/builddir
 
 variantbuilddir=$builddir/$variantdir
+message "The variant build directory is: $variantbuilddir"
+# Save the variant builddir so testmistify can know which build to test.
+echo $variantbuilddir >$statedir/variantbuilddir
 
 logdir=$variantbuilddir/logs
 mkdir -p $logdir
