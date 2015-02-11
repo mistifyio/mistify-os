@@ -1,0 +1,203 @@
+#!/bin/bash
+#+
+# Use this script to run verification tests against Mistify-OS.
+#
+#-
+
+source scripts/mistify-functions.sh
+
+testlibdirdefault=test
+testsuitedefault=basictests
+testcasepathdefault=testcases
+testmistifystatedir=${statedir}/testmistify
+
+usage () {
+    cat << EOF
+Usage: $0 [options] [-- test suite options]
+  Use this script to execute tests to verify the build of an instance of the
+  Mistify-OS and its execution either in a VM or on a target platform.
+
+  NOTE: This script uses the Robot Framework (http://robotframeworkd.org)
+  utility, pybot, to execute test cases.
+
+  Options:
+    ==== Test Execution ====
+    --testlibdir <dir>
+	Where the test case and test suite library resides. This option is saved
+	in the file
+	$testmistifystatedir/testlibdir
+        [testlibdir=`cat $testmistifystatedir/testlibdir`]
+    --testsuite <testsuite>
+        The test suite to execute. A test suite is comprised of a number of
+        symlinks in a directory. The symlinks are expected to point to testcases
+        typically in the test case directory. This option is saved in the file
+        $testmistifystatedir/testsuite.
+        [testsuite=`cat $testmistifystatedir/testsuite`]
+    --testcase <testcase>
+        Execute only a single test case.
+        The "testsuite" option is ignored when this option is used. 
+        This option is NOT saved.
+    ==== other ====
+    --verbose
+        Verbose output from this script.
+    --test
+        Just testing what will happen with this script. Don't run the test.
+    -h|--help
+        Display this usage.
+
+    ==== Test Suite Options ====
+        Any options following "--" on the commnand line are passed to pybot.
+        Read the Robot Framework documentation for a list of available options.
+        Of particular interest is the "-v" option which can be used to pass
+        variables to test cases.
+
+  NOTE: This script maintains state in $testmisifystatedir.
+EOF
+}
+
+#+
+# Handle the command line options.
+#-
+a=`getopt -l "\
+testlibdir:,\
+testsuite:,\
+testcase:,\
+verbose,\
+test,\
+help" \
+   -o "h" -- "$@"`
+
+if [ $? -gt 0 ]; then
+    usage
+    exit 1
+fi
+
+eval set -- $a
+
+while [ $# -ge 1 ]; do
+    case "$1" in
+	--)
+	    shift
+	    break
+	    ;;
+	--testlibdir)
+	    testlibdir=$2
+	    shift
+	    ;;
+	--testsuite)
+	    testsuite=$2
+	    shift
+	    ;;
+	--testcase)
+	    testcase=$2
+	    shift
+	    ;;
+	--verbose)
+	    verbose=y
+	    ;;
+	--test)
+	    testing=y
+	    ;;
+	-h|--help)
+	    usage
+	    exit 0
+	    ;;
+	# using getopt should avoid needing this catchall but just in case...
+	*)
+	    error "Invalid option: $1"
+	    usage
+	    exit 1
+	    ;;
+    esac
+    shift
+done
+
+if [ -z "$testlibdir" ]; then
+    if [ -f $testmistifystatedir/testlibdir ]; then
+	    testlibdir=`cat $testmistifystatedir/testlibdir`
+    else
+	    testlibdir=$testlibdirdefault
+    fi
+fi
+
+if [ -z "$testsuite" ]; then
+    if [ -f $testmistifystatedir/testsuite ]; then
+	    testsuite=`cat $testmistifystatedir/testsuite`
+    else
+	    testsuite=$testsuitedefault
+    fi
+fi
+
+if [ ! -e $statedir ]; then
+  error "A build has not been run."
+  exit 1
+fi
+
+if [ ! -e $testmistifystatedir ]; then
+  mkdir -p $testmistifystatedir
+fi
+
+if [ -d $testlibdir ]; then
+    echo $testlibdir >$testmistifystatedir/testlibdir
+    verbose "Using test library located in: $testlibdir"
+else
+    error "Test library $testlibdir does not exist"
+    exit 1
+fi
+if [ -d $testlibdir/$testsuite ]; then
+    echo $testsuite >$testmistifystatedir/testsuite
+    target=$testlibdir/$testsuite
+    verbose "Using test suite: $testsuite"
+else
+    error "Test suite $testlibdir/$testsuite does not exist"
+    exit 1
+fi
+if [ -n "$testcase" ]; then
+    if [ -e $testcase ]; then
+        target=$testlibdir/$testcase
+        verbose "Running $testcase ($testsuite ignored)"
+    else
+        error "Test case $testcase does not exist"
+        exit 1
+    fi
+fi
+
+verbose "Running test(s): $target"
+
+#+
+# TODO: This needs to be a little more sophisticated so that different
+# builds can be tested without having to invoke the buildmistify script.
+#-
+if [ -e $statedir/variantbuilddir ]; then
+    variantbuilddir=`cat $statedir/variantbuilddir`
+    message "Testing build variant in: $variantbuilddir"
+else
+    error "The buildmistify script needs to be run to create the test candidate."
+    exit 1
+fi
+
+#+
+# TODO: Verify Robot Framework is properly installed and if not install it.
+# TODO: Also need to install in a virtual python environment.
+#-
+
+mkdir $variantbuilddir/testlog
+
+pybotcommand="pybot -d $variantbuilddir/testlog $@ $target"
+
+verbose "Command is: $pybotcommand"
+
+if [ -n "$testing" ]; then
+  message "Just a test run -- not running tests."
+  verbose $pybotcommand
+  exit 0
+fi
+
+message "Running test case(s): $target"
+
+$pybotcommand
+
+if [ $? -gt 0 ]; then
+  error "One or more test cases failed."
+  exit 1
+fi
