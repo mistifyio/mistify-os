@@ -6,7 +6,11 @@
 
 source scripts/mistify-functions.sh
 
+builddirdefault=`cat $statedir/builddir`
+variantdefault=`cat $statedir/variant`
 testlibdirdefault=test
+testbeddirdefault=$testlibdirdefault/testbeds
+testbeddefault=labrat.robot
 testsuitedefault=basictests
 testcasepathdefault=testcases
 testmistifystatedir=${statedir}/testmistify
@@ -21,27 +25,50 @@ Usage: $0 [options] [-- test suite options]
   utility, pybot, to execute test cases.
 
   Options:
-    ==== Test Execution ====
+    ==== System Under Test ====
+    --builddir <dir>
+        The Mistify-OS build to test. This defaults to the most recent build.
+        This option is saved in the file:
+        $testmistifystatedir/builddir
+        [builddir=`cat $testmistifystatedir/builddir`]
+    --variant <variant>
+        The Mistify-OS variant to test. This defaults to the most recent build.
+        This option is saved in the file:
+        $testmistifystatedir/variant
+        [variant=`cat $testmisifystatedir/variant`]
+    ==== Test Environment ====
     --testlibdir <dir>
-	Where the test case and test suite library resides. This option is saved
-	in the file
-	$testmistifystatedir/testlibdir
+        Where the test case and test suite library resides. This option is saved
+        in the file:
+        $testmistifystatedir/testlibdir
         [testlibdir=`cat $testmistifystatedir/testlibdir`]
+    --testbeddir <dir>
+        Where the test bed definitions are stored. This option is saved in the
+        file: $testmistifystatedir/testbeddir
+        [testbeddir=`cat $testmistifystatedir/testbeddir`]
+    --testbed <name>
+        The environment in which to test Mistify-OS. This can be a hardware
+        platform or a virtual machine. This option is saved in the file:
+        $testmistifystatedir/testbed
+        [testbed=`cat $testmistifystatedir/testbed`]
+    ==== Test Execution ====
     --testsuite <testsuite>
         The test suite to execute. A test suite is comprised of a number of
         symlinks in a directory. The symlinks are expected to point to testcases
-        typically in the test case directory. This option is saved in the file
+        typically in the test case directory. This option is saved in the file:
         $testmistifystatedir/testsuite.
         [testsuite=`cat $testmistifystatedir/testsuite`]
     --testcase <testcase>
         Execute only a single test case.
         The "testsuite" option is ignored when this option is used.
         This option is NOT saved.
+    --tag <tag>
+        Run only test cases having this tag. This option is not sticky.
     ==== other ====
     --verbose
         Verbose output from this script.
-    --test
-        Just testing what will happen with this script. Don't run the test.
+    --dryrun
+        Just showing what will happen with this script. Don't run the test.
     -h|--help
         Display this usage.
 
@@ -51,7 +78,9 @@ Usage: $0 [options] [-- test suite options]
         Of particular interest is the "-v" option which can be used to pass
         variables to test cases.
 
-  NOTE: This script maintains state in $testmisifystatedir.
+  NOTE: This script maintains state in:
+  $testmistifystatedir.
+  NOTE: Currently this script can only be run against an existing build.
 EOF
 }
 
@@ -59,11 +88,16 @@ EOF
 # Handle the command line options.
 #-
 a=`getopt -l "\
+builddir:,\
+variant:,\
 testlibdir:,\
+testbeddir:,\
+testbed:,\
 testsuite:,\
 testcase:,\
+tag:,\
 verbose,\
-test,\
+dryrun,\
 help" \
    -o "h" -- "$@"`
 
@@ -80,8 +114,24 @@ while [ $# -ge 1 ]; do
 	    shift
 	    break
 	    ;;
+	--builddir)
+	    builddir=$2
+	    shift
+	    ;;
+	--variant)
+	    variant=$2
+	    shift
+	    ;;
 	--testlibdir)
 	    testlibdir=$2
+	    shift
+	    ;;
+	--testbeddir)
+	    testbeddir=$2
+	    shift
+	    ;;
+	--testbed)
+	    testbed=$2
 	    shift
 	    ;;
 	--testsuite)
@@ -92,11 +142,15 @@ while [ $# -ge 1 ]; do
 	    testcase=$2
 	    shift
 	    ;;
+	--tag)
+	    tag=$2
+	    shift
+	    ;;
 	--verbose)
 	    verbose=y
 	    ;;
-	--test)
-	    testing=y
+	--dryrun)
+	    dryrun=y
 	    ;;
 	-h|--help)
 	    usage
@@ -112,12 +166,111 @@ while [ $# -ge 1 ]; do
     shift
 done
 
+if [ ! -e "$statedir" ]; then
+  error "A build has not been run."
+  exit 1
+fi
+
+if [ ! -e "$testmistifystatedir" ]; then
+  mkdir -p $testmistifystatedir
+fi
+
+#+
+# TODO: It's a real possibility that a user will want to run a test against
+# a running system which doesn't have a corresponding build (at least locally).
+# This means that user will want to skip all this builddir and variant stuff.
+# However, that can only be a subset of the available tests. Obviously, tests
+# which verify the build itself can't be run.
+# This creates an orginization problem for test cases. It's likely TAGs will
+# need to be employeed to specify the class of test cases to run.
+# This raises other questions such as where to put test logs if no build.
+# I don't want to take the time to think this through at the moment.
+#
+# For now one must build before one can test!!
+#-
+if [ -z "$builddir" ]; then
+    if [ -f $testmistifystatedir/builddir ]; then
+	    builddir=`cat $testmistifystatedir/builddir`
+    else
+	if [ -d "$builddirdefault" ]; then
+	    builddir=$builddirdefault
+	fi
+    fi
+fi
+
+if [ -d "$builddir" ]; then
+verbose "Got this far 2"
+    echo $builddir >$testmistifystatedir/builddir
+    message "Testing the build in $builddir"
+else
+    error "The build directory $builddir does not exist."
+    exit 1
+fi
+
+if [ -z "$variant" ]; then
+    if [ -f $testmistifystatedir/variant ]; then
+	    variant=`cat $testmistifystatedir/variant`
+    else
+	if [ -d "$builddir/$variantdefault" ]; then
+	    variant=$variantdefault
+	fi
+    fi
+fi
+
+buildvariantdir=$builddir/$variant
+if [ -d "$buildvariantdir" ]; then
+    message "Testing the build variant in: $buildvariantdir"
+else
+    error "The Mistify-OS build variant in $buildvariantdir does not exist."
+    exit 1
+fi
+
 if [ -z "$testlibdir" ]; then
     if [ -f $testmistifystatedir/testlibdir ]; then
 	    testlibdir=`cat $testmistifystatedir/testlibdir`
     else
 	    testlibdir=$testlibdirdefault
     fi
+fi
+
+if [ -d "$testlibdir" ]; then
+    echo $testlibdir >$testmistifystatedir/testlibdir
+    verbose "Using test library located in: $testlibdir"
+else
+    error "Test library $testlibdir does not exist"
+    exit 1
+fi
+
+if [ -z "$testbeddir" ]; then
+    if [ -f $testmistifystatedir/testbeddir ]; then
+	    testbeddir=`cat $testmistifystatedir/testbeddir`
+    else
+	    testbeddir=$testbeddirdefault
+    fi
+fi
+
+if [ -d "$testbeddir" ]; then
+    echo $testbeddir >$testmistifystatedir/testbeddir
+    verbose "Using test bed directory in: $testbeddir"
+else
+    error "Test bed definition directory $testbeddir does not exist"
+    exit 1
+fi
+
+if [ -z "$testbed" ]; then
+    if [ -f $testmistifystatedir/testbed ]; then
+	    testbed=`cat $testmistifystatedir/testbed`
+    else
+	    testbed=$testbeddefault
+    fi
+fi
+
+if [ -f "$testbeddir/$testbed" ]; then
+    echo $testbed >$testmistifystatedir/testbed
+    verbose "Using test bed defintion: $testbed"
+else
+    error "Test bed definition $testbed does not exist"
+    exit 1
 fi
 
 if [ -z "$testsuite" ]; then
@@ -128,33 +281,18 @@ if [ -z "$testsuite" ]; then
     fi
 fi
 
-if [ ! -e $statedir ]; then
-  error "A build has not been run."
-  exit 1
-fi
-
-if [ ! -e $testmistifystatedir ]; then
-  mkdir -p $testmistifystatedir
-fi
-
-if [ -d $testlibdir ]; then
-    echo $testlibdir >$testmistifystatedir/testlibdir
-    verbose "Using test library located in: $testlibdir"
-else
-    error "Test library $testlibdir does not exist"
-    exit 1
-fi
-if [ -d $testlibdir/$testsuite ]; then
+if [ -d "$testlibdir/$testsuite" ]; then
     echo $testsuite >$testmistifystatedir/testsuite
-    target=$testlibdir/$testsuite
+    tests=$testlibdir/$testsuite
     verbose "Using test suite: $testsuite"
 else
     error "Test suite $testlibdir/$testsuite does not exist"
     exit 1
 fi
+
 if [ -n "$testcase" ]; then
     if [ -e $testcase ]; then
-        target=$testlibdir/$testcase
+        tests=$testlibdir/$testcase
         verbose "Running $testcase ($testsuite ignored)"
     else
         error "Test case $testcase does not exist"
@@ -162,31 +300,31 @@ if [ -n "$testcase" ]; then
     fi
 fi
 
-verbose "Running test(s): $target"
-
-#+
-# TODO: This needs to be a little more sophisticated so that different
-# builds can be tested without having to invoke the buildmistify script.
-#-
-if [ -e $statedir/variantbuilddir ]; then
-    variantbuilddir=`cat $statedir/variantbuilddir`
-    message "Testing build variant in: $variantbuilddir"
-else
-    error "The buildmistify script needs to be run to create the test candidate."
-    exit 1
-fi
+verbose "Running test(s): $tests"
 
 #+
 # TODO: Verify Robot Framework is properly installed and if not install it.
 # TODO: Also need to install in a virtual python environment.
 #-
 
-mkdir $variantbuilddir/testlog
-pybotcommand="pybot -L debug -d $variantbuilddir/testlog $@ $target"
+if [[ "$verbose" == "y" ]]; then
+    verboseoption="-L DEBUG:INFO"
+fi
+
+if [ -n "$tag" ]; then
+  tagoption="--include $tag"
+fi
+
+mkdir $builddir/testlog
+pybotcommand="pybot $verboseoption -d $buildvariantdir/testlog \
+    -v BUILDDIR:$buildvariantdir \
+    -v TESTBED:$testbeddir/$testbed \
+    $tagoption \
+    $@ $tests"
 verbose "Command is: $pybotcommand"
 
-if [ -n "$testing" ]; then
-  message "Just a test run -- not running tests."
+if [ -n "$dryrun" ]; then
+  message "Just a dry run -- not running tests."
   verbose $pybotcommand
   exit 0
 fi
