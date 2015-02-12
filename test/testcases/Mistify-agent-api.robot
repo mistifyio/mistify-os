@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation	This test runs the test-api.sh script and verifies some of its output.
 
-Resource	test/resources/ssh.robot
+Resource	test/resources/mistify.robot
 Library		OperatingSystem
 
 *** Variables ***
@@ -17,19 +17,19 @@ Check Mistify Agent Api Running
 
     [Tags]    DEBUG
     ${o}=	Run
-    ...	test/test-api.sh ${HOST}
+    ...	test/test-api.sh ${TESTBED_IP}
     Set Suite Variable	${o}
     Should Contain	${o}
-    ...	Trying ${HOST}...
+    ...	Host: ${TESTBED_IP}
 
 Verify Connected To Host
     [Documentation]	Verifies the test script connected to the host.
 
     [Tags]    DEBUG
     Should Contain	${o}
-    ...	Connected to ${HOST}
+    ...	Connected to ${TESTBED_IP}
 
-Verify Is Json Outpu
+Verify Is Json Output
     [Documentation]	Verify that the return data is formatted as json.
 
     [Tags]    DEBUG

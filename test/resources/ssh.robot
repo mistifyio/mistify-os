@@ -6,18 +6,13 @@ Documentation	Common variables and keywords for SSH connections to
 
 Library		SSHLibrary	with name	ssh
 
-*** Variables ***
-${HOST}		10.8.30.13
-${USERNAME}	root
-${PASSWORD}	LetMeIn2
-
 *** Keywords ***
 Login To SUT
     [Documentation]	Creates an SSH connection to the SUT (System Under Test)
     ...
     ...		The SUT can be an actual running platform or a QEMU/KVM
     ...		virtual machine.
-    ssh.Open Connection	${HOST}
+    ssh.Open Connection	${TESTBED_IP}
     ssh.Login		${USERNAME}	${PASSWORD}
 
 Disconnect From SUT

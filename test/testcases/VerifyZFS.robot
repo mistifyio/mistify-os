@@ -2,6 +2,7 @@
 Documentation	Verify ZSF is running and the zfs directories have been
 ...		mounted.
 
+Resource	test/resources/mistify.robot
 Resource	test/resources/ssh.robot
 
 Suite Setup	Login To SUT
