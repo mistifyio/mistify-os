@@ -7,7 +7,6 @@ After=network.target
 User=etcd
 EnvironmentFile=/etc/sysconfig/etcd
 PermissionsStartOnly=true
-WorkingDirectory=$ETCD_DATA_DIR
 ExecStartPre=/bin/mkdir -p $ETCD_DATA_DIR
 ExecStartPre=/bin/chown -R etcd:daemon $ETCD_DATA_DIR
 ExecStart=/usr/sbin/etcd
