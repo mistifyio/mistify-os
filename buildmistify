@@ -2,7 +2,7 @@
 #+
 # Use this script to initialize a Buildroot based build environment for Mistify.
 #
-# The intent is to use a copy of the Buildroot build envirnment for Buildroot 
+# The intent is to use a copy of the Buildroot build envirnment for Buildroot
 # unmodified and using an external project directory.
 #-
 
@@ -69,7 +69,7 @@ Usage: ./buildmistify [options] [target]
         [godir=`cat $statedir/godir`]
     --gouri default|<uri>
         The repository from which to clone the GO source code. Use "default"
-        to reset to the default URI. 
+        to reset to the default URI.
         This is saved in the file $statedir/gouri.
         [gouri=`cat $statedir/gouri`]
     --gotag default|<tag>
@@ -115,7 +115,7 @@ Usage: ./buildmistify [options] [target]
     ==== configuration ====
     --variant <variant>
         Use a configuration variant. The variant is always based upon the
-        base configuration files indicated by the --config, --kconfig, 
+        base configuration files indicated by the --config, --kconfig,
         --bbconfig and --tcconfig options. To reset to the base configuration
         use an empty string as the variant name. e.g. --variant ''
         The active variant name is saved in the file
@@ -134,7 +134,7 @@ Usage: ./buildmistify [options] [target]
         [kconfig=`cat $statedir/kconfig`]
     --bbconfig <configfile>
         Use this Busybox config file. The config file is copied to the build
-        directory before running the buildroot make. The file name is saved in 
+        directory before running the buildroot make. The file name is saved in
         the file $statedir/bbconfig.
         [bbconfig=`cat $statedir/bbconfig 2>/dev/null || echo \\`]
     --tcconfig <configfile>
@@ -149,8 +149,8 @@ Usage: ./buildmistify [options] [target]
         Use this log file name instead of the generated log file name.
     --viewlog
         If the Buildroot make returns an error then view the log file.
-    --test
-        Just testing what will happen with this script without running the
+    --dryrun
+        Just showing what will happen with this script without running the
         Buildroot make.
     -h|--help
         Display this usage.
@@ -206,7 +206,7 @@ config:,\
 kconfig:,\
 bbconfig:,\
 tcconfig:,\
-test,\
+dryrun,\
 downloaddir:,\
 resetmasters,\
 verbose,\
@@ -320,8 +320,8 @@ while [ $# -ge 1 ]; do
 	--viewlog)
 	    viewlog=y
 	    ;;
-	--test)
-	    testing=y
+	--dryrun)
+	    dryrun=y
 	    ;;
 	-h|--help)
 	    usage
@@ -462,7 +462,7 @@ cd $buildrootdir
 # Determine the tag to use to sync Buildroot to.
 # NOTE: Having branch and tag separate helps avoid an ambiguity which could
 # result in accidentally creating a branch when a tag was intended.
-# NOTE: If buildroottag is set at this point then it wasn't overridden by  
+# NOTE: If buildroottag is set at this point then it wasn't overridden by
 # specifying a branch.
 #-
 if [ ! -z "$buildroottag" ]; then
@@ -768,8 +768,8 @@ message "Logging the build output to: $logfile"
 #+
 # Run buildroot.
 #-
-if [ -n "$testing" ]; then
-  message "Just a test run -- not running make."
+if [ -n "$dryrun" ]; then
+  message "Just a dry run -- not running make."
   verbose $makecommand
 else
   #+
