@@ -4,6 +4,7 @@ Documentation	This test suite verifies ssh login into a Mistify-OS host.
 ...	This simply logs in and execute some commands to verify the
 ...	SUT is actually running Mistify-OS.
 
+Resource	test/resources/mistify.robot
 Resource	test/resources/ssh.robot
 
 Suite Setup	Setup Testsuite
