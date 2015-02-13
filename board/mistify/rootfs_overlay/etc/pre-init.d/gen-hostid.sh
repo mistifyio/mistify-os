@@ -22,7 +22,7 @@ if [ -z "$uuid" ]; then
     mac=`ip link show | awk '/ether/ {print $2}' | sort | head -n 1 | sed s/://g`
     a=${mac:0:8}
     b=${mac:8:4}
-    uuid=`printf '%s-%s-0000-0000-000000000000' $A $B`
+    uuid=`printf '%s-%s-0000-0000-000000000000' $a $b`
 fi
 
 if [ -z "$uuid" ]; then
