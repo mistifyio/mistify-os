@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-ETCD_VERSION = v2.0.0-rc.1
+ETCD_VERSION = v2.0.0
 ETCD_SITE    = https://github.com/coreos/etcd.git
 ETCD_SITE_METHOD = git
 ETCD_LICENSE = Apache
