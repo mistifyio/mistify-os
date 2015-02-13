@@ -33,7 +33,8 @@ fi
 #lowercase the UUID
 uuid=${uuid,,}
 
-machine_id=`sed 's/-//g' <<< $uuid`
+#remove dashes
+machine_id=${uuid//-/}
 host_id=${uuid:0:8}
 
 a=${host_id:6:2}
