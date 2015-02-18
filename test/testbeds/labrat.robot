@@ -6,5 +6,3 @@ Documentation	This defines the attributes associated with a specific testbed.
 
 *** Variables ***
 ${TESTBED_IP}	labrat
-
-

@@ -27,4 +27,4 @@ Setup Testsuite
     Login To SUT
 
 Teardown Testsuite
-   Comment	Teardown happens automatically when the test suite ends.
+    Comment	Teardown happens automatically when the test suite ends.
