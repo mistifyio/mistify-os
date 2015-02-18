@@ -8,9 +8,15 @@ source scripts/mistify-functions.sh
 
 builddirdefault=`cat $statedir/builddir`
 variantdefault=`cat $statedir/variant`
+
 testlibdirdefault=test
+
 testbeddirdefault=$testlibdirdefault/testbeds
 testbeddefault=labrat.robot
+
+testdistrodirdefault=$testlibdirdefault/distros
+testdistrodefault=ubuntu-trusty-amd64.robot
+
 testsuitedefault=basictests
 testcasepathdefault=testcases
 testmistifystatedir=${statedir}/testmistify
@@ -42,6 +48,19 @@ Usage: $0 [options] [-- test suite options]
         in the file:
         $testmistifystatedir/testlibdir
         [testlibdir=`cat $testmistifystatedir/testlibdir`]
+    --testdistrodir <dir>
+        Mistify-OS build verification is performed using a Linux Container (lxc)
+        constructed specifically for the test. The container can be based upon
+        one of a set of possible Linux distributions which are defined in distro
+        definition files. This defines the location of the distro definition file
+        to use for this test run. This option is saved in the file:
+        $testmistifystatedir/testdistrodir
+        [testdistrodir=`cat $$testmistifystatedir/testdistrodir`]
+    --testdistro <distro>
+        This is the distro definition file to use for a test run. This option is
+        saved in the file:
+        $testmistifystatedir/testdistro
+        [testdistro=`cat $testmistifystatedir/testdistro`]
     --testbeddir <dir>
         Where the test bed definitions are stored. This option is saved in the
         file: $testmistifystatedir/testbeddir
@@ -91,6 +110,8 @@ a=`getopt -l "\
 builddir:,\
 variant:,\
 testlibdir:,\
+testdistrodir:,\
+testdistro:,\
 testbeddir:,\
 testbed:,\
 testsuite:,\
@@ -124,6 +145,14 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--testlibdir)
 	    testlibdir=$2
+	    shift
+	    ;;
+	--testdistrodir)
+	    testdistrodir=$2
+	    shift
+	    ;;
+	--testdistro)
+	    testdistro=$2
 	    shift
 	    ;;
 	--testbeddir)
@@ -175,6 +204,7 @@ if [ ! -e "$testmistifystatedir" ]; then
   mkdir -p $testmistifystatedir
 fi
 
+#####
 #+
 # TODO: It's a real possibility that a user will want to run a test against
 # a running system which doesn't have a corresponding build (at least locally).
@@ -217,6 +247,8 @@ if [ -z "$variant" ]; then
     fi
 fi
 
+#####
+
 buildvariantdir=$builddir/$variant
 if [ -d "$buildvariantdir" ]; then
     message "Testing the build variant in: $buildvariantdir"
@@ -225,6 +257,7 @@ else
     exit 1
 fi
 
+#####
 if [ -z "$testlibdir" ]; then
     if [ -f $testmistifystatedir/testlibdir ]; then
 	    testlibdir=`cat $testmistifystatedir/testlibdir`
@@ -241,6 +274,7 @@ else
     exit 1
 fi
 
+#####
 if [ -z "$testbeddir" ]; then
     if [ -f $testmistifystatedir/testbeddir ]; then
 	    testbeddir=`cat $testmistifystatedir/testbeddir`
@@ -257,6 +291,7 @@ else
     exit 1
 fi
 
+#####
 if [ -z "$testbed" ]; then
     if [ -f $testmistifystatedir/testbed ]; then
 	    testbed=`cat $testmistifystatedir/testbed`
@@ -273,6 +308,41 @@ else
     exit 1
 fi
 
+#####
+if [ -z "$testdistrodir" ]; then
+    if [ -f $testmistifystatedir/testdistrodir ]; then
+	    testdistrodir=`cat $testmistifystatedir/testdistrodir`
+    else
+	    testdistrodir=$testdistrodirdefault
+    fi
+fi
+
+if [ -d "$testdistrodir" ]; then
+    echo $testdistrodir >$testmistifystatedir/testdistrodir
+    verbose "Using test distro directory in: $testdistrodir"
+else
+    error "Test distro definition directory $testdistrodir does not exist"
+    exit 1
+fi
+
+#####
+if [ -z "$testdistro" ]; then
+    if [ -f $testmistifystatedir/testdistro ]; then
+	    testdistro=`cat $testmistifystatedir/testdistro`
+    else
+	    testdistro=$testdistrodefault
+    fi
+fi
+
+if [ -f "$testdistrodir/$testdistro" ]; then
+    echo $testdistro >$testmistifystatedir/testdistro
+    verbose "Using test distro defintion: $testdistro"
+else
+    error "Test distro definition $testdistro does not exist"
+    exit 1
+fi
+
+#####
 if [ -z "$testsuite" ]; then
     if [ -f $testmistifystatedir/testsuite ]; then
 	    testsuite=`cat $testmistifystatedir/testsuite`
@@ -290,6 +360,7 @@ else
     exit 1
 fi
 
+#####
 if [ -n "$testcase" ]; then
     if [ -e $testcase ]; then
         tests=$testlibdir/$testcase
@@ -300,6 +371,7 @@ if [ -n "$testcase" ]; then
     fi
 fi
 
+#####
 verbose "Running test(s): $tests"
 
 #+
@@ -318,6 +390,7 @@ fi
 mkdir $builddir/testlog
 pybotcommand="pybot $verboseoption -d $buildvariantdir/testlog \
     -v BUILDDIR:$buildvariantdir \
+    -v TESTDISTRO:$testdistrodir/$testdistro \
     -v TESTBED:$testbeddir/$testbed \
     $tagoption \
     $@ $tests"
