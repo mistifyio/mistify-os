@@ -18,9 +18,11 @@ exec 2>/dev/console
 /bin/udevadm trigger
 /bin/udevadm settle
 
+/etc/pre-init.d/mistify-env.sh
+
 /etc/pre-init.d/gen-hostid.sh
 
-/etc/pre-init.d/init-zpools.sh 
+/etc/pre-init.d/init-zpools.sh
 
 /etc/pre-init.d/mount-aufs.sh
 
