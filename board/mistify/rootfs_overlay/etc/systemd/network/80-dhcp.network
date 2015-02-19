@@ -1,5 +1,11 @@
 [Match]
 Name=eno*
+Name=eth*
 
 [Network]
 DHCP=v4
+
+[DHCP]
+UseDNS=true
+UseHostname=true
+SendHostname=false
