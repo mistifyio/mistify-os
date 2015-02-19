@@ -4,27 +4,25 @@
 #
 ################################################################################
 
-QUEENSLAND_VERSION = v0.2.0
-QUEENSLAND_SITE    = https://github.com/mistifyio/queensland/archive/
-QUEENSLAND_SOURCE = $(QUEENSLAND_VERSION).tar.gz
+QUEENSLAND_VERSION = master
+QUEENSLAND_SITE    = https://github.com/mistifyio/queensland.git
+QUEENSLAND_SITE_METHOD = git
 QUEENSLAND_LICENSE = Apache
 QUEENSLAND_LICENSE_FILES = LICENSE
 
 GOPATH=$(O)/tmp/GOPATH
 
 define QUEENSLAND_BUILD_CMDS
-	(mkdir -p $(GOPATH)/src/github.com/mistifyio && \
-		ln -sf $(QUEENSLAND_DIR) $(GOPATH)/src/github.com/mistifyio/queensland && \
+	(cd $(QUEENSLAND_DIR) && \
 		export PATH=$(GOROOT)/bin:$(PATH) && \
 		export GOROOT=$(GOROOT) && \
 		export GOPATH=$(GOPATH) && \
-		cd  $(GOPATH)/src/github.com/mistifyio/queensland && \
-		go get -d && \
-		go build -x -o $(QUEENSLAND_DIR)/queensland)
+		go get github.com/mistifyio/queensland && \
+		go build -x) 
 endef
 
 define QUEENSLAND_INSTALL_TARGET_CMDS
-	$(INSTALL) -m 755 -D $(QUEENSLAND_DIR)/queensland \
+	$(INSTALL) -m 755 -D $(QUEENSLAND_DIR)/queensland-$(QUEENSLAND_VERSION) \
 		$(TARGET_DIR)/usr/sbin/queensland
 endef
 
