@@ -15,6 +15,6 @@ if [ -z "$URL" ]; then
     exit 0
 fi
 
-curl --fail -L -s -O /etc/mistify.env "$URL"
+curl --fail -L -s -o /etc/mistify.env "$URL"
 
 exit $?
