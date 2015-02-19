@@ -7,6 +7,9 @@ Documentation	This verifies the Mistify-OS build process using a Linux
 ...
 ...	NOTE: At the moment the build is run as root. Later an actual user
 ...	will be created.
+...	WARNING: Currently this works only for Debian based distros.
+
+Library		String
 
 Resource	test/resources/mistify.robot
 Resource	test/resources/ssh.robot
@@ -16,6 +19,7 @@ Suite Setup             Setup Testsuite
 Suite Teardown          Teardown Testsuite
 
 *** Variables ***
+${prompt}=	root@${DISTRO_LONG_NAME}
 
 *** Test Cases ***
 Verify Container Is Running
@@ -33,26 +37,49 @@ Get Container IP Address
 Connect To Container
     Login To Localhost
     ssh.Write  lxc-attach -n ${DISTRO_LONG_NAME}
-    ${_o}=  ssh.Read Until  root@
-    Should Contain  ${_o}  root@
+    ${_o}=  ssh.Read Until  ${prompt}
+    Log To Console  \nAttach:\n${_o}
+    Should Contain  ${_o}  ${prompt}
+
+Define Package List
+    [Documentation]	Creating this variable here because RF complained
+    ...			about using this technique in the variables section
+    ...			and using a true list wasn't producing the desired
+    ...			results for passing the list to apt-get.
+    ${packages}=  catenate  SEPARATOR=${SPACE}
+    ...  openssh-server  man
+    ...  build-essential  git  mercurial  unzip  bc  libncurses5-dev
+    ...  syslinux  genisoimage  libdevmapper-dev  libnl-dev
+    ...  autoconf  automake  libtool  gettext  autopoint
+    ...  pkg-config  flex  gperf  bison  texinfo  gawk  subversion
+    Set Suite Variable  ${packages}
 
 Install Key Tools
-    ${_components}=  catenate  SEPARATOR=
-    ...  ${SPACE} openssh-server man
-    ...  ${SPACE} build-essential git mercurial unzip bc libncurses5-dev
-    ...  ${SPACE} syslinux genisoimage libdevmapper-dev libnl-dev
-    ...  ${SPACE} autoconf automake libtool gettext autopoint
-    ...  ${SPACE} pkg-config flex gperf bison texinfo gawk subversion
-    Log To Console  \nInstalling: ${_components}
+    Log To Console  \nThis works only for debian based distros!!
+    Log To Console  \nInstalling: ${packages}
+    ssh.Write  ls /
+    ${_o}=  ssh.Read Until  ${prompt}  loglevel=INFO
+    ssh.Write  apt-get install -y ${packages}
     ssh.Set Client Configuration  timeout=20m
-    ssh.Write  apt-get install -y ${_components}
-    ${_o}=  ssh.Read Until  root@${DISTRO_LONG_NAME}
+    ${_o}=  ssh.Read Until  ${prompt}  loglevel=INFO
+    Log To Console  \napt-get returned:\n${_o}
     ssh.Set Client Configuration  timeout=3m
+
+Verify Key Tools Installed
+    Log To Console  \nThis works only for debian based distros!!
+    Log To Console  \nPackage list: ${packages}
+    ssh.Write  dpkg -l \| awk '/^[hi]i/{print $2}'
+    ${_o}=	ssh.Read Until	${prompt}
+    Log To Console  \nInstalled packages:\n${_o}
+    @{_packages}=	Split String  ${packages}
+    :FOR  ${_p}  IN  @{_packages}
+    	\	Should Contain  ${_o}  ${_p}
 
 Disconnnet From Container
     ssh.Write  exit
     ${_o}=  ssh.Read Until  exit
     Should Contain  ${_o}  exit
+    Disconnect From Localhost
 
 *** Keywords ***
 Setup Testsuite
