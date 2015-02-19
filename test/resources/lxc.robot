@@ -24,6 +24,7 @@ Test LXC Is Installed
 Create Unprivileged Container
     [Arguments]	${_container_name}	${_distro_name}
     ...	${_distro_version_name}	${_distro_arch}
+    Log To Console	\n
     ${_c}=	catenate	SEPARATOR=
     ...  lxc-create -t download
     ...  ${SPACE} -n ${_container_name}
@@ -43,6 +44,17 @@ Start Container
     ${_o}=	Run	sleep 5
     [Return]	${_rc}
 
+Does Container Exist
+    [Documentation]	Tests to see if the container exists and is either
+    ...			running or stopped.
+    ...
+    ...		Returns 1 if the container exists and 0 if it doesn't.
+    [Arguments]	${_container_name}
+    ${_rc}=	Run And Return Rc
+	...	lxc-ls -f --running --stopped \| grep \'${_container_name}\\s\'
+    Return From Keyword If	${_rc} == ${0}	${1}
+    [Return]	${0}
+
 Is Container Running
     [Arguments]	${_container_name}
     ${_rc}=	Run And Return Rc
@@ -53,14 +65,14 @@ Is Container Running
 Container IP Address
     [Arguments]	${_container_name}
     ${_o}=	Run	lxc-ls -f --running
-    Log To Console	Running containers:\n${_o}
+    Log To Console	\nRunning containers:\n${_o}
     ${_c}=	catenate	SEPARATOR=
 	...	lxc-ls -f --running \|${SPACE}
 	...	grep \'${_container_name}\\s\' \|${SPACE}
 	...	tr -s \' \' \|${SPACE}
 	...	cut -d \' \' -f 3
     ${_o}=	Run	${_c}
-    Log To Console	Command: ${_c} returned: ${_o}
+    Log To Console	\nCommand: ${_c} returned: ${_o}
     [Return]	${_o}
 
 Stop Container
