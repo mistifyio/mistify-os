@@ -17,14 +17,12 @@ Verify Is Mistify-OS
     ...		Examine the output from different commands to verify
     ...		the Mistify-OS is running on the platform.
 
-    ${o}=
-    ...	ssh.Execute Command	uname -a
-    Should Contain
-    ...	${o}	Mistify-OS
+    ${o}=	ssh.Execute Command	uname -a
+    Should Contain	${o}  Mistify-OS
 
 *** Keywords ***
 Setup Testsuite
-    Login To SUT
+    Login To SUT  ${TESTBED_IP}  ${USERNAME}  ${PASSWORD}
 
 Teardown Testsuite
     Comment	Teardown happens automatically when the test suite ends.

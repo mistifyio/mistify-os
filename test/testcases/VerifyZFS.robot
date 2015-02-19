@@ -5,7 +5,7 @@ Documentation	Verify ZSF is running and the zfs directories have been
 Resource	test/resources/mistify.robot
 Resource	test/resources/ssh.robot
 
-Suite Setup	Login To SUT
+Suite Setup	Login To SUT  ${TESTBED_IP}  ${USERNAME}  ${PASSWORD}
 
 *** Test Cases ***
 Check For SPL
