@@ -4,9 +4,9 @@
 #
 ################################################################################
 
-ETCD_VERSION = v2.0.0
-ETCD_SITE    = https://github.com/coreos/etcd.git
-ETCD_SITE_METHOD = git
+ETCD_VERSION = v2.0.3
+ETCD_SITE    = https://github.com/coreos/etcd/archive/
+ETCD_SOURCE = $(ETCD_VERSION).tar.gz
 ETCD_LICENSE = Apache
 ETCD_LICENSE_FILES = LICENSE
 
