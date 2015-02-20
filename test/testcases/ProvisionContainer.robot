@@ -75,7 +75,7 @@ Verify Key Tools Installed
     :FOR  ${_p}  IN  @{_packages}
     	\	Should Contain  ${_o}  ${_p}
 
-Disconnnet From Container
+Disconnect From Container
     ssh.Write  exit
     ${_o}=  ssh.Read Until  exit
     Should Contain  ${_o}  exit
