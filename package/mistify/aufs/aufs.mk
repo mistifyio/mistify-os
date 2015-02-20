@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-AUFS_VERSION = aufs3.14.21+
+AUFS_VERSION = aufs3.18.1+
 AUFS_SITE = git://git.code.sf.net/p/aufs/aufs3-standalone
 AUFS_LICENSE = GPLv2
 AUFS_LICENSE_FILES = COPYING
