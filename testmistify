@@ -392,6 +392,8 @@ pybotcommand="pybot $verboseoption -d $buildvariantdir/testlog \
     -v BUILDDIR:$buildvariantdir \
     -v TESTDISTRO:$testdistrodir/$testdistro \
     -v TESTBED:$testbeddir/$testbed \
+    -v USER:$USER \
+    -v HOME:$HOME \
     $tagoption \
     $@ $tests"
 verbose "Command is: $pybotcommand"
