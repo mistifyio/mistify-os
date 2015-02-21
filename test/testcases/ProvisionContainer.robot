@@ -83,22 +83,14 @@ Disconnect From Container
 
 *** Keywords ***
 Setup Testsuite
-    ${_rc}=	Does Container Exist  ${DISTRO_LONG_NAME}
-    ${_rc}=	Run Keyword If  ${_rc} == 0  # 0 indicates no
-    ...	Create Build Container
-    Run Keyword Unless	${_rc} == None # None indicates using existing container.
-    ...	Should Be Equal As Integers	${_rc}	0
-    ${_rc}=	Start Container	${DISTRO_LONG_NAME}
-    Should Be Equal As Integers	${_rc}	0
-    ${_ip}=	Container IP Address	${DISTRO_LONG_NAME}
-    Set Suite Variable	${_ip}
-    Log To Console	\nUsing container ${DISTRO_LONG_NAME} at IP address: ${_ip}
+    ${_rc}=	Use Container
+    ...	${DISTRO_LONG_NAME}	${DISTRO_NAME}
+    ...	${DISTRO_VERSION_NAME}	${DISTRO_ARCH}
+    Log To Console	\nUsing container: ${DISTRO_LONG_NAME}
+    Run Keyword Unless  ${_rc} == 0
+    ...	Log To Console	\nContainer could not be created.
+    ...		WARN
 
 Teardown Testsuite
     Stop Container	${DISTRO_LONG_NAME}
 
-Create Build Container
-    ${_rc}=	Create Unprivileged Container
-    ...	${DISTRO_LONG_NAME}	${DISTRO_NAME}
-    ...	${DISTRO_VERSION_NAME}	${DISTRO_ARCH}
-    [Return]	${_rc}
