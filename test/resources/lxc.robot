@@ -22,8 +22,8 @@ Test LXC Is Installed
     Should Contain	${_o}	lxc-create creates a container
 
 Create Unprivileged Container
-    [Arguments]	${_container_name}	${_distro_name}
-    ...	${_distro_version_name}	${_distro_arch}
+    [Arguments]	${_container_name}  ${_distro_name}
+    ...		${_distro_version_name}  ${_distro_arch}
     Log To Console	\n
     ${_c}=	catenate	SEPARATOR=
     ...  lxc-create -t download
@@ -74,6 +74,21 @@ Container IP Address
     ${_o}=	Run	${_c}
     Log To Console	\nCommand: ${_c} returned: ${_o}
     [Return]	${_o}
+
+Use Container
+    [Documentation]	This starts an existing container.
+    ...
+    ...		If the container doesn't exist one is created.
+    [Arguments]	${_container_name}  ${_distro_name}
+    ...		${_distro_version_name}  ${_distro_arch}
+    ${_rc}=	Does Container Exist  ${_container_name}
+    ${_rc}=	Run Keyword If  ${_rc} == 0  # 0 indicates no
+    ...	Create Unprivileged Container
+    ...		${_container_name}	${_distro_name}
+    ...		${_distro_version_name}	${_distro_arch}
+    ${_rc}=	Run Keyword Unless  ${_rc} == 1  # 1 indicates fail
+    ...	Start Container  ${_container_name}
+    [Return]  ${_rc}
 
 Stop Container
     [Arguments]	${_container_name}
