@@ -6,8 +6,13 @@
 
 source scripts/mistify-functions.sh
 
-builddirdefault=`cat $statedir/builddir`
-variantdefault=`cat $statedir/variant`
+if [ -e "$statedir/builddir" ]; then
+  builddirdefault=`cat $statedir/builddir`
+fi
+
+if [ -e "$statedir/variant" ]; then
+  variantdefault=`cat $statedir/variant`
+fi
 
 testlibdirdefault=test
 
@@ -195,11 +200,6 @@ while [ $# -ge 1 ]; do
     shift
 done
 
-if [ ! -e "$statedir" ]; then
-  error "A build has not been run."
-  exit 1
-fi
-
 if [ ! -e "$testmistifystatedir" ]; then
   mkdir -p $testmistifystatedir
 fi
@@ -229,7 +229,6 @@ if [ -z "$builddir" ]; then
 fi
 
 if [ -d "$builddir" ]; then
-verbose "Got this far 2"
     echo $builddir >$testmistifystatedir/builddir
     message "Testing the build in $builddir"
 else
