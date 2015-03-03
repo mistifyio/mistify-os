@@ -6,20 +6,20 @@
 PREFIX := /usr
 SBIN_DIR=$(PREFIX)/sbin
 
+cmd/enfield/enfield: cmd/enfield/main.go
+	cd $(dir $<) && \
+	go get && \
+	go build -v
+
+$(SBIN_DIR)/enfield: cmd/enfield/enfield
+	install -D $< $(DESTDIR)$@
+
 cmd/heartbeat/heartbeat: cmd/heartbeat/main.go
 	cd $(dir $<) && \
 	go get && \
 	go build -v
 
 $(SBIN_DIR)/lochness-heartbeat: cmd/heartbeat/heartbeat
-	install -D $< $(DESTDIR)$@
-
-cmd/ipxe/ipxe: cmd/ipxe/main.go
-	cd $(dir $<) && \
-	go get && \
-	go build -v
-
-$(SBIN_DIR)/lochness-ipxe: cmd/ipxe/ipxe
 	install -D $< $(DESTDIR)$@
 
 cmd/lock/lock: cmd/lock/lock.go
@@ -56,9 +56,9 @@ $(SBIN_DIR)/lochness-testagent: cmd/testagent/testagent
 
 
 clean:
-	cd cmd/heartbeat && \
+	cd cmd/enfield && \
 	go clean && \
-	cd cmd/ipxe && \
+	cd cmd/heartbeat && \
 	go clean && \
 	cd cmd/lock && \
 	go clean && \
@@ -70,8 +70,8 @@ clean:
 	go clean
 
 install: \
+  $(SBIN_DIR)/enfield \
   $(SBIN_DIR)/lochness-heartbeat \
-  $(SBIN_DIR)/lochness-ipxe \
   $(SBIN_DIR)/lochness-lock \
   $(SBIN_DIR)/lochness-locker \
   $(SBIN_DIR)/lochness-test \
