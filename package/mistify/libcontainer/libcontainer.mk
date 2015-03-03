@@ -5,7 +5,7 @@
 ################################################################################
 
 LIBCONTAINER_VERSION = e59984353acde7207aa1115e261847bf4ddd9a8f
-LIBCONTAINER_SITE    = git@github.com:docker/libcontainer.git
+LIBCONTAINER_SITE    = https://github.com/docker/libcontainer.git
 LIBCONTAINER_SITE_METHOD = git
 LIBCONTAINER_LICENSE = Apache
 LIBCONTAINER_LICENSE_FILES = LICENSE
