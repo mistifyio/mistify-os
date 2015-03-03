@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LOCHNESS_VERSION = a84907f12f760685d9ee987c6bd33a19e1cb441a
+LOCHNESS_VERSION = 377a43d3a7c386e7ab356b8e7700572bb3de0fe4
 LOCHNESS_SITE    = git@github.com:mistifyio/lochness.git
 LOCHNESS_SITE_METHOD = git
 LOCHNESS_LICENSE = Apache
@@ -21,7 +21,7 @@ define LOCHNESS_BUILD_CMDS
 	rsync -av --exclude .git $(@D)/* $(GOPATH)/src/github.com/mistifyio/lochness/
 	GOROOT=$(GOROOT) \
 	PATH=$(GOROOT)/bin:$(PATH) \
-        GOPATH=$(GOPATH) make -f $(BR2_EXTERNAL)/package/mistify/lochness/Makefile \
+        GOPATH=$(GOPATH) make \
            install DESTDIR=$(TARGET_DIR) \
           -C $(GOPATH)/src/github.com/mistifyio/lochness
 
