@@ -7,8 +7,8 @@ uuid=""
 read -r cmdline < /proc/cmdline
 for param in $cmdline ; do
 	case $param in
-	    mistify-uuid=*)
-		    uuid=${param#mistify-uuid=}
+	    mistify.uuid=*)
+		    uuid=${param#mistify.uuid=}
 		    ;;
 	esac
 done
