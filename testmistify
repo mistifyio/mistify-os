@@ -24,6 +24,7 @@ testdistrodefault=ubuntu-trusty-amd64.robot
 
 testsuitedefault=basictests
 testcasepathdefault=testcases
+testsuitedirdefault=testsuites
 testmistifystatedir=${statedir}/testmistify
 
 usage () {
@@ -82,6 +83,10 @@ Usage: $0 [options] [-- test suite options]
         typically in the test case directory. This option is saved in the file:
         $testmistifystatedir/testsuite.
         [testsuite=`cat $testmistifystatedir/testsuite`]
+    --testsuitedir <dir>
+        The directory where the test suites reside. This option is saved in the
+        file: $testmistifystatedir/testsuitedir
+        [testsuitedir=`cat $testmistifystatedir/testsuitedir`]
     --testcase <testcase>
         Execute only a single test case.
         The "testsuite" option is ignored when this option is used.
@@ -120,6 +125,7 @@ testdistro:,\
 testbeddir:,\
 testbed:,\
 testsuite:,\
+testsuitedir:,\
 testcase:,\
 tag:,\
 verbose,\
@@ -170,6 +176,10 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--testsuite)
 	    testsuite=$2
+	    shift
+	    ;;
+	--testsuitedir)
+	    testsuitedir=$2
 	    shift
 	    ;;
 	--testcase)
@@ -342,6 +352,23 @@ else
 fi
 
 #####
+if [ -z "$testsuitedir" ]; then
+    if [ -f $testmistifystatedir/testsuitedir ]; then
+	    testsuitedir=`cat $testmistifystatedir/testsuitedir`
+    else
+	    testsuitedir=$testlibdir/$testsuitedirdefault
+    fi
+fi
+
+if [ -d "$testsuitedir" ]; then
+    echo $testsuitedir >$testmistifystatedir/testsuitedir
+    verbose "Using test suite directory in: $testsuitedir"
+else
+    error "Test suite definition directory $testsuitedir does not exist"
+    exit 1
+fi
+
+#####
 if [ -z "$testsuite" ]; then
     if [ -f $testmistifystatedir/testsuite ]; then
 	    testsuite=`cat $testmistifystatedir/testsuite`
@@ -350,12 +377,12 @@ if [ -z "$testsuite" ]; then
     fi
 fi
 
-if [ -d "$testlibdir/$testsuite" ]; then
+if [ -d "$testsuitedir/$testsuite" ]; then
     echo $testsuite >$testmistifystatedir/testsuite
-    tests=$testlibdir/$testsuite
-    verbose "Using test suite: $testsuite"
+    tests=$testsuitedir/$testsuite
+    verbose "Using test suite: $testsuitedir/$testsuite"
 else
-    error "Test suite $testlibdir/$testsuite does not exist"
+    error "Test suite $testsuitedir/$testsuite does not exist"
     exit 1
 fi
 
