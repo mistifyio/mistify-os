@@ -776,7 +776,10 @@ else
   # Run the buildroot make.
   #-
   time $makecommand 2>&1 | tee $logfile
-  if [ ${PIPESTATUS[0]} -gt 0 ]; then
+  rc=${PIPESTATUS[0]}
+  message "The Mistify-OS build is complete."
+  message "The log file is: $logfile"
+  if [ $rc -gt 0 ]; then
     error "Make complained about a build problem (see $logfile)."
     if [ -n "$viewlog" ]; then
       less $logfile
@@ -799,7 +802,6 @@ fi
 
 ln -sf $logfile $logdir/buildroot.Log
 
-message "The log file is: $logfile"
 message "Images are in $imagedir and can be uploaded to the server."
 message "bzImage.buildroot: The kernel image."
 message "initrd.buildroot: The RAM disk."
