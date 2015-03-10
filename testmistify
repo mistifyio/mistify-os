@@ -22,7 +22,7 @@ testbeddefault=labrat.robot
 testdistrodirdefault=$testlibdirdefault/distros
 testdistrodefault=ubuntu-trusty-amd64.robot
 
-testsuitedefault=basictests
+testsuitedefault=defaulttests
 testcasepathdefault=testcases
 testsuitedirdefault=testsuites
 testmistifystatedir=${statedir}/testmistify
@@ -91,6 +91,9 @@ Usage: $0 [options] [-- test suite options]
         Execute only a single test case.
         The "testsuite" option is ignored when this option is used.
         This option is NOT saved.
+    --exitonfailure
+        This option is used to stop test execution on the first failure. Test
+        teardown is still executed. This option is NOT saved.
     --tag <tag>
         Run only test cases having this tag. This option is not sticky.
     ==== other ====
@@ -127,6 +130,7 @@ testbed:,\
 testsuite:,\
 testsuitedir:,\
 testcase:,\
+exitonfailure,\
 tag:,\
 verbose,\
 dryrun,\
@@ -185,6 +189,9 @@ while [ $# -ge 1 ]; do
 	--testcase)
 	    testcase=$2
 	    shift
+	    ;;
+	--exitonfailure)
+	    exitonfailure=y
 	    ;;
 	--tag)
 	    tag=$2
@@ -409,8 +416,13 @@ if [[ "$verbose" == "y" ]]; then
     verboseoption="-L DEBUG:INFO"
 fi
 
+pybotoptions=""
 if [ -n "$tag" ]; then
-  tagoption="--include $tag"
+  pybotoptions+=" --include $tag"
+fi
+
+if [ -n "$exitonfailure" ]; then
+  pybotoptions+=" --exitonfailure"
 fi
 
 mkdir $builddir/testlog
@@ -420,7 +432,7 @@ pybotcommand="pybot $verboseoption -d $buildvariantdir/testlog \
     -v TESTBED:$testbeddir/$testbed \
     -v USER:$USER \
     -v HOME:$HOME \
-    $tagoption \
+    $pybotoptions \
     $@ $tests"
 verbose "Command is: $pybotcommand"
 
