@@ -18,6 +18,12 @@ Resource	${TESTBED}
 Resource	${TESTDISTRO}
 
 *** Variables ***
-${USERNAME}	root
-${PASSWORD}	LetMeIn2
+# For login to a running instance of Mistify-OS
+${MISTIFY_USERNAME}	root
+${MISTIFY_PASSWORD}	LetMeIn2
+
+# To clone the Mistify-OS repo for building.
+${MISTIFY_OS_REPO}	mistify-os
+${MISTIFY_GIT_URL}	git@github.com:mistifyio/${MISTIFY_OS_REPO}.git
+${MISTIFY_CLONE_DIR}	${MISTIFY_OS_REPO} # Relative to current directory.
 
