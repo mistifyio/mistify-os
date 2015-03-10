@@ -251,8 +251,8 @@ if [ -d "$builddir" ]; then
 else
     warning "The build directory $builddir does not exist."
     message "Defaulting to: $PWD/build"
-    $builddir=$PWD/build
-    mkdir $builddir
+    builddir=$PWD/build
+    mkdir -p $builddir
 fi
 
 if [ -z "$variant" ]; then
