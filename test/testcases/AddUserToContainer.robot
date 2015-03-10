@@ -92,15 +92,14 @@ Verify User Can SSH
 Transfer User Keys
     Log To Console	\nCopying local keys from ${HOME} to\n
     ...  		the container at ${homedir}.
-    Login To Localhost
-    ssh.Write	scp -r ~/.ssh ${ip}:~
-    ssh.Read Until  password:
-    ssh.Write  ${USER}
-    ${_o}=  ssh.Read Until  $
-    Log To Console  Copied: ${_o}
+    Login to SUT  ${ip}  ${USER}  ${USER}
+    ssh.Put Directory  /home/${USER}/.ssh  /home/${USER}  mode=600
+    Log To Console  Copied keys.
+    Disconnect From SUT
 
 Verify Can Login
     Log To Console  \nVerify can login without a password.
+    Login To Localhost
     ssh.Write  ssh ${ip}
     ${o_}=	ssh.Read Until  ${userprompt}
     Should Contain  ${_o}  ${userprompt}
@@ -127,3 +126,4 @@ Create User
     Log To Console  \nCreating user: ${_user}
     ssh.Write  useradd -m -s ${/}bin${/}bash -U ${_user}
     ssh.Read Until  ${prompt}
+
