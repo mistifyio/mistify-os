@@ -249,8 +249,7 @@ if [ -d "$builddir" ]; then
     echo $builddir >$testmistifystatedir/builddir
     message "Testing the build in $builddir"
 else
-    error "The build directory $builddir does not exist."
-    exit 1
+    warning "The build directory $builddir does not exist."
 fi
 
 if [ -z "$variant" ]; then
