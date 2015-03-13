@@ -59,6 +59,9 @@ Install Key Tools
     Log To Console  \nInstalling: ${packages}
     ssh.Write  ls /
     ${_o}=  ssh.Read Until  ${prompt}  loglevel=INFO
+    Log To Console  \nUpdating the package database.
+    ssh.Write  apt-get update
+    ${_o}=  ssh.Read Until  ${prompt}  loglevel=INFO
     ssh.Write  apt-get install -y ${packages}
     ssh.Set Client Configuration  timeout=20m
     ${_o}=  ssh.Read Until  ${prompt}  loglevel=INFO
