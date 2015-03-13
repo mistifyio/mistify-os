@@ -54,14 +54,19 @@ Define Package List
     ...  pkg-config  flex  gperf  bison  texinfo  gawk  subversion
     Set Suite Variable  ${packages}
 
-Install Key Tools
+Update APT Database
+    [Documentation]	The package database needs to be updated
+    ...			before the packages can be installed.
     Log To Console  \nThis works only for debian based distros!!
     Log To Console  \nInstalling: ${packages}
     ssh.Write  ls /
     ${_o}=  ssh.Read Until  ${prompt}  loglevel=INFO
     Log To Console  \nUpdating the package database.
+    ssh.Set Client Configuration  timeout=1m
     ssh.Write  apt-get update
     ${_o}=  ssh.Read Until  ${prompt}  loglevel=INFO
+
+Install Key Tools
     ssh.Write  apt-get install -y ${packages}
     ssh.Set Client Configuration  timeout=20m
     ${_o}=  ssh.Read Until  ${prompt}  loglevel=INFO
