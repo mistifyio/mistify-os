@@ -25,12 +25,6 @@ Usage: $0 [options] [target]
         [job=`cat $statedir/job`]
         Parameters passed to the Jenkins server:
         [branch=$mistifybranch]
-    --options <OPTIONS>
-        A string containing additional http parameters to pass to the Jenkins
-        server. The options list must be enclosed in single or double quotes.
-        WARNING: This script does not validate the options passed.
-        NOTE: This is NOT sticky and the Jenkins job must be configured to
-        accept the parameters.
     ==== other ====
     --dryrun
         Just testing what will happen with this script. Don't run the Buildroot
@@ -74,10 +68,6 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--job)
 	    job=$2
-	    shift
-	    ;;
-	--options)
-	    options=$2
 	    shift
 	    ;;
 	--dryrun)
