@@ -93,7 +93,7 @@ Transfer User Keys
     Log To Console	\nCopying local keys from ${HOME} to\n
     ...  		the container at ${homedir}.
     Login to SUT  ${ip}  ${USER}  ${USER}
-    ssh.Put Directory  /home/${USER}/.ssh  /home/${USER}  mode=600
+    ssh.Put Directory  ${HOME}/.ssh  /home/${USER}  mode=600
     Log To Console  Copied keys.
     Disconnect From SUT
 
