@@ -90,22 +90,19 @@ Verify User Can SSH
     Disconnect From SUT
 
 Transfer User Keys
+    [Documentation]	The user keys are needed mostly for the build
+    ...			process.
+    ...
+    ...		The build accesses a number of git repositories. Having
+    ...		the keys means not having to enter the password. In order
+    ...		for this to work the public keys need to be installed on
+    ...		the different servers.
     Log To Console	\nCopying local keys from ${HOME} to\n
     ...  		the container at ${homedir}.
     Login to SUT  ${ip}  ${USER}  ${USER}
     ssh.Put Directory  ${HOME}/.ssh  /home/${USER}  mode=600
     Log To Console  Copied keys.
     Disconnect From SUT
-
-Verify Can Login
-    Log To Console  \nVerify can login without a password.
-    Login To Localhost
-    ssh.Write  ssh ${ip}
-    ${o_}=	ssh.Read Until  ${userprompt}
-    Should Contain  ${_o}  ${userprompt}
-    ssh.Write  exit
-    Disconnect From Localhost
-
 
 *** Keywords ***
 Setup Testsuite
