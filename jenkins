@@ -4,24 +4,29 @@
 #-
 
 jenkinsdefault=http://mistify-dev-2.office.omniti.com:8081
+jenkinsjobdefault=MistifyOS-remote
 mistifybranch=`git status | grep "On branch" | cut -f 3 -d ' '`
 
 usage () {
     cat << EOF
-Usage: ./jenkins [options] [target]
-  Use this script to remotely trigger a Mistify build on a Jenkins CI server. 
+Usage: $0 [options] [target]
+  Use this script to remotely trigger a Mistify build on a Jenkins CI server.
   The Jenkins CI server must be configured to run the buildmistify script on the
   server in order to build.
   Options:
     ==== remote build ====
     --jenkins <URL>
-        The Jenkins CI server URL. The URL is saved in the file 
+        The Jenkins CI server URL. The URL is saved in the file
         $statedir/jenkins.
         [jenkins=`cat $statedir/jenkins`]
+    --job <JOB>
+        The job to execute. This must match a name in the Jenkins job list. This
+        is saved in the file: $statedir/job
+        [job=`cat $statedir/job`]
         Parameters passed to the Jenkins server:
         [branch=$mistifybranch]
     ==== other ====
-    --test
+    --dryrun
         Just testing what will happen with this script. Don't run the Buildroot
         make.
     -h|--help
@@ -38,7 +43,8 @@ source scripts/mistify-functions.sh
 #-
 a=`getopt -l "\
 jenkins:,\
-test,\
+job:,\
+dryrun,\
 help" \
    -o "h" -- "$@"`
 
@@ -53,14 +59,19 @@ while [ $# -ge 1 ]; do
     case "$1" in
 	--)
 	    shift
+	    options=$*
 	    break
 	    ;;
 	--jenkins)
 	    jenkins=$2
 	    shift
 	    ;;
-	--test)
-	    testing=y
+	--job)
+	    job=$2
+	    shift
+	    ;;
+	--dryrun)
+	    dryrun=y
 	    ;;
 	-h|--help)
 	    usage
@@ -85,11 +96,27 @@ if [ -z "$jenkins" ]; then
 fi
 echo $jenkins >$statedir/jenkins
 
-jenkinscommand="wget -O /dev/null $jenkins/job/MistifyOS-remote/buildWithParameters?token=buildmistify&branch=$mistifybranch"
+if [ -z "$job" ]; then
+    if [ -f $statedir/job ]; then
+	job=`cat $statedir/job`
+    else
+	jenkins=$jenkinsdefault
+    fi
+fi
+echo $jenkins >$statedir/jenkins
 
-if [ -n "$testing" ]; then
+if [ -n "$options" ]; then
+  message "Options are: $options"
+  params="&options="
+  params+=`echo $options | sed 's/ /%20/g'`
+  message "Adding Jenkins parameters: $params"
+fi
+
+jenkinscommand="wget -O /dev/null $jenkins/job/$job/buildWithParameters?token=buildmistify&branch=$mistifybranch$params"
+
+if [ -n "$dryrun" ]; then
   message "Just a test run -- not building."
-  verbose $jenkinscommand
+  message $jenkinscommand
   exit 0
 fi
 
