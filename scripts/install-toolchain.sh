@@ -120,7 +120,7 @@ install-toolchain () {
     # Determine the tag to use to sync toolchain to.
     # NOTE: Having branch and tag separate helps avoid an ambiguity which could
     # result in accidentally creating a branch when a tag was intended.
-    # NOTE: If toolchaintag is set at this point then it wasn't overridden by  
+    # NOTE: If toolchaintag is set at this point then it wasn't overridden by
     # specifying a branch.
     #-
     if [ ! -z "$toolchaintag" ]; then
@@ -158,11 +158,12 @@ install-toolchain () {
 	toolchainlabel=$toolchainbranch
     fi
 
-    git checkout $toolchainlabel
+    run git checkout $toolchainlabel
     if [ $? -ne 0 ]; then
 	error "Attempted to checkout the toolchain build tool using an invalid tag or branch: $toolchainlabel"
 	exit 1
     fi
+    run git pull
     message "The toolchain build tool synced to: $toolchainlabel"
 
     #+
