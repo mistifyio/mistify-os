@@ -104,13 +104,15 @@ define DOCKER_IO_INSTALL_STAGING_CMDS
 endef
 
 define DOCKER_IO_INSTALL_TARGET_CMDS
-	$(INSTALL) -m 755 -D $(GOPATH)/bin/docker \
-		$(TARGET_DIR)/usr/bin/docker
+	read DOCKER_VERSION < $(@D)/VERSION \
+		&& $(INSTALL) -m 755 -D \
+			$(GOPATH)/src/github.com/docker/docker/bundles/$$DOCKER_VERSION/dynbinary/docker-$$DOCKER_VERSION \
+			$(TARGET_DIR)/usr/bin/docker
 	# Include our udev rules
 	$(INSTALL) -m 644 $(@D)/contrib/udev/80-docker.rules \
 		$(TARGET_DIR)/etc/udev/rules.d/
-	# Include our init scripts
-	$(INSTALL) -m 644 contrib/init/systemd/docker.{service,socket} \
+	# Include our systemd service files
+	$(INSTALL) -m 644 $(@D)/contrib/init/systemd/docker.{service,socket} \
 		$(TARGET_DIR)/lib/systemd/system/
 endef
 
