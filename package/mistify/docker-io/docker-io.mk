@@ -52,8 +52,8 @@ define DOCKER_IO_BUILD_CMDS
 	# Get the "docker-py" source so we can run their integration tests
 	rm -rf $(@D)/docker-py \
 		&& git clone https://github.com/docker/docker-py.git $(@D)/docker-py \
-		&& cd $(@D)/docker-py \
-		&& git checkout -q $(DOCKER_PY_COMMIT)
+		&& (cd $(@D)/docker-py \
+			&& git checkout -q $(DOCKER_PY_COMMIT))
 
 	# Install man page generator
 	$(INSTALL) -m 755 -d $(GOPATH)/src/github.com/docker/docker/vendor && \
