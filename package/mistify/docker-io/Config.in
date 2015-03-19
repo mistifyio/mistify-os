@@ -1,0 +1,9 @@
+config BR2_PACKAGE_DOCKER_IO
+        bool "docker-io"
+        help
+          Docker container framework
+          
+	  Container API and framework from Docker.
+
+          https://github.com/docker/docker
+          
