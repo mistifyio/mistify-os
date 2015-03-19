@@ -1,9 +1,9 @@
 config BR2_PACKAGE_DOCKER_IO
         bool "docker-io"
+        select BR2_PACKAGE_LIBCONTAINER
         help
           Docker container framework
           
-	  Container API and framework from Docker.
+          Container API and framework from Docker.
 
           https://github.com/docker/docker
-          

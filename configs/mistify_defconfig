@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2015.02-g36780c0 Configuration
+# Buildroot 2015.02-g9a652df Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 
@@ -1991,3 +1991,4 @@ BR2_PACKAGE_LIBCONTAINER=y
 BR2_PACKAGE_LOCHNESS=y
 BR2_PACKAGE_QUEENSLAND=y
 BR2_PACKAGE_BEANSTALKD=y
+BR2_PACKAGE_DOCKER_IO=y
