@@ -9,7 +9,7 @@ DOCKER_IO_SITE    = git@github.com:docker/docker.git
 DOCKER_IO_SITE_METHOD = git
 DOCKER_IO_LICENSE = Apache
 DOCKER_IO_LICENSE_FILES = LICENSE
-DOCKER_IO_DEPENDENCIES = libcontainer sqlite
+DOCKER_IO_DEPENDENCIES = libcontainer sqlite zfs
 
 GOPATH = $(O)/tmp/GOPATH
 
@@ -30,6 +30,12 @@ DOCKER_BUILDTAGS += exclude_graphdriver_devicemapper
 
 define DOCKER_IO_BUILD_CMDS
 	rm -rf $(GOPATH)/src/github.com/docker/docker
+
+	# Grab go-zfs
+	GOPATH=$(@D)/vendor \
+	GOROOT=$(GOROOT) \
+	PATH=$(GOROOT)/bin:$(PATH) \
+		go get gopkg.in/mistifyio/go-zfs.v2
 
 	# Grab Go's cover tool for dead-simple code coverage testing
 	GOPATH=$(@D)/vendor \
