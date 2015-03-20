@@ -21,6 +21,8 @@ bridgedefault=mosbr0
 ipdefault=10.0.2.2
 maskbitsdefault=24
 
+u=$USER
+
 usage () {
     warning This script must be executed as root and can break an existing
     warning configuration. Use with caution.
@@ -162,18 +164,10 @@ if [ $e -gt 0 ]; then
   exit 1
 fi
 
-# Must be root from this point on.
-
-if [ `id -u` -ne 0 ]; then
-  error This script must be executed as root.
-  usage
-  exit 1
-fi
-
 message Checking if $bridge exists.
-brctl show $bridge | grep $bridge
+ip addr show dev $bridge
 if [ $? -gt 0 ]; then
-    brctl addbr $bridge
+    sudo ip link add name $bridge type bridge
     if [ $? -gt 0 ]; then
 	error Could not create bridge $bridge.
 	exit 1
@@ -188,25 +182,26 @@ message Checking bridge IP address.
 ip addr show dev $bridge | grep $ip
 if [ $? -gt 0 ]; then
     message Setting bridge $bridge IP address to $ip.
-    ip addr change $ip/$maskbits dev $bridge
+    sudo ip addr change $ip/$maskbits dev $bridge
 else
     message The bridge IP address was already set to $ip.
 fi
 
 message Checking if interface $tap exists.
-ip addr show dev $tap | grep " $tap:"
+ip addr show dev $tap
 if [ $? -gt 0 ]; then
     message Creating device $tap.
-    tunctl -t $tap
+    sudo tunctl -u $u -t $tap
 else
     message The tunnel device $tap already exists.
 fi
 
 message Checking if interface $tap is part of bridge $bridge.
-brctl show $bridge | grep $tap
+ip link show $tap | grep $bridge
 if [ $? -gt 0 ]; then
     message Adding device $tap to bridge $bridge.
-    brctl addif $bridge $tap
+    sudo ip link set dev $tap master $bridge
+    sudo ip link set $tap up
 else
     message The device $tap is already part of bridge $bridge.
 fi
@@ -215,11 +210,47 @@ message Enabling bridge $bridge.
 ip link show $bridge | grep ",UP"
 if [ $? -gt 0 ]; then
     message Enabling the bridge device $bridge.
-    ip link set dev $bridge up
+    sudo ip link set dev $bridge up
     if [ $? -gt 0 ]; then
 	error "Could not enable bridge $bridge."
+	exit 1
     fi
 else
     message The bridge state is already UP.
 fi
+
+message Configuring dhcp for listening on the bridge interface.
+subnet=`echo $ip | tr '.' ' ' | awk '{printf $1"."$2"."$3}'`
+dhcpconf=$statedir/$(basename $0-dhcpd.conf)
+leasefile=$statedir/$(basename $0-leases)
+ps -C dhcpd
+if [ $? -gt 0 ]; then
+    message Using subnet $subnet.0
+    rm -f $dhcpconf
+    touch $leasefile
+    cat << EOF >>$dhcpconf
+    subnet $subnet.0 netmask 255.255.255.0 {
+    range $subnet.50 $subnet.100;
+    option broadcast-address $subnet.255;
+    }
+EOF
+    message DHCP configuration written to $dhcpconf.
+    message Starting DHCP server for subnet $subnet.0
+    sudo dhcpd -cf $dhcpconf -lf $statedir/$(basename $0)-leases &
+    if [ $? -gt 0 ]; then
+	error Could not start the dhcp server.
+	exit 1
+    fi
+else
+    message DHCP server is already running.
+    ps -fp `pgrep dhcpd` | grep $dhcpconf
+    if [ $? -gt 0 ]; then
+	warning The DHCP server is not configured for using a Mistify-OS VM.
+	exit 1
+    fi
+fi
+
+message Network is now configured for running a VM.
+message Using the device $tap on the bridge $bridge.
+
 
