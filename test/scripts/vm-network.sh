@@ -22,6 +22,9 @@ ipdefault=10.0.2.2
 maskbitsdefault=24
 
 usage () {
+    warning This script must be executed as root and can break an existing
+    warning configuration. Use with caution.
+
     cat << EOF
 Usage: $0 [options]
     Use this script to configure the network for testing Mistify-OS within
@@ -30,11 +33,8 @@ Usage: $0 [options]
     The script first checks to see if the required bridge and tap network
     interface already exist. If so then nothing is changed.
 
-    NOTE: This script can be used either from the command line or called from
-    the robot framework.
-
-    WARNING: This script must be executed as root and can break an existing
-    network configuration. Use with caution.
+    NOTE: This script is intended to be called once but if called again
+    will check the configuration and repair missing parts if necessary.
 
     Options:
     --tap <TAP>
@@ -167,7 +167,7 @@ if [ `id -u` -ne 0 ]; then
 fi
 
 message Checking if $bridge exists.
-brctl show $bridge | grep "No such device"
+brctl show $bridge | grep $bridge
 if [ $? -gt 0 ]; then
     brctl addbr $bridge
     if [ $? -gt 0 ]; then
@@ -176,6 +176,8 @@ if [ $? -gt 0 ]; then
     else
 	message Created bridge $bridge.
     fi
+else
+    message The bridge $bridge already exists.
 fi
 
 message Checking bridge IP address.
@@ -183,13 +185,17 @@ ip addr show dev $bridge | grep $ip
 if [ $? -gt 0 ]; then
     message Setting bridge $bridge IP address to $ip.
     ip addr change $ip/$maskbits dev $bridge
+else
+    message The bridge IP address was already set to $ip.
 fi
 
 message Checking if interface $tap exists.
-ip addr show dev $tap | grep "does not exist."
+ip addr show dev $tap | grep " $tap:"
 if [ $? -gt 0 ]; then
     message Creating device $tap.
     tunctl -t $tap
+else
+    message The tunnel device $tap already exists.
 fi
 
 message Checking if interface $tap is part of bridge $bridge.
@@ -197,11 +203,19 @@ brctl show $bridge | grep $tap
 if [ $? -gt 0 ]; then
     message Adding device $tap to bridge $bridge.
     brctl addif $bridge $tap
+else
+    message The device $tap is already part of bridge $bridge.
 fi
 
 message Enabling bridge $bridge.
-ip link set $bridge up
+ip link show $bridge | grep ",UP"
 if [ $? -gt 0 ]; then
-    error "Could not enable bridge $bridge."
+    message Enabling the bridge device $bridge.
+    ip link set dev $bridge up
+    if [ $? -gt 0 ]; then
+	error "Could not enable bridge $bridge."
+    fi
+else
+    message The bridge state is already UP.
 fi
 
