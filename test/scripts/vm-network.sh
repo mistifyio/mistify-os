@@ -24,10 +24,14 @@ maskbitsdefault=24
 usage () {
     warning This script must be executed as root and can break an existing
     warning configuration. Use with caution.
+    warning This script supports options for the interface names and IP
+    warning configuration. If these options are used instead of the defaults
+    warning be sure to use the same values again or confusing and non-functional
+    warning network configurations can be the result.
 
     cat << EOF
 Usage: $0 [options]
-    Use this script to configure the network for testing Mistify-OS within
+    Use this script to configure the local network for testing Mistify-OS within
     a virtual machine.
 
     The script first checks to see if the required bridge and tap network
