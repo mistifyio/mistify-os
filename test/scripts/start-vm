@@ -1,0 +1,195 @@
+#!/bin/bash
+
+#+
+# This script starts a VM to run Mistify-OS. The default is to use the kernel
+# and initrd images from the most recent build.
+#
+# NOTE: This script is intended to be used as part of an automated test and
+# requires a network as setup by vm-network. This script is also intended to
+# be run from the Mistify-OS project directory (the same directory which
+# contains the script buildmistify.
+#-
+
+source scripts/mistify-functions.sh
+source test/scripts/mistify-test-defaults.sh
+
+usage () {
+cat << EOF
+Usage: $0 [options]
+    Use this script to start a virtual machine running the Mistify-OS.
+
+    The default is to use images produced from the most recent build.
+
+    NOTE: To exist the OS use the ^A-X pattern.
+
+    Options:
+    ==== System Under Test ====
+    --builddir <dir>
+        The Mistify-OS build to test. This defaults to the most recent build.
+        This option is saved in the file:
+        $testmistifystatedir/builddir
+        [builddir=`cat $testmistifystatedir/builddir`]
+    --diskimagesize <size>
+        The size of the disk image to use. e.g. 1G = 1 gigabyte.
+        Default = $diskimagesizedefault
+    ==== Network ====
+    --tap <tap>
+        The name of the tap interface.
+        Default = $tapdefault
+    --mac <mac>
+        Use a specific MAC address for the network interface. The default is
+        to use a randomly generated MAC starting with DE:AD:BE:EF.
+        Default = $macdefault
+    ==== Other ====
+    --verbose
+        Enble verbose output from this script.
+    --dryrun
+        Just showing what will happen with this script. Don't run the test.
+   --help
+        Show this help information.
+EOF
+}
+
+#+
+# Handle the command line options.
+#-
+a=`getopt -l "\
+builddir:,\
+diskimagesize:,\
+tap:,\
+mac:,\
+verbose,\
+dryrun,\
+help" \
+   -o "h" -- "$@"`
+
+if [ $? -gt 0 ]; then
+    usage
+    exit 1
+fi
+
+eval set -- $a
+
+while [ $# -ge 1 ]; do
+    case "$1" in
+	--)
+	    shift
+	    break
+	    ;;
+	--builddir)
+	    builddir=$2
+	    shift
+	    ;;
+	--diskimagesize)
+	    diskimagesize=$2
+	    shift
+	    ;;
+	--tap)
+	    tap=$2
+	    shift
+	    ;;
+	--mac)
+	    mac=$2
+	    shift
+	    ;;
+	--verbose)
+	    verbose=y
+	    ;;
+	--dryrun)
+	    dryrun=y
+	    ;;
+	--help)
+	    usage
+	    exit 0
+	    ;;
+	# using getopt should avoid needing this catchall but just in case...
+	*)
+	    error "Invalid option: $1"
+	    usage
+	    exit 1
+	    ;;
+    esac
+    shift
+done
+
+if [ -z "$builddir" ]; then
+    if [ -f $testmistifystatedir/builddir ]; then
+	    builddir=`cat $testmistifystatedir/builddir`
+    else
+	if [ -d "$builddirdefault" ]; then
+	    message Using build directory default: $builddirdefault
+	    builddir=$builddirdefault
+	fi
+    fi
+fi
+
+if [ ! -d "$builddir/images" ]; then
+    warning "The last tested build directory doesn't exist."
+    warning "Resetting to the last build: $builddirdefault"
+    builddir=$builddirdefault
+fi
+if [ -d "$builddir" ]; then
+    echo $builddir >$testmistifystatedir/builddir
+    message "Running the build in $builddir"
+else
+    error "The build directory $builddir does not exist."
+    exit 1
+fi
+
+if [ -z "$diskimagesize" ]; then
+    diskimagesize=$diskimagesizedefault
+fi
+verbose The disk image size is: $diskimagesize
+
+if [ -z "$tap" ]; then
+    tap=$tapdefault
+fi
+verbose TAP device is: $tap
+
+if [ -z "$mac" ]; then
+    mac=$macdefault
+fi
+verbose The VM MAC address is: $macdefault
+
+kernel=$builddir/images/bzImage.buildroot
+if [ ! -f $kernel ]; then
+    error Kernel image $kernel does not exist.
+    exit 1
+fi
+
+initrd=$builddir/images/initrd.buildroot
+if [ ! -f $initrd ]; then
+    error Initrd image $initrd does not exist.
+    exit 1
+fi
+
+diskimage=$builddir/images/sas1.img
+if [ ! -e "$diskimage" ]; then
+    warning "Disk image doesn't exist."
+    warning "Creating $diskimage"
+    if [ -n "$dryrun" ]; then
+	message Will create $diskimage of size $diskimagesize
+    else
+	qemu-img create -f raw -o size=$diskimagesize $diskimage
+    fi
+    if [ $? -gt 0 ]; then
+       error Error when attempting to create the disk image: $diskimage
+       exit 1
+    fi
+fi
+
+if [ -n "$dryrun" ]; then
+  message "Just a dry run -- not running tests."
+  exit 0
+fi
+
+message "Starting virtual machine (remember ^A-X to exit)."
+qemu-system-x86_64 \
+-kernel $kernel \
+-initrd $initrd \
+-drive if=virtio,file=$diskimage \
+-machine accel=kvm -cpu host -smp 2 \
+-append 'noapic acpi=off ramdisk_size=200000 rw console=ttyS0 zfs=auto' \
+-nographic -m 2048 \
+-device e1000,netdev=net0,mac=$mac \
+-netdev tap,ifname=$tap,id=net0,script=no
