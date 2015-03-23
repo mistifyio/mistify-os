@@ -6,14 +6,6 @@
 
 source scripts/mistify-functions.sh
 
-if [ -e "$statedir/builddir" ]; then
-  builddirdefault=`cat $statedir/builddir`
-fi
-
-if [ -e "$statedir/variant" ]; then
-  variantdefault=`cat $statedir/variant`
-fi
-
 testlibdirdefault=test
 
 testbeddirdefault=$testlibdirdefault/testbeds
@@ -43,11 +35,6 @@ Usage: $0 [options] [-- test suite options]
         This option is saved in the file:
         $testmistifystatedir/builddir
         [builddir=`cat $testmistifystatedir/builddir`]
-    --variant <variant>
-        The Mistify-OS variant to test. This defaults to the most recent build.
-        This option is saved in the file:
-        $testmistifystatedir/variant
-        [variant=`cat $testmisifystatedir/variant`]
     ==== Test Environment ====
     --testlibdir <dir>
         Where the test case and test suite library resides. This option is saved
@@ -121,7 +108,6 @@ EOF
 #-
 a=`getopt -l "\
 builddir:,\
-variant:,\
 testlibdir:,\
 testdistrodir:,\
 testdistro:,\
@@ -152,10 +138,6 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--builddir)
 	    builddir=$2
-	    shift
-	    ;;
-	--variant)
-	    variant=$2
 	    shift
 	    ;;
 	--testlibdir)
@@ -255,27 +237,8 @@ else
     mkdir -p $builddir
 fi
 
-if [ -z "$variant" ]; then
-    if [ -f $testmistifystatedir/variant ]; then
-	    variant=`cat $testmistifystatedir/variant`
-    else
-	if [ -d "$builddir/$variantdefault" ]; then
-	    variant=$variantdefault
-	fi
-    fi
-fi
-
 #####
 
-buildvariantdir=$builddir/$variant
-if [ -d "$buildvariantdir" ]; then
-    message "Testing the build variant in: $buildvariantdir"
-else
-    error "The Mistify-OS build variant in $buildvariantdir does not exist."
-    exit 1
-fi
-
-#####
 if [ -z "$testlibdir" ]; then
     if [ -f $testmistifystatedir/testlibdir ]; then
 	    testlibdir=`cat $testmistifystatedir/testlibdir`
@@ -428,8 +391,8 @@ if [ -n "$exitonfailure" ]; then
 fi
 
 mkdir $builddir/testlog
-pybotcommand="pybot $verboseoption -d $buildvariantdir/testlog \
-    -v BUILDDIR:$buildvariantdir \
+pybotcommand="pybot $verboseoption -d $builddir/testlog \
+    -v BUILDDIR:$builddir \
     -v TESTDISTRO:$testdistrodir/$testdistro \
     -v TESTBED:$testbeddir/$testbed \
     -v USER:$USER \
