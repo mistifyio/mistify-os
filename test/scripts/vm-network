@@ -15,11 +15,8 @@
 #-
 
 source scripts/mistify-functions.sh
+source test/scripts/mistify-test-defaults.sh
 
-tapdefault=tap0
-bridgedefault=mosbr0
-ipdefault=10.0.2.2
-maskbitsdefault=24
 
 u=$USER
 
@@ -43,21 +40,20 @@ Usage: $0 [options]
     will check the configuration and repair missing parts if necessary.
 
     Options:
-    --tap <TAP>
+    --tap <tap>
         The name of the tap interface to use.
         Default = $tapdefault
-    --bridge <BRIDGE>
+    --bridge <bridge>
         The name of the bridge to create.
         Default = $bridgedefault
-    --ip <IP>
+    --ip <ip>
         The IP address to assign to the bridge.
         Default = $ipdefault.
-    --maskbits <BITS>
+    --maskbits <bits>
         The number of bits for the network mask.
         Default = $maskbits
     --verbose
         Enble verbose output from this script.
-	-h|--help)
     --help
         Show this help information.
 EOF
@@ -153,7 +149,7 @@ fi
 verbose Bridge device mask bits are: $maskbits
 
 message Verifying tools.
-for t in tunctl brctl ip; do
+for t in tunctl ip; do
     check_installed $t
     if [ $? -ge 0 ]; then
       e=$?
@@ -240,6 +236,9 @@ EOF
     if [ $? -gt 0 ]; then
 	error Could not start the dhcp server.
 	exit 1
+    else
+        echo $!>$statedir/dhcpd-pid
+        verbose The DHCP server process ID is: $!
     fi
 else
     message DHCP server is already running.
