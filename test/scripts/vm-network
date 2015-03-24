@@ -17,16 +17,21 @@
 source scripts/mistify-functions.sh
 source test/scripts/mistify-test-defaults.sh
 
+dhcpdconf=$testmistifystatedir/$id-dhcpd.conf
+dhcpdpidfile=$testmistifystatedir/$id-dhcpd-pid
+leasesfile=$testmistifystatedir/$id-dhcpd-leases
 
 u=$USER
 
 usage () {
-    warning This script must be executed as root and can break an existing
-    warning configuration. Use with caution.
-    warning This script supports options for the interface names and IP
-    warning configuration. If these options are used instead of the defaults
-    warning be sure to use the same values again or confusing and non-functional
-    warning network configurations can be the result.
+    warning +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    message This script sudo to run as root and can break an existing
+    message configuration. Use with caution.
+    message This script supports options for the interface names and IP
+    message configuration. If these options are used instead of the defaults
+    message be sure to use unique values or confusing and non-functional
+    message network configurations can be the result.
+    warning ----------------------------------------------------------------
 
     cat << EOF
 Usage: $0 [options]
@@ -42,18 +47,22 @@ Usage: $0 [options]
     Options:
     --tap <tap>
         The name of the tap interface to use.
-        Default = $tapdefault
+        [tap = $tapdefault]
     --bridge <bridge>
         The name of the bridge to create.
-        Default = $bridgedefault
-    --ip <ip>
+        [bridge = $bridgedefault]
+    --bridgeip <ip>
         The IP address to assign to the bridge.
-        Default = $ipdefault.
+        [bridgeip = $bridgeipdefault]
     --maskbits <bits>
         The number of bits for the network mask.
-        Default = $maskbits
+        [maskbits = $maskbitsdefault]
+    --shutdown
+        Shutdown the interfaces and services created by this script.
     --verbose
-        Enble verbose output from this script.
+        Enable verbose output from this script.
+    --dryrun
+        Don't actually change anything.
     --help
         Show this help information.
 EOF
@@ -70,15 +79,50 @@ function check_installed() {
     return $code
 }
 
+function check_interface_exists() {
+    ip addr show dev $1
+    return $?
+}
+
+function check_interface_in_bridge() {
+    # Parameters:
+    #   1: The interface which is part of the bridge
+    #   2: The bridge
+    ip link show $1 | grep $2
+    return $?
+}
+
+function shutdown() {
+    # Parameters:
+    #   1: The name of the bridge.
+    #   2: The name of the tap interface
+    if [ -f $dhcpdpidfile ]; then
+	sudo kill `cat $dhcpdpidfile`
+	sudo rm -f $dhcpdpidfile
+    fi
+    check_interface_exists $1
+    if [ $? -eq 0 ]; then
+	sudo ip link set $1 down
+	check_interface_exists $2
+	if [ $? -eq 0 ]; then
+	    sudo ip link set dev $2 nomaster
+	    sudo tunctl -d $2
+	fi
+	sudo ip link delete $1
+    fi
+}
+
 #+
 # Handle the command line options.
 #-
 a=`getopt -l "\
 tap:,\
 bridge:,\
-ip:,\
+bridgeip:,\
 maskbits:,\
+shutdown,\
 verbose,\
+dryrun,\
 help" \
    -o "h" -- "$@"`
 
@@ -103,16 +147,22 @@ while [ $# -ge 1 ]; do
 	    bridge=$2
 	    shift
 	    ;;
-	--ip)
-	    ip=$2
+	--bridgeip)
+	    bridgeip=$2
 	    shift
 	    ;;
 	--maskbits)
-	    ip=$2
+	    maskbits=$2
 	    shift
+	    ;;
+	--shutdown)
+	    shutdown=y
 	    ;;
 	--verbose)
 	    verbose=y
+	    ;;
+	--dryrun)
+	    dryrun=y
 	    ;;
 	--help)
 	    usage
@@ -138,10 +188,10 @@ if [ -z "$bridge" ]; then
 fi
 verbose Bridge device is: $bridge
 
-if [ -z "$ip" ]; then
-    ip=$ipdefault
+if [ -z "$bridgeip" ]; then
+    bridgeip=$bridgeipdefault
 fi
-verbose Bridge IP address is: $ip
+verbose Bridge IP address is: $bridgeip
 
 if [ -z "$maskbits" ]; then
     maskbits=$maskbitsdefault
@@ -160,44 +210,65 @@ if [ $e -gt 0 ]; then
   exit 1
 fi
 
+if [ "$shutdown" == "y" ]; then
+	verbose Shutting bridge $bridge down.
+	shutdown $bridge $tap
+	exit
+fi
+
 message Checking if $bridge exists.
-ip addr show dev $bridge
+check_interface_exists $bridge
 if [ $? -gt 0 ]; then
-    sudo ip link add name $bridge type bridge
-    if [ $? -gt 0 ]; then
-	error Could not create bridge $bridge.
-	exit 1
+    if [ -z "$dryrun" ]; then
+	sudo ip link add name $bridge type bridge
     else
-	message Created bridge $bridge.
+	verbose Create $bridge.
+    fi
+    if [ $? -gt 0 ]; then
+	die Could not create bridge $bridge.
+    else
+	message Using the existing bridge: $bridge.
     fi
 else
-    message The bridge $bridge already exists.
+    message The bridge $bridge exists.
 fi
 
 message Checking bridge IP address.
-ip addr show dev $bridge | grep $ip
+ip addr show dev $bridge | grep $bridgeip
 if [ $? -gt 0 ]; then
-    message Setting bridge $bridge IP address to $ip.
-    sudo ip addr change $ip/$maskbits dev $bridge
+    message Setting bridge $bridge IP address to $bridgeip.
+    if [ -z "$dryrun" ]; then
+	sudo ip addr change $bridgeip/$maskbits dev $bridge
+    else
+	verbose Set bridge IP to $bridgeip.
+    fi
 else
-    message The bridge IP address was already set to $ip.
+    message The bridge IP address was already set to $bridgeip.
 fi
 
 message Checking if interface $tap exists.
-ip addr show dev $tap
+check_interface_exists $tap
 if [ $? -gt 0 ]; then
     message Creating device $tap.
-    sudo tunctl -u $u -t $tap
+    if [ -z "$dryrun" ]; then
+	sudo tunctl -u $u -t $tap
+    else
+	verbose Create tap interface $tap
+    fi
 else
     message The tunnel device $tap already exists.
 fi
 
 message Checking if interface $tap is part of bridge $bridge.
-ip link show $tap | grep $bridge
+check_interface_in_bridge $tap $bridge
 if [ $? -gt 0 ]; then
     message Adding device $tap to bridge $bridge.
-    sudo ip link set dev $tap master $bridge
-    sudo ip link set $tap up
+    if [ -z "$dryrun" ]; then
+	sudo ip link set dev $tap master $bridge
+	sudo ip link set $tap up
+    else
+	verbose Add interface $tap to bridge $bridge.
+    fi
 else
     message The device $tap is already part of bridge $bridge.
 fi
@@ -206,48 +277,60 @@ message Enabling bridge $bridge.
 ip link show $bridge | grep ",UP"
 if [ $? -gt 0 ]; then
     message Enabling the bridge device $bridge.
-    sudo ip link set dev $bridge up
+    if [ -z "$dryrun" ]; then
+	sudo ip link set dev $bridge up
+    else
+	verbose Enable the bridge $bridge.
+    fi
     if [ $? -gt 0 ]; then
-	error "Could not enable bridge $bridge."
-	exit 1
+	die "Could not enable bridge $bridge."
     fi
 else
     message The bridge state is already UP.
 fi
 
 message Configuring dhcp for listening on the bridge interface.
-subnet=`echo $ip | tr '.' ' ' | awk '{printf $1"."$2"."$3}'`
-dhcpconf=$statedir/$(basename $0-dhcpd.conf)
-leasefile=$statedir/$(basename $0-leases)
+subnet=`echo $bridgeip | tr '.' ' ' | awk '{printf $1"."$2"."$3}'`
+
+if [ -n "$dryrun" ]; then
+    message The dhcp server would use subnet $subnet and serve IP range 50 to 100.
+    message The dhcp config file is: $dhcpdconf
+    message The leases file is: $leasesfile
+    exit 0
+fi
+
 ps -C dhcpd
 if [ $? -gt 0 ]; then
     message Using subnet $subnet.0
-    rm -f $dhcpconf
-    touch $leasefile
-    cat << EOF >>$dhcpconf
+    rm -f $dhcpdconf
+    touch $leasesfile
+    cat << EOF >>$dhcpdconf
     subnet $subnet.0 netmask 255.255.255.0 {
     range $subnet.50 $subnet.100;
     option broadcast-address $subnet.255;
     }
 EOF
-    message DHCP configuration written to $dhcpconf.
+    message DHCP configuration written to $dhcpdconf
     message Starting DHCP server for subnet $subnet.0
-    sudo dhcpd -cf $dhcpconf -lf $statedir/$(basename $0)-leases &
+    sudo dhcpd -cf $dhcpdconf -lf $leasesfile -pf $dhcpdpidfile
     if [ $? -gt 0 ]; then
-	error Could not start the dhcp server.
-	exit 1
+	die Could not start the dhcp server.
     else
-        echo $!>$statedir/dhcpd-pid
-        verbose The DHCP server process ID is: $!
+        verbose The DHCP server process ID is: `cat $dhcpdpidfile`
     fi
 else
     message DHCP server is already running.
-    ps -fp `pgrep dhcpd` | grep $dhcpconf
+    ps -fp `pgrep dhcpd` | grep $dhcpdconf
     if [ $? -gt 0 ]; then
-	warning The DHCP server is not configured for using a Mistify-OS VM.
-	exit 1
+	die The DHCP server is not configured for using a Mistify-OS VM.
     fi
 fi
+
+verbose Saving settings.
+set_default tap $tap
+set_default bridge $bridge
+set_default bridgeip $bridgeip
+set_default maskbits $maskbits
 
 message Network is now configured for running a VM.
 message Using the device $tap on the bridge $bridge.
