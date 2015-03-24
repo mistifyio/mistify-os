@@ -13,6 +13,13 @@
 source scripts/mistify-functions.sh
 source test/scripts/mistify-test-defaults.sh
 
+macdefault=$(get_default mac \
+    DE:AD:BE:EF:`printf "%02X:%02X" $(( (RANDOM % 256) )) $(( (RANDOM % 256) ))`)
+# Disk images
+diskimagedefault=$(get_default diskimage $builddirdefault/images/sas1.img)
+diskimagesizedefault=$(get_default diskimagesize 1G)
+
+
 usage () {
 cat << EOF
 Usage: $0 [options]
@@ -28,18 +35,30 @@ Usage: $0 [options]
         The Mistify-OS build to test. This defaults to the most recent build.
         This option is saved in the file:
         $testmistifystatedir/builddir
-        [builddir=`cat $testmistifystatedir/builddir`]
+        [builddir = $builddirdefault]
+    --diskimage
+        The name file to use for the test disk image. If the file doesn't exist
+        it is created.
+        This option is saved in the file:
+        $testmistifystatedir/diskimage
+        [diskimage = $diskimagedefault]
     --diskimagesize <size>
         The size of the disk image to use. e.g. 1G = 1 gigabyte.
-        Default = $diskimagesizedefault
+        This option is saved in the file:
+        $testmistifystatedir/diskimagesize
+        [diskimagesize = $diskimagesizedefault]
     ==== Network ====
     --tap <tap>
-        The name of the tap interface.
-        Default = $tapdefault
+        The name of the tap interface. This uses the value set by the
+        vm-network script.
+        This option defaults to the interface created by the vm-network script.
+        [tap = $tapdefault]
     --mac <mac>
         Use a specific MAC address for the network interface. The default is
         to use a randomly generated MAC starting with DE:AD:BE:EF.
-        Default = $macdefault
+        This option is saved in the file:
+        $testmistifystatedir/mac
+        [mac = $macdefault]
     ==== Other ====
     --verbose
         Enble verbose output from this script.
@@ -55,6 +74,7 @@ EOF
 #-
 a=`getopt -l "\
 builddir:,\
+diskimage:,\
 diskimagesize:,\
 tap:,\
 mac:,\
@@ -78,6 +98,10 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--builddir)
 	    builddir=$2
+	    shift
+	    ;;
+	--diskimage)
+	    diskimage=$2
 	    shift
 	    ;;
 	--diskimagesize)
@@ -113,28 +137,24 @@ while [ $# -ge 1 ]; do
 done
 
 if [ -z "$builddir" ]; then
-    if [ -f $testmistifystatedir/builddir ]; then
-	    builddir=`cat $testmistifystatedir/builddir`
-    else
-	if [ -d "$builddirdefault" ]; then
-	    message Using build directory default: $builddirdefault
-	    builddir=$builddirdefault
-	fi
-    fi
-fi
-
-if [ ! -d "$builddir/images" ]; then
-    warning "The last tested build directory doesn't exist."
-    warning "Resetting to the last build: $builddirdefault"
     builddir=$builddirdefault
 fi
+message Build directory is: $builddir
+
+if [ ! -d "$builddir/images" ]; then
+    die "The target image directory doesn't exist in $builddir."
+fi
+
 if [ -d "$builddir" ]; then
-    echo $builddir >$testmistifystatedir/builddir
     message "Running the build in $builddir"
 else
-    error "The build directory $builddir does not exist."
-    exit 1
+    die "The build directory $builddir does not exist."
 fi
+
+if [ -z "$diskimage" ]; then
+    diskimage=$diskimagedefault
+fi
+verbose The disk image is: $diskimage
 
 if [ -z "$diskimagesize" ]; then
     diskimagesize=$diskimagesizedefault
@@ -149,21 +169,24 @@ verbose TAP device is: $tap
 if [ -z "$mac" ]; then
     mac=$macdefault
 fi
-verbose The VM MAC address is: $macdefault
+verbose The VM MAC address is: $mac
 
-kernel=$builddir/images/bzImage.buildroot
+if [ -z "$kernel" ]; then
+    kernel=$kerneldefault
+fi
 if [ ! -f $kernel ]; then
-    error Kernel image $kernel does not exist.
-    exit 1
+    die Kernel image $kernel does not exist.
 fi
+verbose The kernel image is: $kernel
 
-initrd=$builddir/images/initrd.buildroot
+if [ -z "$initrd" ]; then
+  initrd=$initrddefault
+fi
 if [ ! -f $initrd ]; then
-    error Initrd image $initrd does not exist.
-    exit 1
+    die Initrd image $initrd does not exist.
 fi
+verbose The initrd image is: $initrd
 
-diskimage=$builddir/images/sas1.img
 if [ ! -e "$diskimage" ]; then
     warning "Disk image doesn't exist."
     warning "Creating $diskimage"
@@ -173,17 +196,27 @@ if [ ! -e "$diskimage" ]; then
 	qemu-img create -f raw -o size=$diskimagesize $diskimage
     fi
     if [ $? -gt 0 ]; then
-       error Error when attempting to create the disk image: $diskimage
-       exit 1
+	die Error when attempting to create the disk image: $diskimage
     fi
 fi
+verbose The test disk image is: $diskimage
 
 if [ -n "$dryrun" ]; then
   message "Just a dry run -- not running tests."
   exit 0
 fi
 
-message "Starting virtual machine (remember ^A-X to exit)."
+verbose Saving current settings.
+set_default builddir $builddir
+set_default diskimage $diskimage
+set_default diskimagesize $diskimagesize
+set_default mac $mac
+set_default kernel $kernel
+set_default initrd $initrd
+set_default diskimage $diskimage
+set_default diskimagesize $diskimagesize
+
+tip "Starting virtual machine (remember ^A-X to exit)."
 qemu-system-x86_64 \
 -kernel $kernel \
 -initrd $initrd \
