@@ -110,10 +110,15 @@ define DOCKER_DOCKER_INSTALL_STAGING_CMDS
 endef
 
 define DOCKER_DOCKER_INSTALL_TARGET_CMDS
+	$(INSTALL) -m 755 -d $(TARGET_DIR)/usr/lib/docker
+	$(INSTALL) -m 755 -d $(TARGET_DIR)/var/lib/docker
 	read DOCKER_VERSION < $(@D)/VERSION \
 		&& $(INSTALL) -m 755 -D \
 			$(GOPATH)/src/github.com/docker/docker/bundles/$$DOCKER_VERSION/dynbinary/docker-$$DOCKER_VERSION \
-			$(TARGET_DIR)/usr/bin/docker
+			$(TARGET_DIR)/usr/bin/docker \
+		&& $(INSTALL) -m 755 -D \
+			$(GOPATH)/src/github.com/docker/docker/bundles/$$DOCKER_VERSION/dynbinary/dockerinit-$$DOCKER_VERSION \
+			$(TARGET_DIR)/usr/lib/docker/dockerinit
 	# Include our udev rules
 	$(INSTALL) -m 644 $(@D)/contrib/udev/80-docker.rules \
 		$(TARGET_DIR)/etc/udev/rules.d/
