@@ -4,12 +4,12 @@
 #
 ################################################################################
 
-DOCKER_IO_VERSION = ac2521b87cfb9670bd3bfbf1a1ef8d8075e63737
-DOCKER_IO_SITE    = git@github.com:docker/docker.git
-DOCKER_IO_SITE_METHOD = git
-DOCKER_IO_LICENSE = Apache
-DOCKER_IO_LICENSE_FILES = LICENSE
-DOCKER_IO_DEPENDENCIES = libcontainer sqlite zfs
+DOCKER_DOCKER_VERSION = ac2521b87cfb9670bd3bfbf1a1ef8d8075e63737
+DOCKER_DOCKER_SITE    = git@github.com:docker/docker.git
+DOCKER_DOCKER_SITE_METHOD = git
+DOCKER_DOCKER_LICENSE = Apache
+DOCKER_DOCKER_LICENSE_FILES = LICENSE
+DOCKER_DOCKER_DEPENDENCIES = libcontainer sqlite zfs
 
 GOPATH = $(O)/tmp/GOPATH
 
@@ -28,7 +28,7 @@ DOCKER_BUILDTAGS += exclude_graphdriver_devicemapper
 #DOCKER_BUILDTAGS += exclude_graphdriver_aufs
 
 
-define DOCKER_IO_BUILD_CMDS
+define DOCKER_DOCKER_BUILD_CMDS
 	rm -rf $(GOPATH)/src/github.com/docker/docker
 
 	# Grab go-zfs
@@ -100,16 +100,16 @@ define DOCKER_IO_BUILD_CMDS
 		CGO_ENABLED=1 \
 		CGO_CPPFLAGS="-I$(STAGING_DIR)/usr/include" \
 		CGO_LDFLAGS="-L$(TARGET_DIR)/lib -L$(TARGET_DIR)/usr/lib -Wl,-rpath-link,$(TARGET_DIR)/lib -Wl,-rpath-link,$(TARGET_DIR)/usr/lib" \
-		DOCKER_GITCOMMIT="$(DOCKER_IO_VERSION)" \
+		DOCKER_GITCOMMIT="$(DOCKER_DOCKER_VERSION)" \
 		DOCKER_BUILDTAGS="$(DOCKER_BUILDTAGS)" \
 		./hack/make.sh dynbinary
 endef
 
-define DOCKER_IO_INSTALL_STAGING_CMDS
+define DOCKER_DOCKER_INSTALL_STAGING_CMDS
 	# when GOPATH moves to staging
 endef
 
-define DOCKER_IO_INSTALL_TARGET_CMDS
+define DOCKER_DOCKER_INSTALL_TARGET_CMDS
 	read DOCKER_VERSION < $(@D)/VERSION \
 		&& $(INSTALL) -m 755 -D \
 			$(GOPATH)/src/github.com/docker/docker/bundles/$$DOCKER_VERSION/dynbinary/docker-$$DOCKER_VERSION \

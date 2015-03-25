@@ -1,5 +1,5 @@
-config BR2_PACKAGE_DOCKER_IO
-        bool "docker-io"
+config BR2_PACKAGE_DOCKER_DOCKER
+        bool "docker-docker"
         select BR2_PACKAGE_LIBCONTAINER
         help
           Docker container framework
