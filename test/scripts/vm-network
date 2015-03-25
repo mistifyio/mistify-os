@@ -31,6 +31,10 @@ usage () {
     message configuration. If these options are used instead of the defaults
     message be sure to use unique values or confusing and non-functional
     message network configurations can be the result.
+    message NOTE: If your system is running apparmor the configuration may
+    message prevent execution of dhcpd. If that is the case it is necessary
+    message to disable the dhdpcd profile. 
+    message e.g. sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.dhcpd
     warning ----------------------------------------------------------------
 
     cat << EOF
@@ -199,7 +203,7 @@ fi
 verbose Bridge device mask bits are: $maskbits
 
 message Verifying tools.
-for t in tunctl ip; do
+for t in tunctl ip dhcpd; do
     check_installed $t
     if [ $? -ge 0 ]; then
       e=$?

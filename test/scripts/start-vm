@@ -8,6 +8,11 @@
 # requires a network as setup by vm-network. This script is also intended to
 # be run from the Mistify-OS project directory (the same directory which
 # contains the script buildmistify.
+#
+# NOTE: In order to start kvm on some systems it may be necessary to add
+# the user to the kvm group. e.g. sudo useradd <user> kvm
+# A clue this is necessary is when the followin complaint occurs:
+#   Could not access KVM kernel module: Permisssion denied
 #-
 
 source scripts/mistify-functions.sh
@@ -38,7 +43,10 @@ Usage: $0 [options]
         [builddir = $builddirdefault]
     --diskimage
         The name file to use for the test disk image. If the file doesn't exist
-        it is created.
+        it is created. NOTE: The default is to create the image file in the
+        same directory as the kernel image which could have been created by a
+        different user. In this case either use a different directory or change
+        permissions.
         This option is saved in the file:
         $testmistifystatedir/diskimage
         [diskimage = $diskimagedefault]
@@ -120,7 +128,7 @@ while [ $# -ge 1 ]; do
 	    verbose=y
 	    ;;
 	--dryrun)
-	    dryrun=y
+	    dryrun=echo
 	    ;;
 	--help)
 	    usage
@@ -138,6 +146,16 @@ done
 
 if [ -z "$builddir" ]; then
     builddir=$builddirdefault
+else
+    #+
+    # Reset the image defaults to be relative to the new build directory.
+    #-
+    kerneldefault=$builddir/images/$(basename $kerneldefault)
+    initrddefault=$builddir/images/$(basename $initrddefault)
+    diskimagedefault=$builddir/images/$(basename $diskimagedefault)
+    verbose Kernel image default changed to: $kerneldefault
+    verbose Initrd image default changed to: $initrddefault
+    verbose Disk image default changed to: $diskimagedefault
 fi
 message Build directory is: $builddir
 
@@ -175,7 +193,10 @@ if [ -z "$kernel" ]; then
     kernel=$kerneldefault
 fi
 if [ ! -f $kernel ]; then
-    die Kernel image $kernel does not exist.
+    # It's also possible a symlink is used to point to the kernel.
+    if [ ! -h $kernel ]; then
+	die Kernel image $kernel does not exist.
+    fi
 fi
 verbose The kernel image is: $kernel
 
@@ -183,7 +204,10 @@ if [ -z "$initrd" ]; then
   initrd=$initrddefault
 fi
 if [ ! -f $initrd ]; then
-    die Initrd image $initrd does not exist.
+    # It's also possible a symlink is used to point to the initrd.
+    if [ ! -h $initrd ]; then
+	die Initrd image $initrd does not exist.
+    fi
 fi
 verbose The initrd image is: $initrd
 
@@ -193,6 +217,7 @@ if [ ! -e "$diskimage" ]; then
     if [ -n "$dryrun" ]; then
 	message Will create $diskimage of size $diskimagesize
     else
+	mkdir -p $(dirname $diskimage)
 	qemu-img create -f raw -o size=$diskimagesize $diskimage
     fi
     if [ $? -gt 0 ]; then
@@ -203,21 +228,20 @@ verbose The test disk image is: $diskimage
 
 if [ -n "$dryrun" ]; then
   message "Just a dry run -- not running tests."
-  exit 0
+else
+    verbose Saving current settings.
+    set_default builddir $builddir
+    set_default diskimage $diskimage
+    set_default diskimagesize $diskimagesize
+    set_default mac $mac
+    set_default kernel $kernel
+    set_default initrd $initrd
+    set_default diskimage $diskimage
+    set_default diskimagesize $diskimagesize
 fi
 
-verbose Saving current settings.
-set_default builddir $builddir
-set_default diskimage $diskimage
-set_default diskimagesize $diskimagesize
-set_default mac $mac
-set_default kernel $kernel
-set_default initrd $initrd
-set_default diskimage $diskimage
-set_default diskimagesize $diskimagesize
-
 tip "Starting virtual machine (remember ^A-X to exit)."
-qemu-system-x86_64 \
+$dryrun kvm \
 -kernel $kernel \
 -initrd $initrd \
 -drive if=virtio,file=$diskimage \

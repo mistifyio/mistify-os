@@ -1,8 +1,20 @@
 #+
 # Defaults for testing Mistify-OS.
+# NOTE: scripts/mistify-functions.sh must be sourced before 
+# this script.
 #-
 
 testmistifystatedir=${statedir}/testmistify
+
+#+
+# It's possible tests can be run against a build which wasn't built
+# from this project tree. Because of this it's necessary to create
+# the test state directory here.
+#-
+if [ ! -d $testmistifystatedir ]; then
+    warning Creating the state directory: $testmistifystatedir
+    mkdir -p $testmistifystatedir
+fi
 
 function get_default() {
     # Parameters:
@@ -36,7 +48,7 @@ maskbitsdefault=$(get_default maskbits 24)
 if [ -e "$statedir/variantbuilddir" ]; then
     builddirdefault=$(get_default builddir `cat $statedir/variantbuilddir`)
 else
-    builddirdefault=$(get_default builddir '$PWD')
+    builddirdefault=$(get_default builddir $PWD)
 fi
 
 # Test images
