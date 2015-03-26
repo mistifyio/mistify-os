@@ -83,6 +83,11 @@ Usage: $0 [options] [-- test suite options]
         teardown is still executed. This option is NOT saved.
     --tag <tag>
         Run only test cases having this tag. This option is not sticky.
+    --testlogdir <dir>
+        Where to put the test log.
+        This option is saved in the file:
+        $testmistifystatedir/testlogdir
+        [testlogdir=`cat $testmistifystatedir/testlogdir`]
     ==== other ====
     --verbose
         Verbose output from this script.
@@ -118,6 +123,7 @@ testsuitedir:,\
 testcase:,\
 exitonfailure,\
 tag:,\
+testlogdir:,\
 verbose,\
 dryrun,\
 help" \
@@ -177,6 +183,10 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--tag)
 	    tag=$2
+	    shift
+	    ;;
+	--testlogdir)
+	    testlogdir=$2
 	    shift
 	    ;;
 	--verbose)
@@ -370,6 +380,16 @@ if [ -n "$testcase" ]; then
 fi
 
 #####
+
+if [ -z "$testlogdir" ]; then
+    if [ -f $testmistifystatedir/testlogdir ]; then
+	    testlogdir=`cat $testmistifystatedir/testlogdir`
+    else
+	    testlogdir=$builddir/testlog
+    fi
+fi
+
+#####
 verbose "Running test(s): $tests"
 
 #+
@@ -390,8 +410,9 @@ if [ -n "$exitonfailure" ]; then
   pybotoptions+=" --exitonfailure"
 fi
 
-mkdir $builddir/testlog
-pybotcommand="pybot $verboseoption -d $builddir/testlog \
+mkdir -p $testlogdir
+pybotcommand="pybot $verboseoption -d $testlogdir \
+    -v PWD:`pwd` \
     -v BUILDDIR:$builddir \
     -v TESTDISTRO:$testdistrodir/$testdistro \
     -v TESTBED:$testbeddir/$testbed \
