@@ -5,6 +5,27 @@ projectdir=$PWD	# Save this directory for later.
 # Where to maintain buildmistify settings.
 statedir=$projectdir/.buildmistify
 
+function get_build_default() {
+    # Parameters:
+    #   1: option name
+    #   2: default value
+    if [ -e $statedir/$1 ]; then
+      r=`cat $statedir/$1`
+    else
+      r=$2
+    fi
+    verbose The default for $1 is $2
+    echo $r
+}
+
+function set_build_default() {
+    # Parameters:
+    #   1: option name
+    #   2: value
+    echo "$2">$statedir/$1
+    verbose The default $1 has been set to $2
+}
+
 green='\e[0;32m'
 yellow='\e[0;33m'
 red='\e[0;31m'
@@ -43,13 +64,13 @@ function die() {
 
 function run() {
     verbose "Running: '$@'"
-    "$@"; code=$?; [ $code -ne 0 ] && die "Command [$*] failed with status code $code"; 
+    "$@"; code=$?; [ $code -ne 0 ] && die "Command [$*] failed with status code $code";
     return $code
 }
 
 function run_ignore {
     verbose "Running: '$@'"
-    "$@"; code=$?; [ $code -ne 0 ] && verbose "Command [$*] returned status code $code"; 
+    "$@"; code=$?; [ $code -ne 0 ] && verbose "Command [$*] returned status code $code";
     return $code
 }
 
