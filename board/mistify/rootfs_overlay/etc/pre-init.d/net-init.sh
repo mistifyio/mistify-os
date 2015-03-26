@@ -117,12 +117,10 @@ case "$1" in
         else
             configure_net_dhcp
         fi
-        break
         ;;
 
     'stop')
         unconfigure_net_iface
-        break
         ;;
 
     *)
