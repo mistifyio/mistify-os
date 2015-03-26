@@ -6,19 +6,6 @@
 
 source scripts/mistify-functions.sh
 
-testlibdirdefault=test
-
-testbeddirdefault=$testlibdirdefault/testbeds
-testbeddefault=labrat.robot
-
-testdistrodirdefault=$testlibdirdefault/distros
-testdistrodefault=ubuntu-trusty-amd64.robot
-
-testsuitedefault=defaulttests
-testcasepathdefault=testcases
-testsuitedirdefault=testsuites
-testmistifystatedir=${statedir}/testmistify
-
 usage () {
     cat << EOF
 Usage: $0 [options] [-- test suite options]
@@ -34,13 +21,23 @@ Usage: $0 [options] [-- test suite options]
         The Mistify-OS build to test. This defaults to the most recent build.
         This option is saved in the file:
         $testmistifystatedir/builddir
-        [builddir=`cat $testmistifystatedir/builddir`]
+        [builddir=$builddirdefault]
     ==== Test Environment ====
     --testlibdir <dir>
         Where the test case and test suite library resides. This option is saved
         in the file:
         $testmistifystatedir/testlibdir
-        [testlibdir=`cat $testmistifystatedir/testlibdir`]
+        [testlibdir=$testlibdirdefault]
+    --testbeddir <dir>
+        Where the test bed definitions are stored. This option is saved in the
+        file: $testmistifystatedir/testbeddir
+        [testbeddir=$testbeddirdefault]
+    --testbed <name>
+        The environment in which to test Mistify-OS. This can be a hardware
+        platform or a virtual machine. This option is saved in the file:
+        $testmistifystatedir/testbed
+        [testbed=$testbeddefault]
+    ==== Build Testing Options ====
     --testdistrodir <dir>
         Mistify-OS build verification is performed using a Linux Container (lxc)
         constructed specifically for the test. The container can be based upon
@@ -48,34 +45,25 @@ Usage: $0 [options] [-- test suite options]
         definition files. This defines the location of the distro definition file
         to use for this test run. This option is saved in the file:
         $testmistifystatedir/testdistrodir
-        [testdistrodir=`cat $$testmistifystatedir/testdistrodir`]
+        [testdistrodir=$testdistrodirdefault]
     --testdistro <distro>
-        This is the distro definition file to use for a test run. This option is
-        saved in the file:
+        This is the distro definition file to use for a test build run. This
+        option is saved in the file:
         $testmistifystatedir/testdistro
-        [testdistro=`cat $testmistifystatedir/testdistro`]
-    --testbeddir <dir>
-        Where the test bed definitions are stored. This option is saved in the
-        file: $testmistifystatedir/testbeddir
-        [testbeddir=`cat $testmistifystatedir/testbeddir`]
-    --testbed <name>
-        The environment in which to test Mistify-OS. This can be a hardware
-        platform or a virtual machine. This option is saved in the file:
-        $testmistifystatedir/testbed
-        [testbed=`cat $testmistifystatedir/testbed`]
+        [testdistro=$testdistrodefault]
     ==== Test Execution ====
+    --testsuitedir <dir>
+        The directory where the test suites reside. This option is saved in the
+        file: $testmistifystatedir/testsuitedir
+        [testsuitedir=$testsuitedirdefault]
     --testsuite <testsuite>
         The test suite to execute. A test suite is comprised of a number of
         symlinks in a directory. The symlinks are expected to point to testcases
         typically in the test case directory. This option is saved in the file:
         $testmistifystatedir/testsuite.
-        [testsuite=`cat $testmistifystatedir/testsuite`]
-    --testsuitedir <dir>
-        The directory where the test suites reside. This option is saved in the
-        file: $testmistifystatedir/testsuitedir
-        [testsuitedir=`cat $testmistifystatedir/testsuitedir`]
+        [testsuite=$testsuitedefault]
     --testcase <testcase>
-        Execute only a single test case.
+        Execute only a single test case. This
         The "testsuite" option is ignored when this option is used.
         This option is NOT saved.
     --exitonfailure
@@ -87,7 +75,7 @@ Usage: $0 [options] [-- test suite options]
         Where to put the test log.
         This option is saved in the file:
         $testmistifystatedir/testlogdir
-        [testlogdir=`cat $testmistifystatedir/testlogdir`]
+        [testlogdir=$testlogdirdefault]
     ==== other ====
     --verbose
         Verbose output from this script.
@@ -114,12 +102,12 @@ EOF
 a=`getopt -l "\
 builddir:,\
 testlibdir:,\
-testdistrodir:,\
-testdistro:,\
 testbeddir:,\
 testbed:,\
-testsuite:,\
+testdistrodir:,\
+testdistro:,\
 testsuitedir:,\
+testsuite:,\
 testcase:,\
 exitonfailure,\
 tag:,\
@@ -150,20 +138,20 @@ while [ $# -ge 1 ]; do
 	    testlibdir=$2
 	    shift
 	    ;;
-	--testdistrodir)
-	    testdistrodir=$2
-	    shift
-	    ;;
-	--testdistro)
-	    testdistro=$2
-	    shift
-	    ;;
 	--testbeddir)
 	    testbeddir=$2
 	    shift
 	    ;;
 	--testbed)
 	    testbed=$2
+	    shift
+	    ;;
+	--testdistrodir)
+	    testdistrodir=$2
+	    shift
+	    ;;
+	--testdistro)
+	    testdistro=$2
 	    shift
 	    ;;
 	--testsuite)
@@ -193,7 +181,7 @@ while [ $# -ge 1 ]; do
 	    verbose=y
 	    ;;
 	--dryrun)
-	    dryrun=y
+	    dryrun=echo
 	    ;;
 	-h|--help)
 	    usage
@@ -209,9 +197,21 @@ while [ $# -ge 1 ]; do
     shift
 done
 
-if [ ! -e "$testmistifystatedir" ]; then
-  mkdir -p $testmistifystatedir
-fi
+source test/scripts/mistify-test-defaults.sh
+
+builddirdefault=$(get_test_default builddir $(get_build_default variantbuilddir build/base))
+testlibdirdefault=$(get_test_default testlibdir test)
+
+testbeddirdefault=$(get_test_default testbeddir $testlibdirdefault/testbeds)
+testbeddefault=$(get_test_default testbed labrat.robot)
+
+testdistrodirdefault=$(get_test_default testdistrodir $testlibdirdefault/distros)
+testdistrodefault=$(get_test_default testdistro ubuntu-trusty-amd64.robot)
+
+testsuitedirdefault=$(get_test_default testsuitedir $testlibdirdefault/testsuites)
+testsuitedefault=$(get_test_default testsuite defaulttests)
+
+testlogdirdefault=$(get_test_default testlogdir $builddirdefault/testlogs)
 
 #####
 #+
@@ -301,15 +301,10 @@ fi
 
 #####
 if [ -z "$testdistrodir" ]; then
-    if [ -f $testmistifystatedir/testdistrodir ]; then
-	    testdistrodir=`cat $testmistifystatedir/testdistrodir`
-    else
-	    testdistrodir=$testdistrodirdefault
-    fi
+    testdistrodir=$testdistrodirdefault
 fi
 
 if [ -d "$testdistrodir" ]; then
-    echo $testdistrodir >$testmistifystatedir/testdistrodir
     verbose "Using test distro directory in: $testdistrodir"
 else
     error "Test distro definition directory $testdistrodir does not exist"
@@ -318,15 +313,10 @@ fi
 
 #####
 if [ -z "$testdistro" ]; then
-    if [ -f $testmistifystatedir/testdistro ]; then
-	    testdistro=`cat $testmistifystatedir/testdistro`
-    else
-	    testdistro=$testdistrodefault
-    fi
+    testdistro=$testdistrodefault
 fi
 
 if [ -f "$testdistrodir/$testdistro" ]; then
-    echo $testdistro >$testmistifystatedir/testdistro
     verbose "Using test distro defintion: $testdistro"
 else
     error "Test distro definition $testdistro does not exist"
@@ -335,15 +325,10 @@ fi
 
 #####
 if [ -z "$testsuitedir" ]; then
-    if [ -f $testmistifystatedir/testsuitedir ]; then
-	    testsuitedir=`cat $testmistifystatedir/testsuitedir`
-    else
-	    testsuitedir=$testlibdir/$testsuitedirdefault
-    fi
+    testsuitedir=$testsuitedirdefault
 fi
 
 if [ -d "$testsuitedir" ]; then
-    echo $testsuitedir >$testmistifystatedir/testsuitedir
     verbose "Using test suite directory in: $testsuitedir"
 else
     error "Test suite definition directory $testsuitedir does not exist"
@@ -352,15 +337,10 @@ fi
 
 #####
 if [ -z "$testsuite" ]; then
-    if [ -f $testmistifystatedir/testsuite ]; then
-	    testsuite=`cat $testmistifystatedir/testsuite`
-    else
-	    testsuite=$testsuitedefault
-    fi
+    testsuite=$testsuitedefault
 fi
 
 if [ -d "$testsuitedir/$testsuite" ]; then
-    echo $testsuite >$testmistifystatedir/testsuite
     tests=$testsuitedir/$testsuite
     verbose "Using test suite: $testsuitedir/$testsuite"
 else
@@ -382,11 +362,13 @@ fi
 #####
 
 if [ -z "$testlogdir" ]; then
-    if [ -f $testmistifystatedir/testlogdir ]; then
-	    testlogdir=`cat $testmistifystatedir/testlogdir`
-    else
-	    testlogdir=$builddir/testlog
-    fi
+    testlogdir=$testlogdirdefault
+fi
+
+verbose "Creating the testlog directory if it doesn't exist."
+$dryrun mkdir -p $testlogdir
+if [ $? -gt 0 ]; then
+    die Could not create the test log directory.
 fi
 
 #####
@@ -424,12 +406,21 @@ verbose "Command is: $pybotcommand"
 
 if [ -n "$dryrun" ]; then
   message "Just a dry run -- not running tests."
-  verbose $pybotcommand
-  exit 0
+else
+  verbose Saving current settings.
+  set_test_default builddir $builddir
+  set_test_default testlibdir $testlibdir
+  set_test_default testdistrodir $testdistrodir
+  set_test_default testdistro $testdistro
+  set_test_default testbeddir $testbeddir
+  set_test_default testbed $testbed
+  set_test_default testsuitedir $testsuitedir
+  set_test_default testsuite $testsuite
+  set_test_default testlogdir $testlogdir
 fi
 
 message "Running test case(s): $target"
-$pybotcommand
+$dryrun $pybotcommand
 if [ $? -gt 0 ]; then
   error "One or more test cases failed."
   exit 1
