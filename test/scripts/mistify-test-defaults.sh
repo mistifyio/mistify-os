@@ -1,6 +1,6 @@
 #+
 # Defaults for testing Mistify-OS.
-# NOTE: scripts/mistify-functions.sh must be sourced before 
+# NOTE: scripts/mistify-functions.sh must be sourced before
 # this script.
 #-
 
@@ -12,11 +12,11 @@ testmistifystatedir=${statedir}/testmistify
 # the test state directory here.
 #-
 if [ ! -d $testmistifystatedir ]; then
-    warning Creating the state directory: $testmistifystatedir
+    verbose Creating the state directory: $testmistifystatedir
     mkdir -p $testmistifystatedir
 fi
 
-function get_default() {
+function get_test_default() {
     # Parameters:
     #   1: option name
     #   2: default value
@@ -29,7 +29,7 @@ function get_default() {
     echo $r
 }
 
-function set_default() {
+function set_test_default() {
     # Parameters:
     #   1: option name
     #   2: value
@@ -39,19 +39,19 @@ function set_default() {
 
 # Network configuration
 
-tapdefault=$(get_default tap tap0)
-bridgedefault=$(get_default bridge mosbr0)
-bridgeipdefault=$(get_default bridgeip 10.0.2.2)
-maskbitsdefault=$(get_default maskbits 24)
+tapdefault=$(get_test_default tap tap0)
+bridgedefault=$(get_test_default bridge mosbr0)
+bridgeipdefault=$(get_test_default bridgeip 10.0.2.2)
+maskbitsdefault=$(get_test_default maskbits 24)
 
 # Build information.
 if [ -e "$statedir/variantbuilddir" ]; then
-    builddirdefault=$(get_default builddir `cat $statedir/variantbuilddir`)
+    builddirdefault=$(get_test_default builddir `cat $statedir/variantbuilddir`)
 else
-    builddirdefault=$(get_default builddir $PWD)
+    builddirdefault=$(get_test_default builddir $PWD)
 fi
 
 # Test images
-kerneldefault=$(get_default kernel $builddirdefault/images/bzImage.buildroot)
-initrddefault=$(get_default initrd $builddirdefault/images/initrd.buildroot)
+kerneldefault=$(get_test_default kernel $builddirdefault/images/bzImage.buildroot)
+initrddefault=$(get_test_default initrd $builddirdefault/images/initrd.buildroot)
 
