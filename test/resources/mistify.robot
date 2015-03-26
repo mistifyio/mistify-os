@@ -21,6 +21,8 @@ Resource	${TESTDISTRO}
 # For login to a running instance of Mistify-OS
 ${MISTIFY_USERNAME}	root
 ${MISTIFY_PASSWORD}	LetMeIn2
+${MISTIFY_PROMPT}	@Mistify-OS
+${MISTIFY_LOGIN_PROMPT}	Mistify-OS login:
 
 # To clone the Mistify-OS repo for building.
 ${MISTIFY_OS_REPO}	mistify-os
