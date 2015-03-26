@@ -66,6 +66,9 @@ function configure_net_dhcp() {
             local dhc_ip=`/sbin/ip addr show $iface | awk '/inet / {print $2}'`
             echo "IP=$dhc_ip" >> $MISTIFY_IFSTATE
 
+            local gw=`/sbin/ip route | awk '/default via/ {print $3}'`
+            echo "GW=$gw" >> $MISTIFY_IFSTATE
+
             return 0
         fi
     done
