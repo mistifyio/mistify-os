@@ -97,10 +97,32 @@ function get_mistify_config() {
         return 1
     fi
 
-    curl http://192.168.100.100:8888/configs/$IP > $MISTIFY_CONFIG
+    if [[ -z $DNS ]]; then
+        # not configured via dhcp
+        return 1
+    fi
+
+    local resp=''
+    for dns in ${DNS[*]}; do
+        resp=$(dig +noall +answer +additional SRV ipxe.services.lochness.local @$dns)
+	if [[ $! -ne 0 ]];then
+            resp=''
+            continue
+        fi
+    done
+
+    if [[ -z $resp ]]; then
+        echo "could not resolv ipxe service"
+	return 1
+    fi
+
+    local addr=$(echo $resp | awk '/\sA\s/ {print $NF}')
+    local port=$(echo $resp | awk '/\sSRV\s/ {print $7}')
+    local ip=${IP%%/*}
+    curl http://$addr:$port/config/$ip > $MISTIFY_CONFIG
 
     if [ $? -ne 0 ]; then
-        echo "FATAL: Could not get Mistify configuration for $IP!"
+        echo "FATAL: Could not get Mistify configuration for $ip!"
         return 1
     fi
 }
