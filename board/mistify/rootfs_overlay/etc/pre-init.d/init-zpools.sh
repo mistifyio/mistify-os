@@ -9,8 +9,6 @@ zpool list $ZPOOL > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "Mistify zpool is not present"
 
-    /etc/pre-init.d/net-init.sh start
-
     if [ -f /tmp/mistify-config ]; then
         . /tmp/mistify-config
         TYPE=$ZFS_POOL
