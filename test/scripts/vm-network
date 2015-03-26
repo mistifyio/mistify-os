@@ -25,15 +25,15 @@ u=$USER
 
 usage () {
     warning +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    message This script sudo to run as root and can break an existing
-    message configuration. Use with caution.
+    message This script uses sudo to run as root and can break an existing
+    message network configuration. Use with caution!
     message This script supports options for the interface names and IP
     message configuration. If these options are used instead of the defaults
     message be sure to use unique values or confusing and non-functional
     message network configurations can be the result.
     message NOTE: If your system is running apparmor the configuration may
     message prevent execution of dhcpd. If that is the case it is necessary
-    message to disable the dhdpcd profile. 
+    message to disable the dhcpcd profile.
     message e.g. sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.dhcpd
     warning ----------------------------------------------------------------
 
@@ -217,6 +217,7 @@ fi
 if [ "$shutdown" == "y" ]; then
 	verbose Shutting bridge $bridge down.
 	shutdown $bridge $tap
+	message VM related interfaces have been removed.
 	exit
 fi
 
