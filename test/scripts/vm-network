@@ -15,11 +15,6 @@
 #-
 
 source scripts/mistify-functions.sh
-source test/scripts/mistify-test-defaults.sh
-
-dhcpdconf=$testmistifystatedir/$id-dhcpd.conf
-dhcpdpidfile=$testmistifystatedir/$id-dhcpd-pid
-leasesfile=$testmistifystatedir/$id-dhcpd-leases
 
 u=$USER
 
@@ -182,6 +177,12 @@ while [ $# -ge 1 ]; do
     shift
 done
 
+source test/scripts/mistify-test-defaults.sh
+
+dhcpdconf=$testmistifystatedir/$id-dhcpd.conf
+dhcpdpidfile=$testmistifystatedir/$id-dhcpd-pid
+leasesfile=$testmistifystatedir/$id-dhcpd-leases
+
 if [ -z "$tap" ]; then
     tap=$tapdefault
 fi
@@ -332,10 +333,10 @@ else
 fi
 
 verbose Saving settings.
-set_default tap $tap
-set_default bridge $bridge
-set_default bridgeip $bridgeip
-set_default maskbits $maskbits
+set_test_default tap $tap
+set_test_default bridge $bridge
+set_test_default bridgeip $bridgeip
+set_test_default maskbits $maskbits
 
 message Network is now configured for running a VM.
 message Using the device $tap on the bridge $bridge.

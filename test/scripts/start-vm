@@ -16,14 +16,6 @@
 #-
 
 source scripts/mistify-functions.sh
-source test/scripts/mistify-test-defaults.sh
-
-macdefault=$(get_default mac \
-    DE:AD:BE:EF:`printf "%02X:%02X" $(( (RANDOM % 256) )) $(( (RANDOM % 256) ))`)
-# Disk images
-diskimagedefault=$(get_default diskimage $builddirdefault/images/sas1.img)
-diskimagesizedefault=$(get_default diskimagesize 1G)
-
 
 usage () {
 cat << EOF
@@ -144,6 +136,14 @@ while [ $# -ge 1 ]; do
     shift
 done
 
+source test/scripts/mistify-test-defaults.sh
+
+macdefault=$(get_test_default mac \
+    DE:AD:BE:EF:`printf "%02X:%02X" $(( (RANDOM % 256) )) $(( (RANDOM % 256) ))`)
+# Disk images
+diskimagedefault=$(get_test_default diskimage $builddirdefault/images/sas1.img)
+diskimagesizedefault=$(get_test_default diskimagesize 1G)
+
 if [ -z "$builddir" ]; then
     builddir=$builddirdefault
 else
@@ -230,14 +230,14 @@ if [ -n "$dryrun" ]; then
   message "Just a dry run -- not running tests."
 else
     verbose Saving current settings.
-    set_default builddir $builddir
-    set_default diskimage $diskimage
-    set_default diskimagesize $diskimagesize
-    set_default mac $mac
-    set_default kernel $kernel
-    set_default initrd $initrd
-    set_default diskimage $diskimage
-    set_default diskimagesize $diskimagesize
+    set_test_default builddir $builddir
+    set_test_default diskimage $diskimage
+    set_test_default diskimagesize $diskimagesize
+    set_test_default mac $mac
+    set_test_default kernel $kernel
+    set_test_default initrd $initrd
+    set_test_default diskimage $diskimage
+    set_test_default diskimagesize $diskimagesize
 fi
 
 tip "Starting virtual machine (remember ^A-X to exit)."
