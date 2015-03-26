@@ -63,8 +63,8 @@ function configure_net_dhcp() {
             echo "IFTYPE=DHCP" >> $MISTIFY_IFSTATE
             echo "IFACE=$iface" >> $MISTIFY_IFSTATE
 
-            dhc_ip=`/sbin/ip addr show $iface | grep "inet " | awk '{print $2}'`
-            echo "IP=$dh_ip" >> $MISTIFY_IFSTATE
+            local dhc_ip=`/sbin/ip addr show $iface | awk '/inet / {print $2}'`
+            echo "IP=$dhc_ip" >> $MISTIFY_IFSTATE
 
             return 0
         fi
