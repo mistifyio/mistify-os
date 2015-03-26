@@ -119,6 +119,7 @@ case "$1" in
             configure_net_manual
         else
             configure_net_dhcp
+            get_mistify_config
         fi
         ;;
 
