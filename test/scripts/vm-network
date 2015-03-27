@@ -327,7 +327,9 @@ else
     message DHCP server is already running.
     ps -fp `pgrep dhcpd` | grep $dhcpdconf
     if [ $? -gt 0 ]; then
-	die The DHCP server is not configured for using a Mistify-OS VM.
+	warning The DHCP server may not be configured for using a Mistify-OS VM.
+	warning It is possible it was started by another user with the correct
+	warning configuration.
     fi
 fi
 
