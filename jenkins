@@ -9,7 +9,7 @@ mistifybranch=`git status | grep "On branch" | cut -f 3 -d ' '`
 
 usage () {
     cat << EOF
-Usage: $0 [options] [target]
+Usage: $0 [options] [-- joboptions]
   Use this script to remotely trigger a Mistify build on a Jenkins CI server.
   The Jenkins CI server must be configured to run the buildmistify script on the
   server in order to build.
@@ -71,7 +71,7 @@ while [ $# -ge 1 ]; do
 	    shift
 	    ;;
 	--dryrun)
-	    dryrun=y
+	    dryrun=echo
 	    ;;
 	-h|--help)
 	    usage
@@ -116,13 +116,11 @@ jenkinscommand="wget -O /dev/null $jenkins/job/$job/buildWithParameters?token=bu
 
 if [ -n "$dryrun" ]; then
   message "Just a test run -- not building."
-  message $jenkinscommand
-  exit 0
 fi
 
 message "Triggering a remote build on Jenkins server: $jenkins"
 message "The branch is: $mistifybranch"
-$jenkinscommand
+$dryrun $jenkinscommand
 if [ $? -gt 0 ]; then
   error The Jenkins server is not running at the URL or did not accept the job.
   exit 1
