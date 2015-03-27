@@ -5,27 +5,21 @@
 #-
 
 source scripts/mistify-functions.sh
+source test/scripts/mistify-test-defaults.sh
 
-if [ -e "$statedir/builddir" ]; then
-  builddirdefault=`cat $statedir/builddir`
-fi
+builddirdefault=$(get_test_default builddir $(get_build_default variantbuilddir build/base))
+testlibdirdefault=$(get_test_default testlibdir test)
 
-if [ -e "$statedir/variant" ]; then
-  variantdefault=`cat $statedir/variant`
-fi
+testbeddirdefault=$(get_test_default testbeddir $testlibdirdefault/testbeds)
+testbeddefault=$(get_test_default testbed labrat.robot)
 
-testlibdirdefault=test
+testdistrodirdefault=$(get_test_default testdistrodir $testlibdirdefault/distros)
+testdistrodefault=$(get_test_default testdistro ubuntu-trusty-amd64.robot)
 
-testbeddirdefault=$testlibdirdefault/testbeds
-testbeddefault=labrat.robot
+testsuitedirdefault=$(get_test_default testsuitedir $testlibdirdefault/testsuites)
+testsuitedefault=$(get_test_default testsuite defaulttests)
 
-testdistrodirdefault=$testlibdirdefault/distros
-testdistrodefault=ubuntu-trusty-amd64.robot
-
-testsuitedefault=defaulttests
-testcasepathdefault=testcases
-testsuitedirdefault=testsuites
-testmistifystatedir=${statedir}/testmistify
+testlogdirdefault=$(get_test_default testlogdir $builddirdefault/testlogs)
 
 usage () {
     cat << EOF
@@ -33,7 +27,7 @@ Usage: $0 [options] [-- test suite options]
   Use this script to execute tests to verify the build of an instance of the
   Mistify-OS and its execution either in a VM or on a target platform.
 
-  NOTE: This script uses the Robot Framework (http://robotframeworkd.org)
+  NOTE: This script uses the Robot Framework (http://robotframework.org)
   utility, pybot, to execute test cases.
 
   Options:
@@ -42,18 +36,23 @@ Usage: $0 [options] [-- test suite options]
         The Mistify-OS build to test. This defaults to the most recent build.
         This option is saved in the file:
         $testmistifystatedir/builddir
-        [builddir=`cat $testmistifystatedir/builddir`]
-    --variant <variant>
-        The Mistify-OS variant to test. This defaults to the most recent build.
-        This option is saved in the file:
-        $testmistifystatedir/variant
-        [variant=`cat $testmisifystatedir/variant`]
+        [builddir=$builddirdefault]
     ==== Test Environment ====
     --testlibdir <dir>
         Where the test case and test suite library resides. This option is saved
         in the file:
         $testmistifystatedir/testlibdir
-        [testlibdir=`cat $testmistifystatedir/testlibdir`]
+        [testlibdir=$testlibdirdefault]
+    --testbeddir <dir>
+        Where the test bed definitions are stored. This option is saved in the
+        file: $testmistifystatedir/testbeddir
+        [testbeddir=$testbeddirdefault]
+    --testbed <name>
+        The environment in which to test Mistify-OS. This can be a hardware
+        platform or a virtual machine. This option is saved in the file:
+        $testmistifystatedir/testbed
+        [testbed=$testbeddefault]
+    ==== Build Testing Options ====
     --testdistrodir <dir>
         Mistify-OS build verification is performed using a Linux Container (lxc)
         constructed specifically for the test. The container can be based upon
@@ -61,34 +60,25 @@ Usage: $0 [options] [-- test suite options]
         definition files. This defines the location of the distro definition file
         to use for this test run. This option is saved in the file:
         $testmistifystatedir/testdistrodir
-        [testdistrodir=`cat $$testmistifystatedir/testdistrodir`]
+        [testdistrodir=$testdistrodirdefault]
     --testdistro <distro>
-        This is the distro definition file to use for a test run. This option is
-        saved in the file:
+        This is the distro definition file to use for a test build run. This
+        option is saved in the file:
         $testmistifystatedir/testdistro
-        [testdistro=`cat $testmistifystatedir/testdistro`]
-    --testbeddir <dir>
-        Where the test bed definitions are stored. This option is saved in the
-        file: $testmistifystatedir/testbeddir
-        [testbeddir=`cat $testmistifystatedir/testbeddir`]
-    --testbed <name>
-        The environment in which to test Mistify-OS. This can be a hardware
-        platform or a virtual machine. This option is saved in the file:
-        $testmistifystatedir/testbed
-        [testbed=`cat $testmistifystatedir/testbed`]
+        [testdistro=$testdistrodefault]
     ==== Test Execution ====
+    --testsuitedir <dir>
+        The directory where the test suites reside. This option is saved in the
+        file: $testmistifystatedir/testsuitedir
+        [testsuitedir=$testsuitedirdefault]
     --testsuite <testsuite>
         The test suite to execute. A test suite is comprised of a number of
         symlinks in a directory. The symlinks are expected to point to testcases
         typically in the test case directory. This option is saved in the file:
         $testmistifystatedir/testsuite.
-        [testsuite=`cat $testmistifystatedir/testsuite`]
-    --testsuitedir <dir>
-        The directory where the test suites reside. This option is saved in the
-        file: $testmistifystatedir/testsuitedir
-        [testsuitedir=`cat $testmistifystatedir/testsuitedir`]
+        [testsuite=$testsuitedefault]
     --testcase <testcase>
-        Execute only a single test case.
+        Execute only a single test case. This
         The "testsuite" option is ignored when this option is used.
         This option is NOT saved.
     --exitonfailure
@@ -96,11 +86,21 @@ Usage: $0 [options] [-- test suite options]
         teardown is still executed. This option is NOT saved.
     --tag <tag>
         Run only test cases having this tag. This option is not sticky.
+    --testlogdir <dir>
+        Where to put the test log.
+        This option is saved in the file:
+        $testmistifystatedir/testlogdir
+        [testlogdir=$testlogdirdefault]
     ==== other ====
     --verbose
         Verbose output from this script.
     --dryrun
         Just showing what will happen with this script. Don't run the test.
+    --alwaysok
+        Return 0 always. Some CI tools have a Robot Framework plugin
+        which requires that a 0 return code always be returned after executing
+        tests whether they fail or not. This is so the CI tool won't stop the
+        run before the plugin has an opportunity to process the test results.
     -h|--help
         Display this usage.
 
@@ -121,19 +121,20 @@ EOF
 #-
 a=`getopt -l "\
 builddir:,\
-variant:,\
 testlibdir:,\
-testdistrodir:,\
-testdistro:,\
 testbeddir:,\
 testbed:,\
-testsuite:,\
+testdistrodir:,\
+testdistro:,\
 testsuitedir:,\
+testsuite:,\
 testcase:,\
 exitonfailure,\
 tag:,\
+testlogdir:,\
 verbose,\
 dryrun,\
+alwaysok,\
 help" \
    -o "h" -- "$@"`
 
@@ -154,20 +155,8 @@ while [ $# -ge 1 ]; do
 	    builddir=$2
 	    shift
 	    ;;
-	--variant)
-	    variant=$2
-	    shift
-	    ;;
 	--testlibdir)
 	    testlibdir=$2
-	    shift
-	    ;;
-	--testdistrodir)
-	    testdistrodir=$2
-	    shift
-	    ;;
-	--testdistro)
-	    testdistro=$2
 	    shift
 	    ;;
 	--testbeddir)
@@ -176,6 +165,14 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--testbed)
 	    testbed=$2
+	    shift
+	    ;;
+	--testdistrodir)
+	    testdistrodir=$2
+	    shift
+	    ;;
+	--testdistro)
+	    testdistro=$2
 	    shift
 	    ;;
 	--testsuite)
@@ -197,11 +194,18 @@ while [ $# -ge 1 ]; do
 	    tag=$2
 	    shift
 	    ;;
+	--testlogdir)
+	    testlogdir=$2
+	    shift
+	    ;;
 	--verbose)
 	    verbose=y
 	    ;;
 	--dryrun)
-	    dryrun=y
+	    dryrun=echo
+	    ;;
+	--alwaysok)
+	    alwaysok=y
 	    ;;
 	-h|--help)
 	    usage
@@ -216,10 +220,6 @@ while [ $# -ge 1 ]; do
     esac
     shift
 done
-
-if [ ! -e "$testmistifystatedir" ]; then
-  mkdir -p $testmistifystatedir
-fi
 
 #####
 #+
@@ -255,27 +255,8 @@ else
     mkdir -p $builddir
 fi
 
-if [ -z "$variant" ]; then
-    if [ -f $testmistifystatedir/variant ]; then
-	    variant=`cat $testmistifystatedir/variant`
-    else
-	if [ -d "$builddir/$variantdefault" ]; then
-	    variant=$variantdefault
-	fi
-    fi
-fi
-
 #####
 
-buildvariantdir=$builddir/$variant
-if [ -d "$buildvariantdir" ]; then
-    message "Testing the build variant in: $buildvariantdir"
-else
-    error "The Mistify-OS build variant in $buildvariantdir does not exist."
-    exit 1
-fi
-
-#####
 if [ -z "$testlibdir" ]; then
     if [ -f $testmistifystatedir/testlibdir ]; then
 	    testlibdir=`cat $testmistifystatedir/testlibdir`
@@ -328,15 +309,10 @@ fi
 
 #####
 if [ -z "$testdistrodir" ]; then
-    if [ -f $testmistifystatedir/testdistrodir ]; then
-	    testdistrodir=`cat $testmistifystatedir/testdistrodir`
-    else
-	    testdistrodir=$testdistrodirdefault
-    fi
+    testdistrodir=$testdistrodirdefault
 fi
 
 if [ -d "$testdistrodir" ]; then
-    echo $testdistrodir >$testmistifystatedir/testdistrodir
     verbose "Using test distro directory in: $testdistrodir"
 else
     error "Test distro definition directory $testdistrodir does not exist"
@@ -345,15 +321,10 @@ fi
 
 #####
 if [ -z "$testdistro" ]; then
-    if [ -f $testmistifystatedir/testdistro ]; then
-	    testdistro=`cat $testmistifystatedir/testdistro`
-    else
-	    testdistro=$testdistrodefault
-    fi
+    testdistro=$testdistrodefault
 fi
 
 if [ -f "$testdistrodir/$testdistro" ]; then
-    echo $testdistro >$testmistifystatedir/testdistro
     verbose "Using test distro defintion: $testdistro"
 else
     error "Test distro definition $testdistro does not exist"
@@ -362,15 +333,10 @@ fi
 
 #####
 if [ -z "$testsuitedir" ]; then
-    if [ -f $testmistifystatedir/testsuitedir ]; then
-	    testsuitedir=`cat $testmistifystatedir/testsuitedir`
-    else
-	    testsuitedir=$testlibdir/$testsuitedirdefault
-    fi
+    testsuitedir=$testsuitedirdefault
 fi
 
 if [ -d "$testsuitedir" ]; then
-    echo $testsuitedir >$testmistifystatedir/testsuitedir
     verbose "Using test suite directory in: $testsuitedir"
 else
     error "Test suite definition directory $testsuitedir does not exist"
@@ -379,15 +345,10 @@ fi
 
 #####
 if [ -z "$testsuite" ]; then
-    if [ -f $testmistifystatedir/testsuite ]; then
-	    testsuite=`cat $testmistifystatedir/testsuite`
-    else
-	    testsuite=$testsuitedefault
-    fi
+    testsuite=$testsuitedefault
 fi
 
 if [ -d "$testsuitedir/$testsuite" ]; then
-    echo $testsuite >$testmistifystatedir/testsuite
     tests=$testsuitedir/$testsuite
     verbose "Using test suite: $testsuitedir/$testsuite"
 else
@@ -404,6 +365,18 @@ if [ -n "$testcase" ]; then
         error "Test case $testcase does not exist"
         exit 1
     fi
+fi
+
+#####
+
+if [ -z "$testlogdir" ]; then
+    testlogdir=$testlogdirdefault
+fi
+
+verbose "Creating the testlog directory if it doesn't exist."
+$dryrun mkdir -p $testlogdir
+if [ $? -gt 0 ]; then
+    die Could not create the test log directory.
 fi
 
 #####
@@ -427,9 +400,10 @@ if [ -n "$exitonfailure" ]; then
   pybotoptions+=" --exitonfailure"
 fi
 
-mkdir $builddir/testlog
-pybotcommand="pybot $verboseoption -d $buildvariantdir/testlog \
-    -v BUILDDIR:$buildvariantdir \
+mkdir -p $testlogdir
+pybotcommand="pybot $verboseoption -d $testlogdir \
+    -v PWD:`pwd` \
+    -v BUILDDIR:$builddir \
     -v TESTDISTRO:$testdistrodir/$testdistro \
     -v TESTBED:$testbeddir/$testbed \
     -v USER:$USER \
@@ -440,13 +414,26 @@ verbose "Command is: $pybotcommand"
 
 if [ -n "$dryrun" ]; then
   message "Just a dry run -- not running tests."
-  verbose $pybotcommand
-  exit 0
+else
+  verbose Saving current settings.
+  set_test_default builddir $builddir
+  set_test_default testlibdir $testlibdir
+  set_test_default testdistrodir $testdistrodir
+  set_test_default testdistro $testdistro
+  set_test_default testbeddir $testbeddir
+  set_test_default testbed $testbed
+  set_test_default testsuitedir $testsuitedir
+  set_test_default testsuite $testsuite
+  set_test_default testlogdir $testlogdir
 fi
 
 message "Running test case(s): $target"
-$pybotcommand
+$dryrun $pybotcommand
 if [ $? -gt 0 ]; then
   error "One or more test cases failed."
+  if [ -n "$alwaysok" ]; then
+        message Returning OK regardless of test results.
+        exit 0
+  fi
   exit 1
 fi
