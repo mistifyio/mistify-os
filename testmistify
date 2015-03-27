@@ -5,6 +5,21 @@
 #-
 
 source scripts/mistify-functions.sh
+source test/scripts/mistify-test-defaults.sh
+
+builddirdefault=$(get_test_default builddir $(get_build_default variantbuilddir build/base))
+testlibdirdefault=$(get_test_default testlibdir test)
+
+testbeddirdefault=$(get_test_default testbeddir $testlibdirdefault/testbeds)
+testbeddefault=$(get_test_default testbed labrat.robot)
+
+testdistrodirdefault=$(get_test_default testdistrodir $testlibdirdefault/distros)
+testdistrodefault=$(get_test_default testdistro ubuntu-trusty-amd64.robot)
+
+testsuitedirdefault=$(get_test_default testsuitedir $testlibdirdefault/testsuites)
+testsuitedefault=$(get_test_default testsuite defaulttests)
+
+testlogdirdefault=$(get_test_default testlogdir $builddirdefault/testlogs)
 
 usage () {
     cat << EOF
@@ -12,7 +27,7 @@ Usage: $0 [options] [-- test suite options]
   Use this script to execute tests to verify the build of an instance of the
   Mistify-OS and its execution either in a VM or on a target platform.
 
-  NOTE: This script uses the Robot Framework (http://robotframeworkd.org)
+  NOTE: This script uses the Robot Framework (http://robotframework.org)
   utility, pybot, to execute test cases.
 
   Options:
@@ -196,22 +211,6 @@ while [ $# -ge 1 ]; do
     esac
     shift
 done
-
-source test/scripts/mistify-test-defaults.sh
-
-builddirdefault=$(get_test_default builddir $(get_build_default variantbuilddir build/base))
-testlibdirdefault=$(get_test_default testlibdir test)
-
-testbeddirdefault=$(get_test_default testbeddir $testlibdirdefault/testbeds)
-testbeddefault=$(get_test_default testbed labrat.robot)
-
-testdistrodirdefault=$(get_test_default testdistrodir $testlibdirdefault/distros)
-testdistrodefault=$(get_test_default testdistro ubuntu-trusty-amd64.robot)
-
-testsuitedirdefault=$(get_test_default testsuitedir $testlibdirdefault/testsuites)
-testsuitedefault=$(get_test_default testsuite defaulttests)
-
-testlogdirdefault=$(get_test_default testlogdir $builddirdefault/testlogs)
 
 #####
 #+

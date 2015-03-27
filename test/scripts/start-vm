@@ -16,6 +16,13 @@
 #-
 
 source scripts/mistify-functions.sh
+source test/scripts/mistify-test-defaults.sh
+
+macdefault=$(get_test_default mac \
+    DE:AD:BE:EF:`printf "%02X:%02X" $(( (RANDOM % 256) )) $(( (RANDOM % 256) ))`)
+# Disk images
+diskimagedefault=$(get_test_default diskimage $builddirdefault/images/sas1.img)
+diskimagesizedefault=$(get_test_default diskimagesize 1G)
 
 usage () {
 cat << EOF
@@ -135,14 +142,6 @@ while [ $# -ge 1 ]; do
     esac
     shift
 done
-
-source test/scripts/mistify-test-defaults.sh
-
-macdefault=$(get_test_default mac \
-    DE:AD:BE:EF:`printf "%02X:%02X" $(( (RANDOM % 256) )) $(( (RANDOM % 256) ))`)
-# Disk images
-diskimagedefault=$(get_test_default diskimage $builddirdefault/images/sas1.img)
-diskimagesizedefault=$(get_test_default diskimagesize 1G)
 
 if [ -z "$builddir" ]; then
     builddir=$builddirdefault

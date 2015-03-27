@@ -15,6 +15,11 @@
 #-
 
 source scripts/mistify-functions.sh
+source test/scripts/mistify-test-defaults.sh
+
+dhcpdconf=$testmistifystatedir/$id-dhcpd.conf
+dhcpdpidfile=$testmistifystatedir/$id-dhcpd-pid
+leasesfile=$testmistifystatedir/$id-dhcpd-leases
 
 u=$USER
 
@@ -176,12 +181,6 @@ while [ $# -ge 1 ]; do
     esac
     shift
 done
-
-source test/scripts/mistify-test-defaults.sh
-
-dhcpdconf=$testmistifystatedir/$id-dhcpd.conf
-dhcpdpidfile=$testmistifystatedir/$id-dhcpd-pid
-leasesfile=$testmistifystatedir/$id-dhcpd-leases
 
 if [ -z "$tap" ]; then
     tap=$tapdefault
