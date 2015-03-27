@@ -18,20 +18,26 @@ Usage: $0 [options] [-- joboptions]
   server in order to build.
   Options:
     ==== remote build ====
-    --jenkins <URL>
+    --jenkins <url>
         The Jenkins CI server URL. The URL is saved in the file
         $statedir/jenkins.
         [jenkins=$jenkinsdefault]
-    --job <JOB>
+    --job <job>
         The job to execute. This must match a name in the Jenkins job list. This
         is saved in the file: $statedir/jenkinsjob
         [job=$jenkinsjobdefault]
-        Parameters passed to the Jenkins server:
+    -- <joboptions>
+        Anything following the "--" is passed directly to the Jenkins server.
+        This can be additional options to pass to a script or a complete
+        command line depending upon how the job is configured on the server. The
+        job needs to be configured to accept a parameter named "options".
+
+    Parameters passed to the Jenkins server:
         [branch=$mistifybranch]
     ==== other ====
     --dryrun
-        Just testing what will happen with this script. Don't run the Buildroot
-        make.
+        Just testing what will happen with this script. Don't send anything to
+        the Jenkins server and instead display the command.
     -h|--help
         Display this usage.
 
