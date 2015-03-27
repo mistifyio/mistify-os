@@ -96,6 +96,11 @@ Usage: $0 [options] [-- test suite options]
         Verbose output from this script.
     --dryrun
         Just showing what will happen with this script. Don't run the test.
+    --alwaysok
+        Return 0 always. Some CI tools have a Robot Framework plugin
+        which requires that a 0 return code always be returned after executing
+        tests whether they fail or not. This is so the CI tool won't stop the
+        run before the plugin has an opportunity to process the test results.
     -h|--help
         Display this usage.
 
@@ -129,6 +134,7 @@ tag:,\
 testlogdir:,\
 verbose,\
 dryrun,\
+alwaysok,\
 help" \
    -o "h" -- "$@"`
 
@@ -197,6 +203,9 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--dryrun)
 	    dryrun=echo
+	    ;;
+	--alwaysok)
+	    alwaysok=y
 	    ;;
 	-h|--help)
 	    usage
@@ -422,5 +431,9 @@ message "Running test case(s): $target"
 $dryrun $pybotcommand
 if [ $? -gt 0 ]; then
   error "One or more test cases failed."
+  if [ -n "$alwaysok" ]; then
+        message Returning OK regardless of test results.
+        exit 0
+  fi
   exit 1
 fi
