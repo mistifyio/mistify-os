@@ -105,7 +105,7 @@ Start The Build
 
 Build Tools
     [Documentation]	Build the cross tools and go compiler.
-    ssh.Set Client Configuration  timeout=10m
+    ssh.Set Client Configuration  timeout=20m
     :FOR  ${_checkpoint}  IN  @{checkpoints}
     	\  Log To Console  \nWaiting for: ${_checkpoint}
     	\  ${_o}=  ssh.Read Until  ${_checkpoint}
