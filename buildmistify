@@ -758,11 +758,11 @@ esac
 #+
 # Setup the build log file.
 #-
-if [ -n "$logfilename" ]; then
-  logfile=$logdir/$logfilename
-else
-  logfile=$logdir/buildroot-`date +%y%m%d%H%M%S`.log
+if [ -z "$logfilename" ]; then
+  logfilename=buildroot-`date +%y%m%d%H%M%S`.log
 fi
+logfile=$logdir/$logfilename
+
 message "Logging the build output to: $logfile"
 
 #+
@@ -790,17 +790,17 @@ fi
 
 imagedir=$variantbuilddir/images
 if [ -f $imagedir/rootfs.cpio.gz ]; then
-  ln -sf $imagedir/rootfs.cpio.gz $imagedir/initrd.buildroot
+  ln -sf rootfs.cpio.gz $imagedir/initrd.mistify
 else
   message "The initrd doesn't exist."
 fi
 if [ -f $imagedir/bzImage ]; then
-  ln -sf $imagedir/bzImage $imagedir/bzImage.buildroot
+  ln -sf bzImage $imagedir/bzImage.mistify
 else
   message "The kernel image doesn't exist."
 fi
 
-ln -sf $logfile $logdir/buildroot.Log
+ln -sf $logfilename $logdir/buildroot.Log
 
 message "Images are in $imagedir and can be uploaded to the server."
 message "bzImage.buildroot: The kernel image."
