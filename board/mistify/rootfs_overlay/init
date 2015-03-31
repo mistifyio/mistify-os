@@ -24,6 +24,10 @@ exec 2>/dev/console
 
 /etc/pre-init.d/mount-aufs.sh
 
+if [ -f /tmp/.ifstate ]; then
+    /etc/pre-init.d/net-init.sh stop
+fi
+
 if [ -f /etc/timezone ]; then
   TZ=`cat /etc/timezone`
   export TZ
