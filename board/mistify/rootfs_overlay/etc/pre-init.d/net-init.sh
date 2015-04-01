@@ -108,26 +108,27 @@ function get_mistify_config() {
 ## Network initialization main. Under 'start' we either manually configure a IP address
 ## on the first interface if we are given one in the kernel boot arguments.
 ## Otherwise we probe each interface for a DHCP response until we fine one that does.
-case "$1" in
-    'start')
-        # Initialize our own interface state file
-        cp /dev/null $MISTIFY_IFSTATE
+if [[ ${BASH_SOURCE[0]} == $0 ]]; then
+    # being executed, not sourced
+    case "$1" in
+        'start')
+            # Initialize our own interface state file
+            cp /dev/null $MISTIFY_IFSTATE
 
-        parse_boot_args
+            parse_boot_args
 
-        if [ -n "$MISTIFY_KOPT_IP" ]; then
-            configure_net_manual
-        else
-            configure_net_dhcp
-            get_mistify_config
-        fi
-        ;;
-
-    'stop')
-        unconfigure_net_iface
-        ;;
-
-    *)
-        echo "Usage: $0 {start|stop}"
-        ;;
-esac
+            if [ -n "$MISTIFY_KOPT_IP" ]; then
+                configure_net_manual
+            else
+                configure_net_dhcp
+                get_mistify_config
+            fi
+            ;;
+        'stop')
+            unconfigure_net_iface
+            ;;
+        *)
+            echo "Usage: $0 {start|stop}"
+            ;;
+    esac
+fi
