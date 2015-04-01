@@ -1,0 +1,13 @@
+[Unit]
+Description=Announce dns
+BindsTo=queensland.service
+After=queensland.service
+BindsTo=named.service
+After=named.service
+Wants=etcd.service
+
+[Service]
+ExecStart=/usr/sbin/queensland announce dns --name={{machine_id}} --port=53
+User=nobody
+RestartSec=30s
+Restart=always

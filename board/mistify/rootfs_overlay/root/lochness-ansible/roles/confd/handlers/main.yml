@@ -1,0 +1,4 @@
+---
+
+- name: confd-restart
+  action: service name=confd state=restarted

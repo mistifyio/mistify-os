@@ -1,0 +1,5 @@
+---
+lochness_domain: lochness.local
+lochness_nameservers: "8.8.8.8, 8.8.4.4"
+lochness_etcd_prefix: "/lochness"
+

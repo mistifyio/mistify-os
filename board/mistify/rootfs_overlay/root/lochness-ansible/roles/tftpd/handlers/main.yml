@@ -1,0 +1,10 @@
+---
+
+- name: tftpd.socket-restart
+  action: service name=tftpd.socket state=restarted
+
+- name: tftpd.service-restart
+  action: service name=tftpd.service state=restarted
+
+- name: tftpd-announce-restart
+  action: service name=tftpd-announce.service state=restarted

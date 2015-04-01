@@ -1,0 +1,26 @@
+---
+
+- template: src=queensland.service.j2 dest=/etc/systemd/system/queensland.service owner=root mode=0644
+  notify: systemd-reload
+  notify: queensland-restart
+
+- service: name=queensland.service state=started enabled=yes
+
+- file: path={{ dns_named_dir }} state=directory owner={{ dns_user }}
+
+- file: path=/etc/named owner=root mode=0755 state=directory
+
+- template: src=named.service.j2 dest=/etc/systemd/system/named.service owner=root mode=0644
+  notify: systemd-reload
+  notify: named-restart
+
+- template: src=named.conf.j2 dest=/etc/named/named.conf owner=root mode=0644
+  notify: named-restart
+
+- service: name=named.service state=started enabled=yes
+
+- template: src=dns-announce.service.j2 dest=/etc/systemd/system/dns-announce.service owner=root mode=0644
+  notify: systemd-reload
+  notify: dns-announce-restart
+
+- service: name=dns-announce.service state=started enabled=yes

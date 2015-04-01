@@ -1,0 +1,14 @@
+[Unit]
+Description=IPv4 DHCP server
+Wants=network.target
+After=network.target
+
+[Service]
+ExecStart=/usr/sbin/dhcpd -4 -d -q -f -cf /etc/dhcpd/dhcpd.conf
+StandardOutput=inherit
+StandardError=journal
+RestartSec=5s
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

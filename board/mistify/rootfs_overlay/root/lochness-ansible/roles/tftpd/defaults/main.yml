@@ -1,0 +1,4 @@
+---
+tftpd_dir: /var/lib/tftpd
+tftpd_enable: false
+

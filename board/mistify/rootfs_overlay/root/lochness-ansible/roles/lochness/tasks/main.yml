@@ -1,0 +1,13 @@
+---
+
+# hacks for developing on a centos box
+- include: centos.yml
+  when: ansible_os_family == "RedHat"
+
+- template: src=node-announce.service.j2 dest=/etc/systemd/system/node-announce.service owner=root mode=0644
+  notify: systemd-reload
+  notify: node-announce-restart
+
+- service: name=node-announce.service state=started enabled=yes
+
+- template: src=hosts.j2 dest=/etc/hosts owner=root mode=0644

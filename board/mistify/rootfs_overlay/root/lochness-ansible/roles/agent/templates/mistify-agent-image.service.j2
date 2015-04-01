@@ -1,0 +1,13 @@
+[Unit]
+Description=Mistify Image Sub-agent
+After=network.target zfs.target
+
+[Service]
+Type=simple
+ExecStart=/opt/mistify/sbin/mistify-agent-image
+LimitNOFILE=32768
+RestartSec=60s
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

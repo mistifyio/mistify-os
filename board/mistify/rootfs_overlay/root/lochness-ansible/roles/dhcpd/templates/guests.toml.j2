@@ -1,0 +1,12 @@
+[template]
+src = "guests.conf.tmpl"
+dest = "/etc/dhcpd/guests.conf"
+uid = 0
+mode = "0644"
+prefix = "{{ lochness_etcd_prefix }}"
+keys = [
+  "/subnets/",
+  "/guests/",
+]
+reload_cmd = "systemctl restart dhcpd"
+check_cmd = "dhcpd -t"

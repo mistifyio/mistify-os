@@ -1,0 +1,117 @@
+#!/usr/bin/python2
+
+from __future__ import print_function
+
+import argparse
+import httplib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import urlparse
+
+
+def warn(msg, **kwargs):
+    kvs = []
+    for k, v in kwargs.iteritems():
+        kvs.append('%s=%s' % (k, v))
+
+    print("WARN", msg, " ".join(kvs))
+
+
+def getID():
+    for name in ('/etc/machine_id', '/etc/machine-id', '/sys/class/dmi/id/product_uuid'):
+        if os.path.exists(name):
+            with open(name) as f:
+                id = f.readline().strip()
+
+            if id is not '':
+                return id
+
+    return ''
+
+
+def boolize(s):
+    return s.lower() in ('1', 'true', 'yes', 'enabled', 'enable', 'doit')
+
+
+def etcdget(url):
+    url = '/'.join(['/v2/keys/lochness', url])
+    conn.request('GET', url)
+    response = conn.getresponse()
+    status = response.status
+    resp = json.load(response)
+    return status, resp
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-i', '--id', default=getID())
+parser.add_argument('-t', '--tag', action="append")
+parser.add_argument('-e', '--etcd',
+        default=os.getenv('ETCD_ADDRESS', 'http://localhost:4001'),
+        help='address of etcd node, default:http://localhost:4001')
+parsedArgs = parser.parse_args()
+
+id = parsedArgs.id
+tags = parsedArgs.tag
+if id is '':
+    print('need an ID!!!')
+    exit(-5)
+
+config = {'machine_id': id}
+
+eaddr = urlparse.urlparse(parsedArgs.etcd).netloc
+conn = httplib.HTTPConnection(eaddr)
+adir = tempfile.mkdtemp()
+os.mkdir(adir + '/host_vars')
+
+
+with open(adir + '/hosts', 'w') as f:
+    f.write('%s ansible_connection=local\n' % id)
+
+
+status, resp = etcdget('config?recursive=true')
+if status != 200:
+    warn('failed to get config', error=resp['message'])
+else:
+    nodes = resp['node']['nodes']
+    for node in nodes:
+        key = 'lochness_%s' % node['key'].split('/')[-1]
+        config[key] = '"%s"' % node['value']
+
+
+services = ('dhcpd', 'dhcrelay', 'dns', 'enfield', 'etcd', 'tftpd')
+for service in services:
+    status, resp = etcdget('hypervisors/%s/config/%s' % (id, service))
+
+    enable = 'false'
+    if status != 200:
+        warn('failed to get service config', service=service, error=resp['message'])
+    else:
+        enabled = boolize(resp['node']['value'])
+        if enabled is True:
+            enable = 'true'
+
+    config[service+'_enable'] = enable
+
+
+with open(adir + '/host_vars/' + id, 'w+') as f:
+    f.write('---\n')
+    for k, v in config.iteritems():
+        f.write('%s: %s\n' % (k, v))
+
+
+args = ['ansible-playbook',
+        '--inventory', adir + '/hosts',
+        '--connection=local',
+        './lochness.yml']
+if tags:
+    args.extend(['--tags', ','.join(tags)])
+ret = subprocess.call(args)
+if ret == 0:
+    shutil.rmtree(adir)
+else:
+    warn("ansible-playbook returned an error", exit_status=ret)
+
+exit(ret)

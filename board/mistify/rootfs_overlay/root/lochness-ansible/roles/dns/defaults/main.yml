@@ -1,0 +1,3 @@
+---
+dns_user: nobody
+dns_named_dir: /var/named

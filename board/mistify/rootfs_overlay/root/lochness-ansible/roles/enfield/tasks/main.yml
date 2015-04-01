@@ -1,0 +1,4 @@
+---
+- include: enable.yml
+  when: enfield_enable
+

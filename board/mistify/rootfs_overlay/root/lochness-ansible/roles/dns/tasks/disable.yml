@@ -1,0 +1,30 @@
+---
+
+# this is a hack as the service calls errors
+
+- stat: path=/etc/systemd/system/queensland.service
+  register: queensland_service_stat
+
+- service: name=queensland state=stopped enabled=no
+  when: queensland_service_stat.stat.exists
+
+- file: path=/etc/systemd/system/queensland.service state=absent
+  notify: systemd-reload
+
+- stat: path=/etc/systemd/system/named.service
+  register: named_service_stat
+
+- service: name=named state=stopped enabled=no
+  when: named_service_stat.stat.exists
+
+- file: path=/etc/systemd/system/named.service state=absent
+  notify: systemd-reload
+
+- stat: path=/etc/systemd/system/dns-announce.service
+  register: dns_announce_service_stat
+
+- service: name=dns-announce state=stopped enabled=no
+  when: dns_announce_service_stat.stat.exists
+
+- file: path=/etc/systemd/system/dns-announce.service state=absent
+  notify: systemd-reload

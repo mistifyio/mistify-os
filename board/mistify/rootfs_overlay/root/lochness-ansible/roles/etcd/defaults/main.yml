@@ -1,0 +1,3 @@
+---
+etcd_data_dir: /mistify/data/etcd
+etcd_user: etcd

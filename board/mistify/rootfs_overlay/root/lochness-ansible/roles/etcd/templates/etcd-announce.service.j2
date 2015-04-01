@@ -1,0 +1,9 @@
+[Unit]
+Description=Announce etcd
+BindsTo=etcd.service
+
+[Service]
+ExecStart=/usr/sbin/queensland announce etcd-server --name={{machine_id}} --port=2380
+User=nobody
+RestartSec=30s
+Restart=always

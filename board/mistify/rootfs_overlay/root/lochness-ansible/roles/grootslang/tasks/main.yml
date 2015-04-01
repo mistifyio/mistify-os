@@ -1,0 +1,8 @@
+---
+
+- copy: src=grootslang.service dest=/etc/systemd/system/grootslang.service owner=root mode=0644
+  notify:
+    - systemd-reload
+    - grootslang-restart
+
+- service: name=grootslang state=started enabled=yes

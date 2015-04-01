@@ -1,0 +1,4 @@
+---
+
+- name: waheela-restart
+  action: service name=waheela.service state=restarted

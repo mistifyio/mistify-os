@@ -1,0 +1,11 @@
+[template]
+src = "hypervisors.conf.tmpl"
+dest = "/etc/dhcpd/hypervisors.conf"
+uid = 0
+mode = "0644"
+prefix = "{{ lochness_etcd_prefix }}"
+keys = [
+  "/hypervisors/",
+]
+reload_cmd = "systemctl restart dhcpd"
+check_cmd = "dhcpd -t"

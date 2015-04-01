@@ -1,0 +1,12 @@
+[Unit]
+Description=Berkeley Internet Name Domain (DNS)
+After=network.target
+
+[Service]
+ExecStart=/usr/sbin/named -u {{ dns_user }} -c /etc/named/named.conf -g
+StandardOutput=journal
+StandardError=journal
+StandardInput=null
+
+[Install]
+WantedBy=multi-user.target

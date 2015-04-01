@@ -1,0 +1,3 @@
+---
+# defaults file for kappa
+kappa_config_file: /etc/kappa/config.json

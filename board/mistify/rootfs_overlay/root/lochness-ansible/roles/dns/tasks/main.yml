@@ -1,0 +1,6 @@
+---
+- include: enable.yml
+  when: dns_enable
+
+- include: disable.yml
+  when: not dns_enable

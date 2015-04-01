@@ -1,0 +1,13 @@
+[Unit]
+Description=Mistify Docker Sub-agent
+After=network.target docker.service
+
+[Service]
+Type=simple
+ExecStart=/opt/mistify/sbin/mistify-agent-docker
+LimitNOFILE=32768
+RestartSec=60s
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

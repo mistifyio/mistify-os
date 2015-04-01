@@ -1,0 +1,7 @@
+---
+
+- name: dhcpd-restart
+  action: service name=dhcpd state=restarted
+
+- name: dhcpd-announce-restart
+  action: service name=dhcpd-announce state=restarted

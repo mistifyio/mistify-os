@@ -1,0 +1,10 @@
+---
+
+- file: path=/etc/confd/{{ item }} state=directory recurse=yes owner=root mode=0755
+  with_items:
+    - conf.d
+    - templates
+
+- copy: dest=/etc/systemd/system/confd.service src=confd.service owner=root mode=0644
+  notify: systemd-reload
+  notify: confd-restart

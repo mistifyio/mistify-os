@@ -1,0 +1,8 @@
+[Unit]
+Description=TFTP Daemon
+
+[Service]
+ExecStart=/usr/sbin/in.tftpd -s {{ tftpd_dir }}
+StandardInput=socket
+StandardOutput=inherit
+StandardError=journal

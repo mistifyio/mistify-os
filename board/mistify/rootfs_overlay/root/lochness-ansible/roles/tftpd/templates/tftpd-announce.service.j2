@@ -1,0 +1,11 @@
+[Unit]
+Description=Announce tftpd
+BindsTo=tftpd.service
+After=tftpd.service
+Wants=etcd.service
+
+[Service]
+ExecStart=/usr/sbin/queensland announce tftpd --name={{machine_id}} --port=69
+User=nobody
+RestartSec=10s
+Restart=always

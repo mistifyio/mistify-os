@@ -1,0 +1,16 @@
+[Unit]
+Description=Mistify Hypervisor Heartbeat
+Wants=mistify-agent.service
+After=network.target mistify-agent.service
+
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/heartbeat -d {{machine_id}}
+StandardOutput=journal
+StandardError=journal
+RestartSec=60s
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

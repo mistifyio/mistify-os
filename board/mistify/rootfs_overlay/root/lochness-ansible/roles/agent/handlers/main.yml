@@ -1,0 +1,16 @@
+---
+
+- name: mistify-agent-image-restart
+  action: service name=mistify-agent-image.service state=restarted
+
+- name: mistify-agent-libvirt-restart
+  action: service name=mistify-agent-libvirt.service state=restarted
+
+- name: mistify-agent-docker-restart
+  action: service name=mistify-agent-docker.service state=restarted
+
+- name: mistify-agent-restart
+  action: service name=mistify-agent.service state=restarted
+
+- name: heartbeat-restart
+  action: service name=heartbeat.service state=restarted

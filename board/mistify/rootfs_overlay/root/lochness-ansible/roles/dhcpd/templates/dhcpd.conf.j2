@@ -1,0 +1,14 @@
+# Generated. Manual edits will be overwritten
+# Ansible template -> confd template -> dhcpd.conf
+
+authoritative;
+default-lease-time          {{ dhcpd_lease_time }};
+max-lease-time              {{ dhcpd_lease_time }};
+option domain-name          "{{ lochness_domain }}";
+option domain-name-servers  {{ dhcpd_nameservers.nodes.values()|map(attribute='ip')|sort|join(',') }};
+deny unknown-clients;
+
+subnet 0.0.0.0 netmask 0.0.0.0 {}
+
+include "/etc/dhcpd/hypervisors.conf";
+include "/etc/dhcpd/guests.conf";

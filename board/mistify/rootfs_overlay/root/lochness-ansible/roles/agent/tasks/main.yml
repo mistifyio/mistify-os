@@ -1,0 +1,34 @@
+---
+
+- file: path=/etc/mistify state=directory owner=root mode=0755
+
+- template: src=mistify-agent-image.service.j2 dest=/etc/systemd/system/mistify-agent-image.service owner=root mode=0644
+  notify: systemd-reload
+  notify: mistify-agent-image-restart
+
+- service: name=mistify-agent-image state=started enabled=yes
+
+- template: src=mistify-agent-libvirt.service.j2 dest=/etc/systemd/system/mistify-agent-libvirt.service owner=root mode=0644
+  notify: systemd-reload
+  notify: mistify-agent-libvirt-restart
+
+- service: name=mistify-agent-libvirt state=started enabled=yes
+
+- template: src=mistify-agent-docker.service.j2 dest=/etc/systemd/system/mistify-agent-docker.service owner=root mode=0744
+  notify: systemd-reload
+  notify: mistify-agent-docker-restart
+
+- service: name=mistify-agent-docker state=started enabled=yes
+- service: name=docker state=started enabled=yes
+
+- template: src=mistify-agent.service.j2 dest=/etc/systemd/system/mistify-agent.service owner=root mode=0644
+  notify: systemd-reload
+  notify: mistify-agent-restart
+
+- service: name=mistify-agent state=started enabled=yes
+
+- template: src=heartbeat.service.j2 dest=/etc/systemd/system/heartbeat.service owner=root mode=0744
+  notify: systemd-reload
+  notify: heartbeat-restart
+
+- service: name=heartbeat state=started enabled=yes

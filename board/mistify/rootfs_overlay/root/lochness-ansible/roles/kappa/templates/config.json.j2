@@ -1,0 +1,8 @@
+{
+    "{{ lochness_etcd_prefix}}/config": [],
+    "{{ lochness_etcd_prefix}}/hypervisors/{{machine_id}}/config/enfield": ["enfield"],
+    "{{ lochness_etcd_prefix}}/hypervisors/{{machine_id}}/config/dhcpd": ["dhcpd","dhcrelay"],
+    "{{ lochness_etcd_prefix}}/hypervisors/{{machine_id}}/config/dns": ["dns","dhcpd"],
+    "{{ lochness_etcd_prefix}}/hypervisors/{{machine_id}}/config/dhcrelay": ["dhcrelay"],
+    "{{ lochness_etcd_prefix}}/hypervisors/{{machine_id}}/config/tftpd": ["tftpd"]
+}

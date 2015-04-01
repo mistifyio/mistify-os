@@ -1,0 +1,92 @@
+#!/usr/bin/python2
+# based on etcd lookup plugin by
+# (c) 2013, Jan-Piet Mens <jpmens(at)gmail.com>
+#
+# Ansible is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+from ansible import utils
+import os
+import urllib2
+import time
+try:
+    import json
+except ImportError:
+    import simplejson as json
+
+
+ANSIBLE_ETCD_URL = 'http://127.0.0.1:4001'
+if os.getenv('ANSIBLE_ETCD_URL') is not None:
+    ANSIBLE_ETCD_URL = os.environ['ANSIBLE_ETCD_URL'].strip('/')
+
+# TODO(mm) may no longer be necessary
+def get(url):
+    t = .100
+    for i in range(5):
+        try:
+            r = urllib2.urlopen(url)
+            if r.getcode() == 200:
+                return r
+
+        except urllib2.URLError as e:
+            pass
+
+        time.sleep(t)
+        t *= 2
+
+    return None
+
+def main():
+    arg_spec = dict(
+        service=dict(required=True),
+        prefix=dict(required=False,default='/queensland')
+    )
+
+    module = AnsibleModule(argument_spec=arg_spec, supports_check_mode=False)
+
+    service = module.params['service'].strip('/')
+    prefix = module.params['prefix'].strip('/')
+    options = '?recursive=true'
+
+    url = '/'.join((ANSIBLE_ETCD_URL, 'v2', 'keys', prefix, 'services', service)) + options
+
+    nodes=dict()
+
+    r = get(url)
+    if r is None:
+        raise ValueError('could not reach dns service')
+
+    data = r.read()
+    x = json.loads(data)
+
+    dot = re.compile('\.')
+
+    for node in x['node'].get('nodes', []):
+        val = json.loads(node['value'])
+
+        name = val['target']
+        if not name:
+            continue
+
+        if dot.search(name):
+            continue
+
+        url = '/'.join((ANSIBLE_ETCD_URL, 'v2', 'keys', prefix, 'nodes', name))
+        r = get(url)
+        if r is None:
+            continue
+
+        data = r.read()
+        y = json.loads(data)
+        val = json.loads(y['node']['value'])
+        if val['ip']:
+            nodes[name] = val
+
+    module.exit_json(changed=False, nodes=nodes)
+
+# import module snippets
+from ansible.module_utils.basic import *
+
+main()

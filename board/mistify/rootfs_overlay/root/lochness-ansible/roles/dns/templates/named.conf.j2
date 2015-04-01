@@ -1,0 +1,25 @@
+options {
+	directory "{{ dns_named_dir }}";
+    recursion yes;
+    forwarders {
+    {% for item in lochness_nameservers.split(",") %}
+        {{ item|trim }};
+    {% endfor %}
+    };
+    forward only;
+};
+
+zone "services.{{ lochness_domain }}." {
+    type forward;
+    forwarders {
+        127.0.0.1 port 15353;
+    };
+};
+
+zone "nodes.{{ lochness_domain }}." {
+    type forward;
+    forwarders {
+        127.0.0.1 port 15353;
+    };
+};
+

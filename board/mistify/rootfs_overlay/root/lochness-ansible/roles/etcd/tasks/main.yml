@@ -1,0 +1,22 @@
+---
+
+- file: path={{ etcd_data_dir }} state=directory mode=0755
+- file: path={{ etcd_data_dir }} state=directory owner={{ etcd_user }} group=daemon recurse=yes
+
+- file: path=/etc/etcd state=directory owner=root mode=0755
+
+- template: src=etcd.service.j2 dest=/etc/systemd/system/etcd.service
+  notify:
+    - systemd-reload
+    - etcd-restart
+
+- service: name=etcd state=started enabled=yes
+
+- template: src=etcd-announce.service.j2 dest=/etc/systemd/system/etcd-announce.service owner=root mode=0644
+  when: etcd_enable
+  notify:
+    - systemd-reload
+    - etcd-announce-restart
+
+- service: name=etcd-announce state=started enabled=yes
+  when: etcd_enable

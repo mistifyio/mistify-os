@@ -1,0 +1,15 @@
+[Unit]
+Description=Queensland DNS Server
+Wants=network.target
+After=network.target
+Requires=etcd.service
+
+[Service]
+ExecStart=/usr/sbin/queensland server --domain={{lochness_domain}}.
+StandardOutput=inherit
+StandardError=journal
+RestartSec=5s
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

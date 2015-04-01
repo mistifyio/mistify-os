@@ -1,0 +1,18 @@
+---
+- hosts: all
+
+  vars:
+
+  roles:
+    - {role: lochness, tags: lochness}
+    - {role: etcd, tags: etcd}
+    - {role: dns, tags: dns}
+    - {role: agent, tags: agent}
+    - {role: tftpd, tags: tftpd}
+    - {role: dhcpd, tags: dhcpd}
+    - {role: dhcrelay, tags: dhcrelay}
+    - {role: confd, tags: confd}
+    - {role: enfield, tags: enfield}
+    - {role: kappa, tags: kappa}
+    - {role: grootslang, tags: grootslang}
+    - {role: waheela, tags: waheela}

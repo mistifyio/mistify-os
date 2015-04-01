@@ -1,0 +1,20 @@
+# Confd Generated
+{{ '{{' }} $domain := "{{ lochness_domain }}" }}
+{% raw %}
+group guests {
+    option domain-name  "guests.{{ $domain }}";
+{{ range gets "/guests/*/metadata" }}
+    {{ $guest := json .Value }}
+    {{ if and $guest.hypervisor_id $guest.subnet_id }}
+        {{ $subnet := printf "/subnets/%s/metadata" $guest.subnet | getv | json }}
+        {{ $mask := index (split $subnet.cidr "/") 0 }}
+    host {{ $guest.id }} {
+        hardware ethernet   {{ $guest.mac }};
+        fixed-address       {{ $guest.ip }};
+        option routers      {{ $subnet.gateway }};
+        option subnet-mask  {{ $mask }};
+    }
+    {{ end }}
+{{ end }}
+}
+{% endraw %}

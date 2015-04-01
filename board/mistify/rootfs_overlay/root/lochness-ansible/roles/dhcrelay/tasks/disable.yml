@@ -1,0 +1,27 @@
+---
+
+- stat: path=/etc/systemd/system/dhcrelay.service
+  register: dhcrelay_service_stat
+
+- service: name=dhcrelay state=stopped enabled=no
+  when: dhcrelay_service_stat.stat.exists
+
+- file: path=/etc/systemd/system/dhcrelay.service state=absent
+  notify: systemd-reload
+
+- stat: path=/etc/systemd/system/dhcrelay-announce.service
+  register: dhcrelay_announce_service_stat
+
+- service: name=dhcrelay-announce state=stopped enabled=no
+  when: dhcrelay_announce_service_stat.stat.exists
+
+- file: path=/etc/systemd/system/dhcrelay-announce.service state=absent
+  notify: systemd-reload
+
+- file: path=/etc/confd/templates/isc-dhcp-relay.tmpl state=absent
+  notify: confd-restart
+
+- file: path=/etc/confd/conf.d/isc-dhcp-relay.toml state=absent
+  notify: confd-restart
+
+- file: path=/etc/sysconfig/isc-dhcp-relay state=absent

@@ -1,0 +1,15 @@
+[Unit]
+Description=IPv4 DHCP relay
+Wants=network.target
+After=network.target
+
+[Service]
+EnvironmentFile=/etc/sysconfig/isc-dhcp-relay
+ExecStart=/usr/sbin/dhcrelay $OPTIONS $INTERFACES $SERVERS
+StandardOutput=inherit
+StandardError=journal
+RestartSec=5s
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

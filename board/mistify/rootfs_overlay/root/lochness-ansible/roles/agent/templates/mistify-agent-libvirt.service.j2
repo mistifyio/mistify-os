@@ -1,0 +1,13 @@
+[Unit]
+Description=Mistify Libvirt Sub-agent
+After=network.target libvirtd.service
+
+[Service]
+Type=simple
+ExecStart=/opt/mistify/sbin/mistify-agent-libvirt
+LimitNOFILE=32768
+RestartSec=60s
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

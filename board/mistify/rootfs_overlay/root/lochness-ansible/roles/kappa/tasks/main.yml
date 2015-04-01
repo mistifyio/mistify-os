@@ -1,0 +1,10 @@
+---
+
+- file: path=/etc/kappa state=directory owner=root mode=0755
+
+- template: src=config.json.j2 dest=/etc/kappa/config.json owner=root mode=0644
+
+- copy: src=kappa.service dest=/etc/systemd/system/kappa.service owner=root mode=0644
+  notify: systemd-reload
+
+- service: name=kappa state=started enabled=yes

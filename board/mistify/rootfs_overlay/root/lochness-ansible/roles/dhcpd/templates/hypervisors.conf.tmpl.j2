@@ -1,0 +1,24 @@
+# Confd Generated
+{{ '{{' }} $domain := "{{ lochness_domain }}" }}
+{% raw %}
+group hypervisors {
+    option domain-name "nodes.{{ $domain }}";
+    if exists user-class and option user-class = "iPXE" {
+        filename "http://ipxe.services.{{ $domain }}:8888/ipxe/${net0/ip}";
+    } else {
+        next-server tftp.services.{{ $domain }};
+        filename "undionly.kpxe";
+    }
+{{ range gets "/hypervisors/*/metadata" }}
+    {{ $hv := json .Value }}
+    {{ if and $hv.gateway $hv.netmask }}
+    host {{ $hv.id }} {
+        hardware ethernet   {{ $hv.mac }};
+        fixed-address       {{ $hv.ip }};
+        option routers      {{ $hv.gateway }};
+        option subnet-mask  {{ $hv.netmask }};
+    }
+    {{ end }}
+{{ end }}
+}
+{% endraw %}

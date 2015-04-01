@@ -1,0 +1,14 @@
+[Unit]
+Description=confd
+Wants=network.target etcd.service
+After=network.target etcd.service
+
+[Service]
+ExecStart=/usr/sbin/confd
+StandardOutput=inherit
+StandardError=journal
+RestartSec=30s
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,33 @@
+---
+
+# this is a hack as the service calls errors
+
+- stat: path=/etc/systemd/system/dhcpd.service
+  register: dhcpd_service_stat
+
+- service: name=dhcpd state=stopped enabled=no
+  when: dhcpd_service_stat.stat.exists
+
+- file: path=/etc/systemd/system/dhcpd.service state=absent
+  notify: systemd-reload
+
+- stat: path=/etc/systemd/system/dhcpd-announce.service
+  register: dhcpd_announce_service_stat
+
+- service: name=dhcpd-announce state=stopped enabled=no
+  when: dhcpd_announce_service_stat.stat.exists
+
+- file: path=/etc/systemd/system/dhcpd-announce.service state=absent
+  notify: systemd-reload
+
+- file: path=/etc/confd/templates/hypervisors.conf.tmpl state=absent
+  notify: confd-restart
+
+- file: path=/etc/confd/conf.d/hypervisors.toml state=absent
+  notify: confd-restart
+
+- file: path=/etc/confd/templates/guests.conf.tmpl state=absent
+  notify: confd-restart
+
+- file: path=/etc/confd/conf.d/guests.toml state=absent
+  notify: confd-restart

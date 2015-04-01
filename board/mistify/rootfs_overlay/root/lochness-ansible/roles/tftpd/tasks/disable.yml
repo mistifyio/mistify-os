@@ -1,0 +1,31 @@
+---
+
+# TODO: helper module to remove and disable as ansible throws
+# an error if service does not exist
+
+- stat: path=/etc/systemd/system/tftpd.socket
+  register: tftpd_socket_stat
+
+- service: name=tftpd.socket state=stopped enabled=no
+  when: tftpd_socket_stat.stat.exists
+
+- stat: path=/etc/systemd/system/tftpd.service
+  register: tftpd_service_stat
+
+- service: name=tftpd.service state=stopped enabled=no
+  when: tftpd_service_stat.stat.exists
+
+- file: path=/etc/systemd/system/tftpd.socket state=absent
+  notify: systemd-reload
+
+- file: path=/etc/systemd/system/tftpd.service state=absent
+  notify: systemd-reload
+
+- stat: path=/etc/systemd/system/tftpd-announce.service
+  register: tftpd_announce_service_stat
+
+- service: name=tftpd-announce state=stopped enabled=no
+  when: tftpd_announce_service_stat.stat.exists
+
+- file: path=/etc/systemd/system/tftpd-announce.service state=absent
+  notify: systemd-reload

@@ -1,0 +1,4 @@
+---
+
+- name: grootslang-restart
+  action: service name=grootslang.service state=restarted

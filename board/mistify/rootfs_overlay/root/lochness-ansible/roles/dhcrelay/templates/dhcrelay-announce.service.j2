@@ -1,0 +1,11 @@
+[Unit]
+Description=Announce dhcrelay
+BindsTo=dhcrelay.service
+After=dhcrelay.service
+Wants=etcd.service
+
+[Service]
+ExecStart=/usr/sbin/queensland announce dhcrelay --name={{machine_id}} --port=67
+User=nobody
+RestartSec=10s
+Restart=always

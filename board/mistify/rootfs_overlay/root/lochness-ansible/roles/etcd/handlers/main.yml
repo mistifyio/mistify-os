@@ -1,0 +1,7 @@
+---
+
+- name: etcd-restart
+  action: service name=etcd state=restarted
+
+- name: etcd-announce-restart
+  action: service name=etcd-announce state=restarted

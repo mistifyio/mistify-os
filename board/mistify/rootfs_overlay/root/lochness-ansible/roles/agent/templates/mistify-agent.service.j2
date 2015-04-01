@@ -1,0 +1,14 @@
+[Unit]
+Description=Mistify Core Agent
+Wants=mistify-agent-libvirt.service mistify-agent-image.service mistify-agent-docker.service
+After=network.target mistify-agent-libvirt.service mistify-agent-image.service mistify-agent-docker.service
+
+[Service]
+Type=simple
+ExecStart=/opt/mistify/sbin/mistify-agent -c /etc/mistify/agent.json
+LimitNOFILE=32768
+RestartSec=60s
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

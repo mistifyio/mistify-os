@@ -1,0 +1,4 @@
+---
+
+- name: node-announce-restart
+  action: service name=node-announce state=restarted

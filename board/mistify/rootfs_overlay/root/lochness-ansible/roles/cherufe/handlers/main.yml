@@ -1,0 +1,4 @@
+---
+
+- name: cherufe-restart
+  action: service name=cherufe.service state=restarted
