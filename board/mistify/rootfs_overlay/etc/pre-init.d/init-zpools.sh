@@ -8,6 +8,12 @@ zpool list $ZPOOL > /dev/null 2>&1
 
 if [ $? -ne 0 ]; then
     echo "Mistify zpool is not present"
+
+    if [ -f /tmp/mistify-config ]; then
+        . /tmp/mistify-config
+        TYPE=$ZFS_POOL
+    fi
+
     DISKLIST=`lsblk --ascii --noheadings --output type,name,size,model --nodeps | grep ^disk`
     DISKDEVS=`echo "$DISKLIST" | awk '{print "/dev/"$2}'`
 

@@ -24,7 +24,13 @@ d=${host_id:0:2}
 echo -ne \\x$a\\x$b\\x$c\\x$d > /etc/hostid &&
   echo "Setting hostid to $host_id"
 
-echo $machine_id > /etc/machine_id &&
-  echo "Setting machine_id to $machine_id"
+echo $machine_id > /etc/machine-id &&
+  echo "Setting machine-id to $machine_id"
+
+echo $uuid > /etc/machine_id &&
+  echo "Setting machine_id to $uuid"
+
+echo $uuid > /etc/hostname &&
+  echo "Setting hostname to $uuid"
 
 exit 0
