@@ -93,7 +93,7 @@ Usage: ./buildmistify [options] [target]
         supercedes the --buildroottag option. The branch name is saved in the
         file $statedir/buildrootbranch.
         [buildrootbranch=`cat $statedir/buildrootbranch`]
-    -t:--buildroottag <tag>
+    -t|--buildroottag <tag>
         Checkout Buildroot using a specific tag. To reset to the master branch
         use the --buildrootbranch option. The tag is saved in the file
         $statedir/buildroottag.
