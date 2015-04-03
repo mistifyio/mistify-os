@@ -4,9 +4,9 @@
 # the googlesource repo so that URL is the default for this script. Of course
 # it can be overridden using the --gouri command line option.
 #-
-gouridefault=https://go.googlesource.com/go
+gouridefault=git@github.com:golang/go.git
 godirdefault=$PWD/go
-gotagdefault=go1.4.1
+gotagdefault=go1.4.2
 
 install-go () {
     #+
@@ -60,7 +60,7 @@ install-go () {
 
     GOROOT=$godir/$gotag/go
     verbose "The go binaries are located at: $GOROOT"
-    
+
     if [ -f $godir/.$gotag-built ]; then
 	message "Using go version $gotag."
 	return
@@ -91,7 +91,7 @@ install-go () {
 	export CGO_ENABLED=1
 
 	run ./make.bash
-	
+
 	# Clean up
 	unset CC_FOR_TARGET
 	unset CXX_FOR_TARGET
