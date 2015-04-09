@@ -1,0 +1,173 @@
+{
+    "actions": {
+        "restart": {
+            "stages": [
+                {
+                    "method": "Test.Restart",
+                    "service": "test"
+                }
+            ]
+        },
+        "poweroff":{
+            "stages": [
+                {
+                    "method": "Test.Poweroff",
+                    "service": "test"
+                }
+            ]
+        },
+        "delete":{
+            "stages": [
+                {
+                    "method": "Test.Delete",
+                    "service": "test"
+                }
+            ]
+        },
+        "create": {
+            "stages": [
+                {
+                    "method": "Test.Create",
+                    "service": "test"
+                }
+            ]
+        },
+        "run": {
+            "stages": [
+                {
+                    "method": "Test.Run",
+                    "service": "test"
+                }
+            ]
+        },
+        "reboot": {
+            "stages": [
+                {
+                    "method": "Test.Reboot",
+                    "service": "test"
+                }
+            ]
+        },
+        "shutdown": {
+            "stages": [
+                {
+                    "method": "Test.Shutdown",
+                    "service": "test"
+                }
+            ]
+        },
+        "cpuMetrics": {
+            "stages": [
+                {
+                    "method": "Test.CpuMetrics",
+                    "service": "test"
+                }
+            ]
+        },
+        "nicMetrics": {
+            "stages": [
+                {
+                    "method": "Test.NicMetrics",
+                    "service": "test"
+                }
+            ]
+        },
+        "diskMetrics": {
+            "stages": [
+                {
+                    "method": "Test.DiskMetrics",
+                    "service": "test"
+                }
+            ]
+        },
+        "listImages": {
+            "stages": [
+                {
+                    "method": "Test.ListImages",
+                    "service": "test"
+                }
+            ]
+        },
+        "getImage": {
+            "stages": [
+                {
+                    "method": "Test.GetImage",
+                    "service": "test"
+                }
+            ]
+        },
+        "deleteImage": {
+            "stages": [
+                {
+                    "method": "Test.DeleteImage",
+                    "service": "test"
+                }
+            ]
+        },
+        "fetchImage": {
+            "stages": [
+                {
+                    "method": "Test.RequestImage",
+                    "service": "test"
+                }
+            ]
+        },
+        "listSnapshots": {
+            "stages": [
+                {
+                    "method": "Test.ListSnapshots",
+                    "service": "test"
+                }
+            ]
+        },
+        "getSnapshot": {
+            "stages": [
+                {
+                    "method": "Test.GetSnapshot",
+                    "service": "test"
+                }
+            ]
+        },
+        "createSnapshot": {
+            "stages": [
+                {
+                    "method": "Test.CreateSnapshot",
+                    "service": "test"
+                }
+            ]
+        },
+        "deleteSnapshot": {
+            "stages": [
+                {
+                    "method": "Test.DeleteSnapshot",
+                    "service": "test"
+                }
+            ]
+        },
+        "rollbackSnapshot": {
+            "stages": [
+                {
+                    "method": "Test.DeleteSnapshot",
+                    "service": "test"
+                }
+            ]
+        },
+        "downloadSnapshot": {
+            "stages": [
+                {
+                    "method": "Test.DownloadSnapshot",
+                    "service": "testDownload"
+                }
+            ]
+        }
+    },
+    "services": {
+        "test": {
+            "port": 9999
+        },
+        "testDownload": {
+            "path": "/snapshots/download",
+            "port": 9999
+        }
+    }
+}

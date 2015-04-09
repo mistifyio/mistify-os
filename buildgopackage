@@ -1,0 +1,224 @@
+#!/bin/bash
+#+
+# Use this script to compile a GO component in the context of a Mistify-OS build.
+#-
+
+source scripts/mistify-functions.sh
+
+builddirdefault=$(get_build_default variantbuilddir build/base)
+gopackagenamedefault=$(get_build_default gopackagename sample-subagent)
+gopackagedirdefault=$(get_build_default gopackagedir `pwd`/subagents/$gopackagenamedefault)
+
+usage () {
+    cat << EOF
+Usage: $0 [options]
+  Use this script to build a GO based package in the context of a Mistify-OS
+  build without having to add the package to the Mistify-OS build itself.
+  The package is compiled using the same GO compiler used when Mistify-OS
+  was built. To do so the source is copied to a directory within the Mistify-OS
+  build tree and compiled there. The package must include a makefile which this
+  script uses to actually build. The makefile can then install the binaries
+  into the Mistify-OS root file system pointed to by the variable DESTDIR.
+  Mistify-OS root file system which can then be packaged into an initrd using
+  the buildmistify script.
+
+  NOTE: This script requires a completed build of Mistify-OS using buildmistify
+  and runs buildmistify to build the GO package.
+
+  Options:
+    ==== Mistify-OS Build ====
+    --builddir <dir>
+        The Mistify-OS build in which to compile. This defaults to the most
+        recent build. This option is saved in the file:
+        $statedir/builddir
+        [builddir=$builddirdefault]
+    ==== GO Package ====
+    --gopackagename <name>
+        The name to use when building the package in the buildroot environment.
+        This option is saved in the file:
+        $statedir/gopackagename
+        [gopackagename=$gopackagenamedefault]
+    --gopackagedir <dir>
+        Where the GO package resides. The package source is copied from here into
+        the build tree where other GO packages have been built. This option is
+        saved in the file:
+        $statedir/gopackagedir
+        [gopackagedir=$gopackagedirdefault]
+    ==== other ====
+    --verbose
+        Verbose output from this script.
+    -l|--logfile <file>
+        Use this log file name instead of the generated log file name.
+    --viewlog
+        If the Buildroot make returns an error then view the log file.
+    --dryrun
+        Just showing what will happen with this script. Don't run the test.
+    --resetdefaults
+        Reset all options. They will return to the default values when this
+        script is restarted.
+    -h|--help
+        Display this usage.
+
+    ==== Build Options ====
+        Any options following "--" on the commnand line are passed to the
+        buildmistify script.
+
+  NOTE: This script maintains state in:
+  $statedir.
+  NOTE: Currently this script can only be run against an existing build.
+EOF
+}
+
+#+
+# Handle the command line options.
+#-
+a=`getopt -l "\
+builddir:,\
+gopackagename:,\
+gopackagedir:,\
+logfile:,\
+viewlog,\
+verbose,\
+dryrun,\
+resetdefaults,\
+alwaysok,\
+help" \
+   -o "l:h" -- "$@"`
+
+if [ $? -gt 0 ]; then
+    usage
+    exit 1
+fi
+
+eval set -- $a
+
+while [ $# -ge 1 ]; do
+    case "$1" in
+	--)
+	    shift
+	    options=$*
+	    break
+	    ;;
+	--builddir)
+	    builddir=$2
+	    shift
+	    ;;
+	--gopackagename)
+	    gopackagename=$2
+	    shift
+	    ;;
+	--gopackagedir)
+	    gopackagedir=$2
+	    shift
+	    ;;
+	--logfile)
+	    logfile=$2
+	    shift
+	    ;;
+	--viewlog)
+	    viewlog=y
+	    ;;
+	--verbose)
+	    verbose=y
+	    ;;
+	--dryrun)
+	    dryrun=echo
+	    ;;
+	--resetdefaults)
+	    resetdefaults=y
+	    ;;
+	-h|--help)
+	    usage
+	    exit 0
+	    ;;
+	# using getopt should avoid needing this catchall but just in case...
+	*)
+	    error "Invalid option: $1"
+	    usage
+	    exit 1
+	    ;;
+    esac
+    shift
+done
+
+if [ -n "$resetdefaults" ]; then
+    reset_build_default gopackagename
+    reset_build_default gopackagedir
+fi
+
+if [ -z "$gopackagename" ]; then
+    gopackagename=$gopackagenamedefault
+fi
+
+if [ -z "$gopackagedir" ]; then
+    gopackagedir=$gopackagedirdefault
+fi
+
+if [ -z "$builddir" ]; then
+    if [ -f $testmistifystatedir/builddir ]; then
+	    builddir=`cat $testmistifystatedir/builddir`
+    else
+	if [ -d "$builddirdefault" ]; then
+	    builddir=$builddirdefault
+	fi
+    fi
+fi
+
+if [ -d "$builddir" ]; then
+    message "Building $gopackagename using build in $builddir"
+else
+    die "The build directory $builddir does not exist."
+fi
+
+if [ -n "$logfile" ]; then
+  params+=" --logfile $logfile"
+fi
+
+if [ -n "$options" ]; then
+  params+=" $options"
+fi
+
+# Uncomment this if buildmistify itself should not run. Normally, this is
+# not necessary because of the DRYRUN environment variable which is passed
+# to the gopackage makefile.
+# if [ -n "$dryrun" ]; then
+#  params+=" --dryrun"
+# fi
+
+if [ -n "$verbose" ]; then
+  params+=" --verbose"
+fi
+message "The buildmistify options are: $params"
+
+#+
+# Run the package build makefile.
+#-
+export GOPACKAGENAME=$gopackagename
+verbose GOPACKAGENAME: $GOPACKAGENAME
+export GOPACKAGEDIR=$gopackagedir
+verbose GOPACKAGEDIR: $GOPACKAGEDIR
+export DRYRUN=$dryrun
+verbose DRYRUN: $DRYRUN
+
+#+
+# Force a new copy of the source every time which avoids strange dependency
+# trees.
+#-
+./buildmistify $params gopackage-dirclean
+./buildmistify $params gopackage
+
+if [ $? == 0 ]; then
+  set_build_default gopackagename $gopackagename
+  set_build_default gopackagedir $gopackagedir
+  verbose Defaults saved.
+else
+  warning The buildmistify script returned an error. Options have not been saved.
+fi
+
+if [ -n "$viewlog" ]; then
+  less $logfile
+fi
+
+message GO package build complete.
+
+
