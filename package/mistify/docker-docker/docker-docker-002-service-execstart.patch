@@ -7,7 +7,7 @@ index bc73448..053408a 100644
  
  [Service]
 -ExecStart=/usr/bin/docker -d -H fd://
-+ExecStart=/usr/bin/docker -d -H fd:// -H unix:///var/run/docker.sock -s zfs --storage-opt zfs.fsname=mistify/guests
++ExecStart=/usr/bin/docker -d -H fd:// -s zfs --storage-opt zfs.fsname=mistify/guests
  MountFlags=slave
  LimitNOFILE=1048576
  LimitNPROC=1048576
