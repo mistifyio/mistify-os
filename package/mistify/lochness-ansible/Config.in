@@ -1,0 +1,5 @@
+config BR2_PACKAGE_LOCHNESS_ANSIBLE
+        bool "Ansible scripts for Lochness"
+        help
+          https://github.com/mistifyio/lochness-ansible
+          
