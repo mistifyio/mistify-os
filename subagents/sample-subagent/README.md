@@ -1,26 +1,16 @@
-This is a test service/sub-Agent that simply returns the guest from the request in the response and uses "fake" metrics.
+# ABOUT #
+This is a sample sub-agent based upon the [example test-rpc-service](https://github.com/mistifyio/mistify-agent/tree/master/examples/test-rpc-service) sub-agent in the mistify-agent repository.
 
-We use this for stubbing out functionality.
+More information regarding developing sub-agents is available in the [example simple-subagent](https://github.com/mistifyio/mistify-agent/tree/master/examples/simple-subagent).
+
+**NOTE**: If you want to use this sub-agent as a starting point for developing a new sub-agent it is recommended this be copied to your development directory.
 
 See `agent.json` for a config for the Agent that uses this sub-agent for all actions.
 
-Example [runit](http://smarden.org/runit/) scripts:
+## Testing Inside a VM
 
-Service run script
-```
-#!/bin/sh
-# place in /etc/services/test-rpc-service/run
-exec 2>&1
-ulimit -n 8192
-# this sub-agent does not require any special permissions
-exec chpst -u nobody /usr/local/bin/test-rpc-service -p 9999
-```
+The *testmistify* script can be used to run your sub-agent inside a KVM based virtual machine. In particular the [vmtests](https://github.com/mistifyio/mistify-os/tree/master/test/testsuites/vmtests) testsuite and the [MistifyOSInVm.robot](https://github.com/mistifyio/mistify-os/blob/master/test/testcases/MistifyOSInVm.robot) script be used as a starting point for your tests.
 
-Log run script
-```
-#!/bin/sh
-# place in /etc/services/test-rpc-service/log/run
-exec 2>&1
-mkdir -p /var/log/test-rpc-service
-exec svlogd /var/log/test-rpc-service
-```
+The script *testmistify* is designed to start and execute these tests using Robot Framework.
+
+
