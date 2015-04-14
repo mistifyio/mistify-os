@@ -220,5 +220,7 @@ if [ -n "$viewlog" ]; then
 fi
 
 message GO package build complete.
+tip "To create a new rootfs image (initrd) run buildmistify one more time."
+
 
 
