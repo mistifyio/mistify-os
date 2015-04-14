@@ -7,6 +7,10 @@ More information regarding developing sub-agents is available in the [example si
 
 See `agent.json` for a config for the Agent that uses this sub-agent for all actions.
 
+## Building
+
+The special *gopackage* package is used to build this sample. Use the *buildgopackage* script to compile this sample and install it into the Mistify-OS root file system. Look at the *Makefile* for this sample to see how to install your sub-agent.
+
 ## Testing Inside a VM
 
 The *testmistify* script can be used to run your sub-agent inside a KVM based virtual machine. In particular the [vmtests](https://github.com/mistifyio/mistify-os/tree/master/test/testsuites/vmtests) testsuite and the [MistifyOSInVm.robot](https://github.com/mistifyio/mistify-os/blob/master/test/testcases/MistifyOSInVm.robot) script be used as a starting point for your tests.
