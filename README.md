@@ -41,14 +41,6 @@ A sample sub-agent written in GO is provided which can serve as a starting point
 
 More information about developing Mistify-OS subagents can be found in the [mistify-agent examples](https://github.com/mistifyio/mistify-agent/tree/master/examples/simple-subagent) repository.
 
-## ToDo
-
-### Multi-platform
-At this time only the Dell R620 has been used as a target platform. The build needs to be verified to work for a range of platforms. NOTE: At this time only **x86_64** based architectures are supported.
-
-### Proper user configuration
-At the moment the Buildroot built bootable image only supports the *root* user. A non-superuser account is needed and the *root* console login disabled for security reasons. The user needs to have sudo capability so that *root* tasks can be performed when necessary.
-
 ## The buildmistify script approach
 
 One of the primary reasons for using the *buildmistify* script is that it serves to maintain isolation of the Mistify-OS specific components from the main Buildroot tree. This is important for two reasons. One, it places all of the Mistify-OS related files in a single tree and two, it simplifies development because of not having to navigate the Buildroot tree in order to find Mistify-OS related files.
@@ -90,4 +82,12 @@ The Ethernet port on the test box uses two MAC addresses. The first is used by *
 The *netboot.ipxe* config file tests for the boot IP address of 10.8.30.202 and when true branches to a Buildroot specific section which specifies the files *initrd.buildroot" and *bzImage.buildroot". The *ipxe.exe* now running on the target box (specified in the *dhcpd* config file) reads this config and then downloads the appropriate images from the server. After the download completes the RAM disk is initialized and control is passed to the downloaded kernel. It's all Linux from that point on.
 
 Once Linux has been booted it should be possible to *ssh* to the box using the IP 10.30.8.13. For now only the "root" user is supported. For development purposes the root password is **LetMeIn2**. (e.g. `ssh root@10.8.30.13`)
+
+## ToDo
+
+### Multi-platform
+At this time only the Dell R620 has been used as a target platform. The build needs to be verified to work for a range of platforms. NOTE: At this time only **x86_64** based architectures are supported.
+
+### Proper user configuration
+At the moment the Buildroot built bootable image only supports the *root* user. A non-superuser account is needed and the *root* console login disabled for security reasons. The user needs to have sudo capability so that *root* tasks can be performed when necessary.
 
