@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-MISTIFY_AGENT_VERSION = bda06d66c501188f77b7747d0d15604f58283de4
+MISTIFY_AGENT_VERSION = d0525520685323cce7d37ce808a0579f8af6491a
 MISTIFY_AGENT_SITE    = https://github.com/mistifyio/mistify-agent.git
 MISTIFY_AGENT_SITE_METHOD = git
 MISTIFY_AGENT_LICENSE = Apache
@@ -22,8 +22,6 @@ define MISTIFY_AGENT_BUILD_CMDS
 	PATH=$(GOROOT)/bin:$(PATH) \
         GOPATH=$(GOPATH) make install DESTDIR=$(TARGET_DIR) \
           -C $(GOPATH)/src/github.com/mistifyio/mistify-agent
-	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/mistify-agent/agent.json \
-	    $(TARGET_DIR)/etc/mistify/agent.json
 
 endef
 
