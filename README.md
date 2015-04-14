@@ -39,6 +39,8 @@ A test suite for verifying Mistify-OS based upon [Robot Framework](http://robotf
 ### Sample Sub-Agent
 A sample sub-agent written in GO is provided which can serve as a starting point for your sub-agent development. This sub-agent is contained in the *subagents* directory. Building the sub-agent is supported using the *buildgopackage* script and an example test script for testing the sub-agent in a KVM based virtual machine is provided in *test/testcases/MistifyOSInVm.robot*. The test suite referencing this test script is *test/testsuites/vmtests*.
 
+More information about developing Mistify-OS subagents can be found in the [mistify-agent examples](https://github.com/mistifyio/mistify-agent/tree/master/examples/simple-subagent) repository.
+
 ## ToDo
 
 ### Multi-platform
