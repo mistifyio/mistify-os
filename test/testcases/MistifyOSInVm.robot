@@ -42,7 +42,7 @@ Start The VM
     ssh.Write  test/scripts/start-vm
     ssh.Set Client Configuration  timeout=3m
     ${_o}=  ssh.Read Until  ${MISTIFY_LOGIN_PROMPT}
-    Should Contain  ${_o}  Set hostname to <Mistify-OS>
+    Should Contain  ${_o}  Set hostname to <
     Should Contain  ${_o}  Reached target Multi-User System
     ssh.Set Client Configuration  timeout=15s
 
@@ -52,16 +52,49 @@ Login to VM
     ssh.Write  ${MISTIFY_USERNAME}
     ssh.Read Until  Password:
     ssh.Write  ${MISTIFY_PASSWORD}
-    ssh.Read Until  ${MISTIFY_PROMPT}
+    ssh.Read Until  ${MISTIFY_VM_PROMPT}
 
 Get IP Address
     [Documentation]	Retrieve the IP address from the running instance and
     ...			save it for later to login using ssh.
 
     ssh.Write  ifconfig \| grep 10\\.0\\. \| tr -s \' \' \| cut -d \' \' -f 3
-    ${_o}=  ssh.Read Until  ${MISTIFY_PROMPT}
+    ${_o}=  ssh.Read Until  ${MISTIFY_VM_PROMPT}
     ${_l}=	Get Lines Containing String  ${_o}  10.0
     Log To Console  \nVM IP address is: ${_l}
+
+Show Running Agent Processes
+    [Documentation]	Log the processes which have "agent" as part of their
+    ...			name.
+    ssh.Write  ps aux \| grep agent
+    ${_o}=  ssh.Read Until  ${MISTIFY_VM_PROMPT}
+    Log To Console  \nAgent related processes are:
+    ${_l}=  String.Get Lines Containing String  ${_o}  agent
+    Log To Console  ${_l}
+
+Start The Subagent
+    [Documentation]	Start the subagent from the command line.
+    ...	NOTE: In normal situations the subagent would be started automatically
+    ...	during boot. This however can simplify development iterations.
+    ssh.Write  /opt/mistify/sbin/sample-subagent &
+    ${_o}=  ssh.Read Until  ${MISTIFY_VM_PROMPT}
+    ssh.Write  ps aux \| grep sample-subagent
+    ${_o}=  ssh.Read Until  ${MISTIFY_VM_PROMPT}
+    Should Contain  ${_o}  /opt/mistify/sbin/sample-subagent
+
+Verify Subagent Is Listening
+    [Documentation]	Send a message to the subagent to verify it is running
+    ...			and listening.
+    ${_c}=	catenate  SEPARATOR=${SPACE}
+    ...	curl -s -H "Content-Type: application/json"
+    ...	http://localhost:9999/_mistify_RPC_
+    ...	--data-binary '{ "method": "Test.Restart",
+    ...	"params": [ { "guest": { "id": "123456789" } } ], "id": 0 }'
+    ssh.Write  ${_c}
+    ${_o}=  ssh.Read Until  ${MISTIFY_VM_PROMPT}
+    Should Contain  ${_o}  {"result":{"guest":{"id":"123456789"}},"error":null,"id":0}
+    Log To Console  \nSubagent responded with:
+    Log To Console  ${_o}
 
 #+
 # Add additional tests here.

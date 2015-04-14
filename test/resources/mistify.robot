@@ -21,8 +21,12 @@ Resource	${TESTDISTRO}
 # For login to a running instance of Mistify-OS
 ${MISTIFY_USERNAME}	root
 ${MISTIFY_PASSWORD}	LetMeIn2
-${MISTIFY_PROMPT}	@Mistify-OS
-${MISTIFY_LOGIN_PROMPT}	Mistify-OS login:
+# Mistify-OS when running on hardware uses a UUID as part of the prompt.
+${MISTIFY_PROMPT}	root@
+# When running in a development machine in a VM the prompt is localhost.
+${MISTIFY_VM_PROMPT}	root@localhost
+
+${MISTIFY_LOGIN_PROMPT}	login:
 
 # To clone the Mistify-OS repo for building.
 ${MISTIFY_OS_REPO}	mistify-os
