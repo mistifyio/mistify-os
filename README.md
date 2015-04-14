@@ -34,7 +34,7 @@ QEMU/KVM and libvirt are now available.
 Release notes for the various releases can be found on the [project wiki](https://github.com/mistifyio/mistify-os/wiki). 
 
 ### Verification testing
-A test suite for verifying Mistify-OS based upon [Robot Framework](http://robotframework.org/) is now available. This is extremely basic at the moment but will improve over time. The associated scripts are contained in the *test* directory. Use the script *testmistify* to execute test suites.
+A test suite for verifying Mistify-OS based upon [Robot Framework](http://robotframework.org/) is now available. This is extremely basic at the moment but will improve over time. The associated scripts are contained in the [*test*](https://github.com/mistifyio/mistify-os/tree/master/test) directory. Use the script *testmistify* to execute test suites.
 
 ### Sample Sub-Agent
 A sample sub-agent written in GO is provided which can serve as a starting point for your sub-agent development. This sub-agent is contained in the *subagents* directory. Building the sub-agent is supported using the *buildgopackage* script and an example test script for testing the sub-agent in a KVM based virtual machine is provided in *test/testcases/MistifyOSInVm.robot*. The test suite referencing this test script is *test/testsuites/vmtests*.
