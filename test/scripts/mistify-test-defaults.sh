@@ -52,6 +52,6 @@ else
 fi
 
 # Test images
-kerneldefault=$(get_test_default kernel $builddirdefault/images/bzImage.buildroot)
-initrddefault=$(get_test_default initrd $builddirdefault/images/initrd.buildroot)
+kerneldefault=$(get_test_default kernel $builddirdefault/images/bzImage.mistify)
+initrddefault=$(get_test_default initrd $builddirdefault/images/initrd.mistify)
 
