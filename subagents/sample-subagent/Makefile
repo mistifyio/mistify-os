@@ -1,5 +1,6 @@
 ###################################################
 # Sample GO package make file.
+# This is a sample subagent to be used with mistify-agent.
 ###################################################
 
 #+
@@ -11,6 +12,8 @@
 #		different agents to be built using this one package.
 # DRYRUN	Most often used to echo commands rather than actually execute
 #		them.
+# DESTDIR	Is expected to point to the target root file system. This is
+#		set by the GO package make file (package/mistify/gopackage).
 #-
 
 PREFIX := /opt/mistify
@@ -20,10 +23,10 @@ sample-subagent: main.go
 	$(DRYRUN) go get && \
 	$(DRYRUN) go build
 
-
 clean:
 	$(DRYRUN) go clean
 
 install: sample-subagent
 	$(DRYRUN) install -D sample-subagent $(DESTDIR)$(SBIN_DIR)/sample-subagent
-
+	# WARNING: This overwrites the agent.json which was installed by mistify-agent.
+	$(DRYRUN) install -m 644 -D agent.json $(DESTDIR)/etc/mistify/agent.json
