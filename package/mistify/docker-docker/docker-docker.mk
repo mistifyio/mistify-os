@@ -109,6 +109,10 @@ define DOCKER_DOCKER_INSTALL_STAGING_CMDS
 	# when GOPATH moves to staging
 endef
 
+define DOCKER_DOCKER_USERS
+	- - docker -1 * - - - Docker Application Container Framework
+endef
+
 define DOCKER_DOCKER_INSTALL_TARGET_CMDS
 	$(INSTALL) -m 755 -d $(TARGET_DIR)/usr/lib/docker
 	$(INSTALL) -m 755 -d $(TARGET_DIR)/var/lib/docker

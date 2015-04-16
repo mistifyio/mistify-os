@@ -29,6 +29,18 @@ function set_build_default() {
     verbose The default $1 has been set to $2
 }
 
+function reset_build_default() {
+    # Parameters:
+    #   1: option name
+    if [ -e $statedir/$1 ]; then
+      rm $statedir/$1
+      verbose Option $1 default has been reset.
+    else
+      verbose Option $1 has not been set.
+    fi
+}
+
+
 green='\e[0;32m'
 yellow='\e[0;33m'
 red='\e[0;31m'
