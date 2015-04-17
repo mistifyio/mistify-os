@@ -90,14 +90,25 @@ Clone Mistify
     ${_o}=	ssh.Read Until  ${prompt}
     Should Contain  ${_o}  ... done.
 
+Switch To Branch
+    [Documentation]	Checkout the branch to be built.
+    ...
+    ...		This uses the variable MISTIFYBRANCH which was passed on the
+    ...		command line by the "testmisify" script.
+    ssh.Write  cd ${mistifybuilddir}/${MISTIFY_CLONE_DIR}
+    ${_o}=	ssh.Read Until  ${prompt}
+a compressed    ssh.Write	git checkout ${MISTIFYBRANCH}
+    ${_o}=	ssh.Read Until  ${prompt}
+    ssh.Write	git status
+    ${_o}=	ssh.Read Until  ${prompt}
+    Should Contain  ${_o}  On branch ${MISTIFYBRANCH}
+
 Start The Build
     [Documentation]	From within the cloned directory start the buildmistify
     ...			script.
     ...
     ...		NOTE: The user prompt needs to be configured to include the
     ...		current path.
-    ssh.Write  cd ${mistifybuilddir}/${MISTIFY_CLONE_DIR}
-    ${_o}=	ssh.Read Until  ${prompt}
     ssh.Write  ls
     ${_o}=	ssh.Read Until  ${prompt}
     Should Contain  ${_o}  buildmistify
