@@ -5,6 +5,9 @@ projectdir=$PWD	# Save this directory for later.
 # Where to maintain buildmistify settings.
 statedir=$projectdir/.buildmistify
 
+# Which branch this script is running with.
+mistifybranch=`git status | grep "On branch" | cut -f 3 -d ' '`
+
 function get_build_default() {
     # Parameters:
     #   1: option name
