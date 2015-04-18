@@ -40,6 +40,17 @@ function init() {
 }
 init
 
+function do_until() {
+	local t=$1
+	local cmd=$2
+	shift 2
+	local i=0
+	until $cmd "$@"; do
+		sleep $t
+		msg "$((++i * $t))s elapsed"
+	done
+}
+
 ip=${ips[0]}
 nm=24
 gw=192.168.200.1
@@ -95,11 +106,7 @@ echo "$LINENO: kappa has a pid of:$kappapid"
 echo "$LINENO: done"
 
 echo "$LINENO: waiting for kappa/ansible"
-i=1
-while [[ -d /proc/$kappapid ]]; do
-	msg $((i++))
-	sleep 1
-done
+do_until 1 test -d /proc/$kappapid
 dig +short dns.services.lochness.local @127.0.0.1 -p 15353 || echo "$LINENO: ok well that failed, but lets continue anyway"
 echo "$LINENO: done"
 
@@ -112,11 +119,7 @@ sleep .100
 echo "$LINENO: done"
 
 echo "$LINENO: waiting for etcd to come back fully"
-i=1
-while ! etcdctl cluster-health; do
-	msg $((i++))
-	sleep 1
-done
+do_until 1 etcdctl cluster-health
 echo "$LINENO: done"
 
 #echo "$LINENO: setting up images dir"
@@ -148,11 +151,7 @@ systemctl stop kappa
 echo "$LINENO: done"
 
 echo "$LINENO: waiting for etcd to come back fully"
-i=1
-while ! etcdctl cluster-health; do
-	msg $((i++))
-	sleep 1
-done
+do_until 1 etcdctl cluster-health
 echo "$LINENO: done"
 
 echo "$LINENO: setting up etcd cluster"
@@ -173,20 +172,11 @@ done
 echo "$LINENO: done"
 
 echo "$LINENO: checking for kernel/initrd existence"
-i=0
-while !  ls -l /var/lib/images/0.1.0/{vmlinuz,initrd}; do
-	msg "$((i++ * 5))s"
-	sleep 5
-done
+do_until 5 ls -l /var/lib/images/0.1.0/{vmlinuz,initrd}
 echo "$LINENO: done"
 
 echo "$LINENO: ok you can now boot node1 and node2"
-i=0
-while true; do
-	curl --silent http://${ips[1]}:4001/v2/keys && break
-	msg "$((i++ * 5))s"
-	sleep 5
-done
+do_until 5 curl --silent http://${ips[1]}:4001/v2/keys
 echo "$LINENO: ok new etcd cluster seems to be up"
 
 echo "$LINENO: sleeping 5s to let new nodes settle"
@@ -223,11 +213,7 @@ systemctl start etcd
 echo "$LINENO: done"
 
 echo "$LINENO: waiting for etcd cluster to be healthy"
-i=0
-while ! etcdctl cluster-health; do
-	msg "$((i++ * 5))s"
-	sleep 5
-done
+do_until 5 etcdctl cluster-health
 echo "$LINENO: done"
 
 echo "$LINENO: restoring etcd data"
