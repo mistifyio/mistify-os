@@ -16,7 +16,9 @@ define LIBCONTAINER_BUILD_CMDS
 	# GO apparently wants the install path to be independent of the
 	# build path. Use a temporary directory to do the build.
 	mkdir -p $(GOPATH)/src/github.com/docker/libcontainer
-	rsync -av --exclude .git $(@D)/* $(GOPATH)/src/github.com/docker/libcontainer/
+	echo D=$(@D)
+	rsync -av --delete-after --exclude=.git \
+		$(@D)/ $(GOPATH)/src/github.com/docker/libcontainer/
 
 	# Fetch and install Go coverage tool in $(GOPATH)
 	GOROOT=$(GOROOT) \
@@ -41,13 +43,13 @@ define LIBCONTAINER_BUILD_CMDS
 	PATH=$(GOROOT)/bin:$(PATH) \
 	GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/libcontainer/vendor \
 	make direct-build \
-	 -C $(GOPATH)/src/github.com/docker/libcontainer
+		-C $(GOPATH)/src/github.com/docker/libcontainer
 
 	GOROOT=$(GOROOT) \
 	PATH=$(GOROOT)/bin:$(PATH) \
 	GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/libcontainer/vendor \
 	make direct-install \
-	 -C $(GOPATH)/src/github.com/docker/libcontainer
+		-C $(GOPATH)/src/github.com/docker/libcontainer
 endef
 
 define LIBCONTAINER_INSTALL_TARGET_CMDS

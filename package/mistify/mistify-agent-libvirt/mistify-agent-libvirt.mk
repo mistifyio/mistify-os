@@ -17,7 +17,8 @@ define MISTIFY_AGENT_LIBVIRT_BUILD_CMDS
 	# GO apparently wants the install path to be independent of the
 	# build path. Use a temporary directory to do the build.
 	mkdir -p $(GOPATH)/src/github.com/mistifyio/mistify-agent-libvirt
-	rsync -av --exclude .git $(@D)/* $(GOPATH)/src/github.com/mistifyio/mistify-agent-libvirt/
+	rsync -av --delete-after --exclude=.git --exclude-from=$(@D)/.gitignore \
+		$(@D)/ $(GOPATH)/src/github.com/mistifyio/mistify-agent-libvirt/
 	CGO_ENABLED=1 \
 	GOROOT=$(GOROOT) \
 	PATH=$(GOROOT)/bin:$(PATH) \
