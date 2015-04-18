@@ -55,6 +55,10 @@ ip=${ips[0]}
 nm=24
 gw=192.168.200.1
 
+echo "$LINENO: stopping kappa to avoid races"
+systemctl stop kappa
+echo "$LINENO: done"
+
 echo "$LINENO: setting up etcd keys"
 etcdctl set /lochness/hypervisors/${uuids[0]}/config/dhcpd true
 etcdctl set /lochness/hypervisors/${uuids[0]}/config/dns true
