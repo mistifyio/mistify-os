@@ -111,7 +111,7 @@ dig +short dns.services.lochness.local @127.0.0.1 -p 15353 || echo "$LINENO: ok 
 echo "$LINENO: done"
 
 echo "$LINENO: setting up etcd to listen on external interfaces"
-cat > /etc/default/etcd <<EOF
+cat > /etc/sysconfig/etcd <<EOF
 ETCD_LISTEN_CLIENT_URLS=http://$ip:2379,http://$ip:4001,http://localhost:2379,http://localhost:4001
 EOF
 systemctl restart etcd
