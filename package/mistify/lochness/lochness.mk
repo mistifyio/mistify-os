@@ -27,7 +27,7 @@ define LOCHNESS_BUILD_CMDS
 
 endef
 
-define LOCHNESS_INSTALL_CMDS
+define LOCHNESS_INSTALL_TARGET_CMDS
 	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/lochness/kappa.service \
 		$(TARGET_DIR)/lib/systemd/system/kappa.service
 

@@ -24,7 +24,7 @@ define MISTIFY_AGENT_IMAGE_BUILD_CMDS
           -C $(GOPATH)/src/github.com/mistifyio/mistify-agent-image
 endef
 
-define MISTIFY_AGENT_IMAGE_INSTALL_CMDS
+define MISTIFY_AGENT_IMAGE_INSTALL_TARGET_CMDS
 	# The install was done as part of the build.
 endef
 

@@ -37,7 +37,7 @@ define GOPACKAGE_BUILD_CMDS
 		-C $(GOPATH)/src/github.com/mistifyio/$(GOPACKAGENAME)
 endef
 
-define GOPACKAGENAME_INSTALL_CMDS
+define GOPACKAGENAME_INSTALL_TARGET_CMDS
 	# The install is performed by the package make file.
 endef
 

@@ -20,7 +20,7 @@ define LOCHNESS_ANSIBLE_BUILD_CMDS
 
 endef
 
-define LOCHNESS_ANSIBLE_INSTALL_CMDS
+define LOCHNESS_ANSIBLE_INSTALL_TARGET_CMDS
 	# The install was done as part of the build.
 endef
 

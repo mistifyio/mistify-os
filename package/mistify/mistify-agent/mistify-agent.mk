@@ -25,7 +25,7 @@ define MISTIFY_AGENT_BUILD_CMDS
 
 endef
 
-define MISTIFY_AGENT_INSTALL_CMDS
+define MISTIFY_AGENT_INSTALL_TARGET_CMDS
 	# The install was done as part of the build.
 endef
 

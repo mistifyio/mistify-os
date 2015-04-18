@@ -28,7 +28,7 @@ define MISTIFY_AGENT_LIBVIRT_BUILD_CMDS
 	mv $(TARGET_DIR)/opt/mistify/sbin/mistify-libvirt  $(TARGET_DIR)/opt/mistify/sbin/mistify-agent-libvirt
 endef
 
-define MISTIFY_AGENT_LIBVIRT_INSTALL_CMDS
+define MISTIFY_AGENT_LIBVIRT_INSTALL_TARGET_CMDS
 	# The install was done as part of the build.
 endef
 
