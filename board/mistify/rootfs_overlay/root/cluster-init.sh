@@ -195,6 +195,10 @@ etcdctl ls --sort --recursive -p | sed '/\/$/ d' | while read key; do
 done > /tmp/etcd.dump
 echo "$LINENO: done"
 
+echo "$LINENO: waiting for other dns server to come up"
+do_until 5 dig +short dns.services.lochness.local @${ips[1]}
+echo "done"
+
 echo "$LINENO: restarting etcd so it can join the cluster"
 cat /dev/null > /etc/default/etcd
 curl -s http://localhost:8888/config/$ip > /tmp/mistify-config
