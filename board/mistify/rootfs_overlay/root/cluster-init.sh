@@ -32,8 +32,8 @@ function init() {
          '192.168.200.204'
     )
     macs=('DE:AD:BE:EF:7F:20'
-          'DE:AD:BE:EF:7F:21'
-          'DE:AD:BE:EF:7F:22'
+          'A6:59:45:B2:57:12'
+          '6A:B1:9E:0F:F0:56'
           'DE:AD:BE:EF:7F:23'
           'DE:AD:BE:EF:7F:24'
     )
