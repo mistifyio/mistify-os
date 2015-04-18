@@ -122,10 +122,6 @@ echo "$LINENO: waiting for etcd to come back fully"
 do_until 1 etcdctl cluster-health
 echo "$LINENO: done"
 
-#echo "$LINENO: setting up images dir"
-#rsync -havLP -essh vmlinuz initrd hv0:/var/lib/images/0.1.0
-#echo "$LINENO: done"
-
 echo "$LINENO: setting up other nodes in etcd"
 stop=$((${#uuids[*]} - 1))
 for i in $(seq 0 $stop); do
