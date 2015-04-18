@@ -338,7 +338,7 @@ while [ $# -ge 1 ]; do
 done
 
 if [[ $# -ge 1 ]]; then
-  target=$1
+  target="$@"
   message "Building target: $target"
   # Any other arguments are ignored at this point.
 else
