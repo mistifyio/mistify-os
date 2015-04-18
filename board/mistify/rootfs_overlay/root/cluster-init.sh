@@ -182,8 +182,8 @@ echo "$LINENO: ok you can now boot node1 and node2"
 do_until 5 curl --silent http://${ips[1]}:4001/v2/keys
 echo "$LINENO: ok new etcd cluster seems to be up"
 
-echo "$LINENO: sleeping 5s to let new nodes settle"
-sleep 5
+echo "$LINENO: sleeping 10s to let new nodes settle"
+sleep 10
 echo "$LINENO: done"
 
 echo "$LINENO: syncing queensland data from old cluster to new"
