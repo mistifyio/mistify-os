@@ -61,8 +61,11 @@ etcdctl set /lochness/hypervisors/${uuids[0]}/config/dns true
 etcdctl set /lochness/hypervisors/${uuids[0]}/config/enfield true
 etcdctl set /lochness/hypervisors/${uuids[0]}/config/etcd true
 etcdctl set /lochness/hypervisors/${uuids[0]}/config/tftpd true
+
 etcdctl set /lochness/hypervisors/${uuids[1]}/config/dns true
+etcdctl set /lochness/hypervisors/${uuids[1]}/config/etcd true
 etcdctl set /lochness/hypervisors/${uuids[2]}/config/dns true
+etcdctl set /lochness/hypervisors/${uuids[2]}/config/etcd true
 echo "$LINENO: done"
 
 echo "$LINENO: setting up network"
