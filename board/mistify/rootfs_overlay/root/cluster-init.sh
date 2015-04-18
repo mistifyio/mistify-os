@@ -210,7 +210,7 @@ nameserver ${ips[1]}
 nameserver ${ips[2]}
 nameserver ${ips[0]}
 EOF
-systemctl stop etcd confd dns dhcpd enfield tftpd || :
+systemctl stop etcd confd named dhcpd enfield tftpd
 rm -rf /mistify/data/etcd/*
 systemctl start etcd
 echo "$LINENO: done"
