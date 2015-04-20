@@ -52,6 +52,7 @@ Define Package List
     ...  syslinux  genisoimage  libdevmapper-dev  libnl-dev
     ...  autoconf  automake  libtool  gettext  autopoint
     ...  pkg-config  flex  gperf  bison  texinfo  gawk  subversion
+    ...  gcc-multilib
     Set Suite Variable  ${packages}
 
 Update APT Database
