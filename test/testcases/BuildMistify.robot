@@ -94,7 +94,7 @@ Switch To Branch
     [Documentation]	Checkout the branch to be built.
     ...
     ...		This uses the variable MISTIFYBRANCH which was passed on the
-    ...		command line by the "testmisify" script.
+    ...		command line by the "testmistify" script.
     Log To Console  \nSwitching to branch: ${MISTIFYBRANCH}
     ssh.Write  cd ${mistifybuilddir}/${MISTIFY_CLONE_DIR}
     ${_o}=	ssh.Read Until  ${prompt}
@@ -104,7 +104,7 @@ Switch To Branch
     ${_o}=	ssh.Read Until  ${prompt}
     ssh.Write	git status
     ${_o}=	ssh.Read Until  ${prompt}
-    Should Contain  ${_o}  On branch ${MISTIFYBRANCH}
+    Should Contain  ${_o}  ${MISTIFYBRANCH}
 
 Start The Build
     [Documentation]	From within the cloned directory start the buildmistify
