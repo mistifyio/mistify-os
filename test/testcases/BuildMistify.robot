@@ -95,9 +95,12 @@ Switch To Branch
     ...
     ...		This uses the variable MISTIFYBRANCH which was passed on the
     ...		command line by the "testmisify" script.
+    Log To Console  \nSwitching to branch: ${MISTIFYBRANCH}
     ssh.Write  cd ${mistifybuilddir}/${MISTIFY_CLONE_DIR}
     ${_o}=	ssh.Read Until  ${prompt}
-a compressed    ssh.Write	git checkout ${MISTIFYBRANCH}
+    ssh.Write	git fetch
+    ${_o}=	ssh.Read Until  ${prompt}
+    ssh.Write	git checkout ${MISTIFYBRANCH}
     ${_o}=	ssh.Read Until  ${prompt}
     ssh.Write	git status
     ${_o}=	ssh.Read Until  ${prompt}
