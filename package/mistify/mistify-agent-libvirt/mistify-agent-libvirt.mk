@@ -25,7 +25,7 @@ define MISTIFY_AGENT_LIBVIRT_BUILD_CMDS
 	CGO_CPPFLAGS=-I$(HOST_DIR)/usr/include \
 	CGO_LDFLAGS="-L$(TARGET_DIR)/lib -L$(TARGET_DIR)/usr/lib -Wl,-rpath-link,$(TARGET_DIR)/lib -Wl,-rpath-link,$(TARGET_DIR)/usr/lib" \
 	GOPATH=$(GOPATH) make install DESTDIR=$(TARGET_DIR) \
-	 -C $(GOPATH)/src/github.com/mistifyio/mistify-agent-libvirt
+		-C $(GOPATH)/src/github.com/mistifyio/mistify-agent-libvirt
 	mv $(TARGET_DIR)/opt/mistify/sbin/mistify-libvirt  $(TARGET_DIR)/opt/mistify/sbin/mistify-agent-libvirt
 endef
 
@@ -35,13 +35,10 @@ endef
 
 define MISTIFY_AGENT_LIBVIRT_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/mistify-agent-libvirt/mistify-agent-libvirt.service \
-		$(TARGET_DIR)/etc/systemd/system/mistify-agent-libvirt.service
+		$(TARGET_DIR)/lib/systemd/system/mistify-agent-libvirt.service
 
 	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/mistify-agent-libvirt/mistify-agent-libvirt.sysconfig \
 		$(TARGET_DIR)/etc/sysconfig/mistify-agent-libvirt
-
-	ln -sf ../mistify-agent-libvirt.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/mistify-agent-libvirt.service
 endef
 
 $(eval $(generic-package))

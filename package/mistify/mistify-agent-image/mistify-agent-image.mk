@@ -22,7 +22,7 @@ define MISTIFY_AGENT_IMAGE_BUILD_CMDS
 	GOROOT=$(GOROOT) \
 	PATH=$(GOROOT)/bin:$(PATH) \
         GOPATH=$(GOPATH) make install DESTDIR=$(TARGET_DIR) \
-          -C $(GOPATH)/src/github.com/mistifyio/mistify-agent-image
+		-C $(GOPATH)/src/github.com/mistifyio/mistify-agent-image
 endef
 
 define MISTIFY_AGENT_IMAGE_INSTALL_TARGET_CMDS
@@ -31,13 +31,10 @@ endef
 
 define MISTIFY_AGENT_IMAGE_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/mistify-agent-image/mistify-agent-image.service \
-		$(TARGET_DIR)/etc/systemd/system/mistify-agent-image.service
+		$(TARGET_DIR)/lib/systemd/system/mistify-agent-image.service
 
 	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/mistify-agent-image/mistify-agent-image.sysconfig \
 		$(TARGET_DIR)/etc/sysconfig/mistify-agent-image
-
-	ln -sf ../mistify-agent-image.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/mistify-agent-image.service
 endef
 
 $(eval $(generic-package))
