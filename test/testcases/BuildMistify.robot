@@ -49,7 +49,8 @@ ${downloaddir}=	${mistifybuilddir}/downloads
 
 *** Test Cases ***
 Get Container IP Address
-    ${_o}=	Container IP Address  ${DISTRO_LONG_NAME}
+    Log To Console  \nGetting IP address for ${containername}
+    ${_o}=	Container IP Address  ${containername}
     Should Contain X Times	${_o}  \.  3
     Set Suite Variable  ${ip}  ${_o}
 
@@ -155,15 +156,24 @@ Verify The Build
 
 *** Keywords ***
 Setup Testsuite
+    # The variable CONTAINER_ID is passed on the test mistify command line
+    # by the Jenkins job to uniquely identify containers and avoid collision
+    # on the same container. (e.g. ./testmistify -- -v CONTAINER_ID:<id>)
+    # WARNING: The containers must already exist have have been previously
+    # provisioned. There needs to be one container per Jenkins executor.
+    ${_id}=  Get Variable Value  ${CONTAINER_ID}  ${EMPTY}
+    ${containername}=	Catenate  SEPARATOR=  ${DISTRO_LONG_NAME}  ${_id}
+    Set Suite Variable  ${containername}
+
     ${_rc}=	Use Container
-    ...	${DISTRO_LONG_NAME}	${DISTRO_NAME}
+    ...	${containername}	${DISTRO_NAME}
     ...	${DISTRO_VERSION_NAME}	${DISTRO_ARCH}
-    Log To Console	\nUsing container: ${DISTRO_LONG_NAME}
+    Log To Console	\nUsing container: ${containername}
     Run Keyword Unless  ${_rc} == 0
     ...	Log To Console	\nContainer could not be created.
     ...		WARN
 
 Teardown Testsuite
     ssh.Close All Connections
-    Stop Container	${DISTRO_LONG_NAME}
+    Stop Container	${containername}
 
