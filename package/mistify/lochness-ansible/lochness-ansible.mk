@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LOCHNESS_ANSIBLE_VERSION = master
+LOCHNESS_ANSIBLE_VERSION = 6734a67724ebdf3ea12f0e95937f63e5611c8eff
 LOCHNESS_ANSIBLE_SITE    = git@github.com:mistifyio/lochness-ansible.git
 LOCHNESS_ANSIBLE_SITE_METHOD = git
 LOCHNESS_ANSIBLE_LICENSE = Apache
@@ -20,7 +20,7 @@ define LOCHNESS_ANSIBLE_BUILD_CMDS
 
 endef
 
-define LOCHNESS_ANSIBLE_INSTALL_CMDS
+define LOCHNESS_ANSIBLE_INSTALL_TARGET_CMDS
 	# The install was done as part of the build.
 endef
 

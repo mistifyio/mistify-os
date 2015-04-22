@@ -1,0 +1,13 @@
+[Unit]
+Description=ansible runner from etcd triggers
+Wants=etcd.service
+After=etcd.service
+
+[Service]
+EnvironmentFile=-/tmp/mistify-config
+ExecStart=/usr/sbin/kappa --once
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

@@ -61,17 +61,19 @@ define DOCKER_DOCKER_BUILD_CMDS
 		&& (cd $(@D)/docker-py \
 			&& git checkout -q $(DOCKER_PY_COMMIT))
 
+	# Copy ourselves to $(GOPATH)
+	$(INSTALL) -m 755 -d $(GOPATH)/src/github.com/docker/docker \
+		&& rsync -av --delete-after --exclude=.git --exclude-from=$(@D)/.gitignore \
+			$(@D)/ $(GOPATH)/src/github.com/docker/docker/
+
 	# Install man page generator
-	$(INSTALL) -m 755 -d $(GOPATH)/src/github.com/docker/docker/vendor && \
-		rsync -av --exclude .git $(@D)/vendor/* \
-			 $(GOPATH)/src/github.com/docker/docker/vendor/
 	# go-md2man needs golang.org/x/net
 	rm -rf $(GOPATH)/src/github.com/cpuguy83/go-md2man \
 			$(GOPATH)/src/github.com/russross/blackfriday \
-    	&& git clone -b v1.0.1 https://github.com/cpuguy83/go-md2man.git \
+	&& git clone -b v1.0.1 https://github.com/cpuguy83/go-md2man.git \
 			$(GOPATH)/src/github.com/cpuguy83/go-md2man \
 		&& git clone -b v1.2 https://github.com/russross/blackfriday.git \
-		 	$(GOPATH)/src/github.com/russross/blackfriday \
+			$(GOPATH)/src/github.com/russross/blackfriday \
 		&& GOPATH=$(GOPATH)/src/github.com/docker/docker/vendor:$(GOPATH) \
 		GOROOT=$(GOROOT) \
 		PATH=$(GOROOT)/bin:$(PATH) \
@@ -80,17 +82,13 @@ define DOCKER_DOCKER_BUILD_CMDS
 	# install toml validator
 	rm -rf $(GOPATH)/src/github.com/BurntSushi/toml \
 		&& git clone https://github.com/BurntSushi/toml.git \
-			 $(GOPATH)/src/github.com/BurntSushi/toml \
+			$(GOPATH)/src/github.com/BurntSushi/toml \
 		&& (cd $(GOPATH)/src/github.com/BurntSushi/toml \
 			&& git checkout -q $(TOMLV_COMMIT)) \
 		&& GOPATH=$(GOPATH) \
 		GOROOT=$(GOROOT) \
 		PATH=$(GOROOT)/bin:$(PATH) \
 		go install -v github.com/BurntSushi/toml/cmd/tomlv
-
-	# Copy ourselves to $(GOPATH)
-	$(INSTALL) -m 755 -d $(GOPATH)/src/github.com/docker/docker \
-		&& rsync -av --exclude .git $(@D)/* $(GOPATH)/src/github.com/docker/docker/
 
 	# Do the rest of the build
 	cd $(GOPATH)/src/github.com/docker/docker \

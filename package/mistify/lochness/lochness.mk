@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LOCHNESS_VERSION = 5eb2d96b359092151293227f45ecaf21572a1d3f
+LOCHNESS_VERSION = 8d3cfd72a151c0c389c60d8960b4f25523d60830
 LOCHNESS_SITE    = git@github.com:mistifyio/lochness.git
 LOCHNESS_SITE_METHOD = git
 LOCHNESS_LICENSE = Apache
@@ -18,7 +18,8 @@ define LOCHNESS_BUILD_CMDS
 	# GO apparently wants the install path to be independent of the
 	# build path. Use a temporary directory to do the build.
 	mkdir -p $(GOPATH)/src/github.com/mistifyio/lochness
-	rsync -av --exclude .git $(@D)/* $(GOPATH)/src/github.com/mistifyio/lochness/
+	rsync -av --delete-after --exclude=.git --exclude-from=$(@D)/.gitignore \
+		$(@D)/ $(GOPATH)/src/github.com/mistifyio/lochness/
 	GOROOT=$(GOROOT) \
 	PATH=$(GOROOT)/bin:$(PATH) \
         GOPATH=$(GOPATH) make \
@@ -27,8 +28,12 @@ define LOCHNESS_BUILD_CMDS
 
 endef
 
-define LOCHNESS_INSTALL_CMDS
-	# The install was done as part of the build.
+define LOCHNESS_INSTALL_TARGET_CMDS
+	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/lochness/kappa.service \
+		$(TARGET_DIR)/lib/systemd/system/kappa.service
+
+	ln -sf ../kappa.service \
+		$(TARGET_DIR)/lib/systemd/system/multi-user.target.wants/kappa.service
 endef
 
 

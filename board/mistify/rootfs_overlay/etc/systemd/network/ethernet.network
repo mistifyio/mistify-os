@@ -2,4 +2,4 @@
 Name=en*
 
 [Network]
-DHCP=v4
+Bridge=br0

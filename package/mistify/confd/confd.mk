@@ -17,7 +17,8 @@ define CONFD_BUILD_CMDS
 	# GO apparently wants the install path to be independent of the
 	# build path. Use a temporary directory to do the build.
 	mkdir -p $(CONFD_GOSRC)
-	rsync -av --exclude .git $(@D)/* $(CONFD_GOSRC)
+	rsync -av --delete-after --exclude=.git --exclude-from=$(@D)/.gitignore \
+		$(@D)/ $(CONFD_GOSRC)/
 
 	cd $(CONFD_GOSRC) && \
 		GOROOT=$(GOROOT) \
