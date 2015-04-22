@@ -4,9 +4,9 @@
 #
 ################################################################################
 
-QUEENSLAND_VERSION = v0.2.0
-QUEENSLAND_SITE    = https://github.com/mistifyio/queensland/archive/
-QUEENSLAND_SOURCE = $(QUEENSLAND_VERSION).tar.gz
+QUEENSLAND_VERSION = cdb52d7e67ce3d3d10ef184033e607fee35a782d
+QUEENSLAND_SITE    = https://github.com/mistifyio/queensland.git
+QUEENSLAND_SITE_METHOD = git
 QUEENSLAND_LICENSE = Apache
 QUEENSLAND_LICENSE_FILES = LICENSE
 

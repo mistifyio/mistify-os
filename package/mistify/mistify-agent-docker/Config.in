@@ -1,0 +1,9 @@
+config BR2_PACKAGE_MISTIFY_AGENT_DOCKER
+        bool "mistify-agent-docker"
+        select BR2_PACKAGE_MISTIFY_AGENT_DOCKER
+         select BR2_PACKAGE_DOCKER_DOCKER
+         select BR2_PACKAGE_MISTIFY_AGENT
+        help
+          The Mistify Docker Sub-Agent
+
+          https://github.com/mistifyio/mistify-agent-docker
