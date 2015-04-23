@@ -110,8 +110,9 @@ Usage: ./buildmistify [options] [target]
         WARNING: This overrides the Buildroot configuration option.
         [downloaddir=`cat $statedir/downloaddir`]
     --resetmasters
-        Remove the download cache files for packages pulled from repository
-        master branches.
+        Some packages may be configured to always pull from the master branch.
+        This can result in stale copies in the download cache being used for the
+        build. This option causes these files to be removed before starting the build.
     ==== configuration ====
     --variant <variant>
         Use a configuration variant. The variant is always based upon the
@@ -627,6 +628,15 @@ echo $downloaddir >$statedir/downloaddir
 
 message "The Buildroot download directory is: $downloaddir"
 
+#+
+# Some packages may be configured to always pull from the head of a master
+# branch. This results in cached download files matching the pattern *master*.
+# Because of this stale verisions could actually be used because buildroot
+# uses the version in the name to indicate whether the cached file exists
+# or not. In the case of using "master" the version doesn't change so Buildroot
+# will be mislead into thinking the cached file is current when in fact it's not.
+# So, remove such files to force a fresh pull.
+#-
 if [ -n "$resetmasters" ]; then
   if [ -d $downloaddir ]; then
     p=$downloaddir/*-master.tar*
@@ -788,17 +798,32 @@ else
   fi
 fi
 
+#+
+# Prepare the "official" images and generate corresponding sha1s.
+# WARNING: This requires the corresponding images be enabled in the Buildroot
+# configuration file ($mistifycfg).
+#-
 imagedir=$variantbuilddir/images
-if [ -f $imagedir/rootfs.cpio.gz ]; then
-  ln -sf rootfs.cpio.gz $imagedir/initrd.mistify
+cd $imagedir
+if [ -f rootfs.cpio.gz ]; then
+  ln -sf rootfs.cpio.gz initrd.mistify
+  sha1sum initrd.mistify >initrd.mistify.sha1
 else
-  message "The initrd doesn't exist."
+  warning "The initrd doesn't exist."
 fi
-if [ -f $imagedir/bzImage ]; then
-  ln -sf bzImage $imagedir/bzImage.mistify
+if [ -f bzImage ]; then
+  ln -sf bzImage bzImage.mistify
+  sha1sum bzImage.mistify >bzImage.mistify.sha1
 else
-  message "The kernel image doesn't exist."
+  warning "The kernel image doesn't exist."
 fi
+if [ -f rootfs.iso9660 ]; then
+  ln -sf rootfs.iso9660 mistify.iso
+  sha1sum mistify.iso >mistify.iso.sha1
+else
+  warning "The ISO image doesn't exist."
+fi
+cd -
 
 ln -sf $logfilename $logdir/buildroot.Log
 
