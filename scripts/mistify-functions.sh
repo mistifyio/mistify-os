@@ -6,10 +6,10 @@ projectdir=$PWD	# Save this directory for later.
 statedir=$projectdir/.buildmistify
 
 # Which branch this script is running with.
-mistifybranch=`git status | grep "On branch" | cut -f 3 -d ' '`
+mistifybranch=`git symbolic-ref -q --short HEAD`
 # Jenkins detaches for branches so need to use a commit ID instead.
 if [ -z "$mistifybranch" ]; then
-    mistifybranch=`git status | grep "detached at" | cut -f 4 -d ' '`
+    mistifybranch=`git rev-parse HEAD`
 fi
 
 function get_build_default() {
