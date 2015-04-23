@@ -116,7 +116,7 @@ Start The Build
     ssh.Write  ls
     ${_o}=	ssh.Read Until  ${prompt}
     Should Contain  ${_o}  buildmistify
-    ssh.Write  ./buildmistify -d ${downloaddir}
+    ssh.Write  ./buildmistify -d ${downloaddir} --resetmasters
 
 Build Tools
     [Documentation]	Build the cross tools and go compiler.
