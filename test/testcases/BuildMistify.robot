@@ -103,9 +103,8 @@ Switch To Branch
     ${_o}=	ssh.Read Until  ${prompt}
     ssh.Write	git checkout ${MISTIFYBRANCH}
     ${_o}=	ssh.Read Until  ${prompt}
-    ssh.Write	git status
-    ${_o}=	ssh.Read Until  ${prompt}
-    Should Contain  ${_o}  ${MISTIFYBRANCH}
+    Log To Console  \nThe git checkout returned: \n${_o}
+    Should Not Contain  ${_o}  error:
 
 Start The Build
     [Documentation]	From within the cloned directory start the buildmistify
