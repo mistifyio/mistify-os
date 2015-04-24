@@ -14,7 +14,7 @@
 bruridefault=git@github.com:mistifyio/buildroot.git
 buildrootdirdefault=$PWD/build/buildroot
 buildrootbranchdefault="master"
-buildroottagdefault=
+buildroottagdefault=20150424
 
 builddirdefault=$PWD/build/mistify
 variantdirdefault=base
@@ -423,6 +423,17 @@ if [ -z "$bruri" ]; then
 fi
 message "The Buildroot repository is: $bruri"
 echo $bruri >$statedir/bruri
+
+#+
+# If buildroottag is empty then replace with what buildroottagdefault contains.
+# This will allow a release build and clean directory to set the tag as the
+# default buildroot ref to use, while still allowing for the user to override
+# via command line args /cached parameters.
+#
+# It is done here so that if buildrootbranch is given by user, the branch
+# overriding tag logic will not be violated.
+#-
+buildroottag=${buildrootag:-$buildroottagdefault}
 
 #+
 # If the buildrootbranch option is used then ignore the buildroottag option.
