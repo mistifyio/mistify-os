@@ -14,7 +14,7 @@
 bruridefault=git@github.com:mistifyio/buildroot.git
 buildrootdirdefault=$PWD/build/buildroot
 buildrootbranchdefault="master"
-buildroottagdefault=
+buildroottagdefault="20150424"
 
 builddirdefault=$PWD/build/mistify
 variantdirdefault=base
@@ -426,7 +426,25 @@ message "The Buildroot repository is: $bruri"
 echo $bruri >$statedir/bruri
 
 #+
-# If the buildrootbranch option is used then ignore the buildroottag option.
+# Check the buildroot tag. If this is the first time, meaning not saved in the
+# the statedir then use the default.
+#-
+if [ -z "$buildroottag" ]; then
+  if [ -f $statedir/buildroottag ]; then
+    buildroottag=`cat $statedir/buildroottag`
+  else
+    buildroottag=$buildroottagdefault
+  fi
+else
+  #+
+  # Using the tag on the command line overrides the branch.
+  #-
+  warning "Ignoring the buildroot branch because a new tag is being used."
+  rm -f $statedir/buildrootbranch
+fi
+
+#+
+# If the buildrootbranch option is used then ignore the buildroottag.
 # NOTE: Specifying a branch overrides using a tag.
 #-
 if [ ! -z "$buildrootbranch" ]; then
@@ -439,6 +457,7 @@ if [ ! -z "$buildrootbranch" ]; then
 else
   if [ -f $statedir/buildrootbranch ]; then
     buildrootbranch=`cat $statedir/buildrootbranch`
+    buildroottag=
   else
     buildrootbranch=$buildrootbranchdefault
   fi
@@ -506,7 +525,13 @@ if [ $? -ne 0 ]; then
   error "Attempted to checkout Buildroot using an invalid tag or branch: $buildrootlabel"
   exit 1
 fi
-run git pull
+#+
+# Using a tag causes a "detached HEAD" state. Can't use a pull in that case.
+#-
+if [ -z "$buildroottag" ]; then
+  message Updating buildroot for branch: $buildrootbranch
+  run git pull
+fi
 message "Buildroot synced to: $buildrootlabel"
 cd $projectdir
 
