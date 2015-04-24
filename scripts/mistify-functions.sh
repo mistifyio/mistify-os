@@ -5,6 +5,13 @@ projectdir=$PWD	# Save this directory for later.
 # Where to maintain buildmistify settings.
 statedir=$projectdir/.buildmistify
 
+# Which branch this script is running with.
+mistifybranch=`git symbolic-ref -q --short HEAD`
+# Jenkins detaches for branches so need to use a commit ID instead.
+if [ -z "$mistifybranch" ]; then
+    mistifybranch=`git rev-parse HEAD`
+fi
+
 function get_build_default() {
     # Parameters:
     #   1: option name

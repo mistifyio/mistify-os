@@ -8,8 +8,6 @@ source scripts/mistify-functions.sh
 jenkinsdefault=$(get_build_default jenkins http://mistify-dev-2.office.omniti.com:8081)
 jenkinsjobdefault=$(get_build_default jenkinsjob MistifyOS-remote)
 
-mistifybranch=`git status | grep "On branch" | cut -f 3 -d ' '`
-
 usage () {
     cat << EOF
 Usage: $0 [options] [-- joboptions]

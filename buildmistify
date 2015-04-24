@@ -14,7 +14,7 @@
 bruridefault=git@github.com:mistifyio/buildroot.git
 buildrootdirdefault=$PWD/build/buildroot
 buildrootbranchdefault="master"
-buildroottagdefault=
+buildroottagdefault="20150424"
 
 builddirdefault=$PWD/build/mistify
 variantdirdefault=base
@@ -93,7 +93,7 @@ Usage: ./buildmistify [options] [target]
         supercedes the --buildroottag option. The branch name is saved in the
         file $statedir/buildrootbranch.
         [buildrootbranch=`cat $statedir/buildrootbranch`]
-    -t:--buildroottag <tag>
+    -t|--buildroottag <tag>
         Checkout Buildroot using a specific tag. To reset to the master branch
         use the --buildrootbranch option. The tag is saved in the file
         $statedir/buildroottag.
@@ -110,8 +110,9 @@ Usage: ./buildmistify [options] [target]
         WARNING: This overrides the Buildroot configuration option.
         [downloaddir=`cat $statedir/downloaddir`]
     --resetmasters
-        Remove the download cache files for packages pulled from repository
-        master branches.
+        Some packages may be configured to always pull from the master branch.
+        This can result in stale copies in the download cache being used for the
+        build. This option causes these files to be removed before starting the build.
     ==== configuration ====
     --variant <variant>
         Use a configuration variant. The variant is always based upon the
@@ -425,7 +426,25 @@ message "The Buildroot repository is: $bruri"
 echo $bruri >$statedir/bruri
 
 #+
-# If the buildrootbranch option is used then ignore the buildroottag option.
+# Check the buildroot tag. If this is the first time, meaning not saved in the
+# the statedir then use the default.
+#-
+if [ -z "$buildroottag" ]; then
+  if [ -f $statedir/buildroottag ]; then
+    buildroottag=`cat $statedir/buildroottag`
+  else
+    buildroottag=$buildroottagdefault
+  fi
+else
+  #+
+  # Using the tag on the command line overrides the branch.
+  #-
+  warning "Ignoring the buildroot branch because a new tag is being used."
+  rm -f $statedir/buildrootbranch
+fi
+
+#+
+# If the buildrootbranch option is used then ignore the buildroottag.
 # NOTE: Specifying a branch overrides using a tag.
 #-
 if [ ! -z "$buildrootbranch" ]; then
@@ -438,6 +457,7 @@ if [ ! -z "$buildrootbranch" ]; then
 else
   if [ -f $statedir/buildrootbranch ]; then
     buildrootbranch=`cat $statedir/buildrootbranch`
+    buildroottag=
   else
     buildrootbranch=$buildrootbranchdefault
   fi
@@ -505,7 +525,13 @@ if [ $? -ne 0 ]; then
   error "Attempted to checkout Buildroot using an invalid tag or branch: $buildrootlabel"
   exit 1
 fi
-run git pull
+#+
+# Using a tag causes a "detached HEAD" state. Can't use a pull in that case.
+#-
+if [ -z "$buildroottag" ]; then
+  message Updating buildroot for branch: $buildrootbranch
+  run git pull
+fi
 message "Buildroot synced to: $buildrootlabel"
 cd $projectdir
 
@@ -627,6 +653,15 @@ echo $downloaddir >$statedir/downloaddir
 
 message "The Buildroot download directory is: $downloaddir"
 
+#+
+# Some packages may be configured to always pull from the head of a master
+# branch. This results in cached download files matching the pattern *master*.
+# Because of this stale verisions could actually be used because buildroot
+# uses the version in the name to indicate whether the cached file exists
+# or not. In the case of using "master" the version doesn't change so Buildroot
+# will be mislead into thinking the cached file is current when in fact it's not.
+# So, remove such files to force a fresh pull.
+#-
 if [ -n "$resetmasters" ]; then
   if [ -d $downloaddir ]; then
     p=$downloaddir/*-master.tar*
@@ -788,17 +823,32 @@ else
   fi
 fi
 
+#+
+# Prepare the "official" images and generate corresponding sha1s.
+# WARNING: This requires the corresponding images be enabled in the Buildroot
+# configuration file ($mistifycfg).
+#-
 imagedir=$variantbuilddir/images
-if [ -f $imagedir/rootfs.cpio.gz ]; then
-  ln -sf rootfs.cpio.gz $imagedir/initrd.mistify
+cd $imagedir
+if [ -f rootfs.cpio.gz ]; then
+  ln -sf rootfs.cpio.gz initrd.mistify
+  sha1sum initrd.mistify >initrd.mistify.sha1
 else
-  message "The initrd doesn't exist."
+  warning "The initrd doesn't exist."
 fi
-if [ -f $imagedir/bzImage ]; then
-  ln -sf bzImage $imagedir/bzImage.mistify
+if [ -f bzImage ]; then
+  ln -sf bzImage bzImage.mistify
+  sha1sum bzImage.mistify >bzImage.mistify.sha1
 else
-  message "The kernel image doesn't exist."
+  warning "The kernel image doesn't exist."
 fi
+if [ -f rootfs.iso9660 ]; then
+  ln -sf rootfs.iso9660 mistify.iso
+  sha1sum mistify.iso >mistify.iso.sha1
+else
+  warning "The ISO image doesn't exist."
+fi
+cd -
 
 ln -sf $logfilename $logdir/buildroot.Log
 

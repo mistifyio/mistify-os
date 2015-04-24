@@ -91,6 +91,10 @@ Usage: $0 [options] [-- test suite options]
         This option is saved in the file:
         $testmistifystatedir/testlogdir
         [testlogdir=$testlogdirdefault]
+    -- <pybotoptions>
+        Anything following the "--" is passed directly to Robot Framework (pybot).
+        Most often this is used to pass variables on the command line which are
+        specific to a given test. e.g. "-v VAR:varvalue"
     ==== other ====
     --verbose
         Verbose output from this script.
@@ -149,6 +153,7 @@ while [ $# -ge 1 ]; do
     case "$1" in
 	--)
 	    shift
+	    pybotoptions=$*
 	    break
 	    ;;
 	--builddir)
@@ -391,7 +396,6 @@ if [[ "$verbose" == "y" ]]; then
     verboseoption="-L DEBUG:INFO"
 fi
 
-pybotoptions=""
 if [ -n "$tag" ]; then
   pybotoptions+=" --include $tag"
 fi
@@ -403,6 +407,7 @@ fi
 mkdir -p $testlogdir
 pybotcommand="pybot $verboseoption -d $testlogdir \
     -v PWD:`pwd` \
+    -v MISTIFYBRANCH:$mistifybranch \
     -v BUILDDIR:$builddir \
     -v TESTDISTRO:$testdistrodir/$testdistro \
     -v TESTBED:$testbeddir/$testbed \
