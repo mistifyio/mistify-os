@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-SPL_VERSION = master
+SPL_VERSION = spl-0.6.4
 SPL_SITE    = https://github.com/zfsonlinux/spl.git
 SPL_SITE_METHOD = git
 SPL_LICENSE = GPL v2
