@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-ZFS_VERSION = master
+ZFS_VERSION = zfs-0.6.4
 ZFS_SITE    = https://github.com/zfsonlinux/zfs.git
 ZFS_SITE_METHOD = git
 ZFS_LICENSE = CDDL
