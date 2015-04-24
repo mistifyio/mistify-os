@@ -25,7 +25,7 @@ ${downloaddir}=	${mistifybuilddir}/downloads
 @{checkpoints}=
 ...	Using Buildroot located at:
 ...	Fetching Buildroot branch
-...	Using Buildroot branch:
+...	Using Buildroot
 ...	The kernel headers version is:
 ...	Using toolchain variation:
 ...	Configuring the toolchain build.
