@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-STATSD_VERSION       = master
+STATSD_VERSION       = a07296c018c57f7c357cb7a7b93faac389a65c6b
 STATSD_SITE          = https://github.com/etsy/statsd.git
 STATSD_SITE_METHOD   = git
 STATSD_LICENSE       = Etsy
