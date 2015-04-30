@@ -69,7 +69,7 @@ BUG_REPORT_URL="http://mistify.io/
 
 MISTIFY_VARIANT="$MISTIFY_VARIANT"
 MISTIFY_IMAGE_URL_BASE="http://builds.mistify.io/"
-MISTIFY_IMAGE_URL_RELEASE="http://builds.mistify.io/releases/MIistfyOS-release/"
+MISTIFY_IMAGE_URL_RELEASE="http://builds.mistify.io/releases/MistifyOS-release/"
 MISTIFY_IMAGE_URL_NIGHTLY="http://builds.mistify.io/nightly/MistifyOS/"
 MISTIFY_IMAGE_URL_GUESTS="http://builds.mistify.io/guest-images/"
 EOF
