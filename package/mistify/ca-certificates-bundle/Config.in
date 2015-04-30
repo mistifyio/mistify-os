@@ -1,0 +1,6 @@
+config BR2_PACKAGE_CA_CERTIFICATES_BUNDLE
+	bool "CA Certificates bundle"
+	depends on BR2_PACKAGE_CA_CERTIFICATES
+	help
+	  This package builds a "bundle" file of CA certificates
+	  for applications that cannot use the individual files.
