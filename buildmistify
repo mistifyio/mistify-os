@@ -380,11 +380,14 @@ fi
 if [ -z "$variant" ]; then
   message "Using base configuration."
   variantdir=$variantdirdefault
+  variant=$variantdirdefault
 else
   message "The configuration variant is: $variant"
   variantdir=$variant
   echo $variant >$statedir/variant
 fi
+
+export MISTIFY_VARIANT="$variant"
 
 #+
 # Determine the location of the build directory.
