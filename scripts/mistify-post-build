@@ -51,7 +51,7 @@ fi
 # Replace /etc/os-release with a Mistify-relevant one. Format is documented at
 # http://www.freedesktop.org/software/systemd/man/os-release.html
 #
-mistify_version=`git tag | tail -1`
+mistify_version=`git describe --abbrev=0 --tags`
 mistify_hashid=`git rev-parse HEAD`
 mistify_hashid_short=${mistify_hashid:0:8}
 
