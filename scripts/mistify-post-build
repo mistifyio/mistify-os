@@ -46,3 +46,30 @@ ln -sf Etc/UTC $targetdir/usr/share/zoneinfo/UTC
 if [ -f $targetdir/etc/systemd/system/multi-user.target.wants/dhcpd.service ]; then
   rm -f $targetdir/etc/systemd/system/multi-user.target.wants/dhcpd.service
 fi
+
+#
+# Replace /etc/os-release with a Mistify-relevant one. Format is documented at
+# http://www.freedesktop.org/software/systemd/man/os-release.html
+#
+mistify_version=`git describe --abbrev=0 --tags`
+mistify_hashid=`git rev-parse HEAD`
+mistify_hashid_short=${mistify_hashid:0:8}
+
+cat > $targetdir/etc/os-release <<EOF
+NAME="MistifyOS"
+PRETTY_NAME="MistifyOS $mistify_version"
+VERSION="$mistify_version"
+ID="linux"
+VERSION_ID="$mistify_hashid_short"
+ANSI_COLOR="1;34"
+
+HOME_URL="http://mistify.io/
+SUPPORT_URL="http://mistify.io/
+BUG_REPORT_URL="http://mistify.io/
+
+MISTIFY_VARIANT="$MISTIFY_VARIANT"
+MISTIFY_IMAGE_URL_BASE="http://builds.mistify.io/"
+MISTIFY_IMAGE_URL_RELEASE="http://builds.mistify.io/releases/MistifyOS-release/"
+MISTIFY_IMAGE_URL_NIGHTLY="http://builds.mistify.io/nightly/MistifyOS/"
+MISTIFY_IMAGE_URL_GUESTS="http://builds.mistify.io/guest-images/"
+EOF
