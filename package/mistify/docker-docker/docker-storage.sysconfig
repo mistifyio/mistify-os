@@ -1,0 +1,1 @@
+DOCKER_STORAGE_OPTIONS="--storage-driver=zfs --storage-opt zfs.fsname=mistify/guests"

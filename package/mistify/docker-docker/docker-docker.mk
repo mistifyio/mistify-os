@@ -124,9 +124,17 @@ define DOCKER_DOCKER_INSTALL_TARGET_CMDS
 	# Include our udev rules
 	$(INSTALL) -m 644 $(@D)/contrib/udev/80-docker.rules \
 		$(TARGET_DIR)/etc/udev/rules.d/
-	# Include our systemd service files
-	$(INSTALL) -m 644 $(@D)/contrib/init/systemd/docker.{service,socket} \
+endef
+
+define DOCKER_DOCKER_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -m 644 -D $(@D)/contrib/init/systemd/docker.{service,socket} \
 		$(TARGET_DIR)/lib/systemd/system/
+	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/docker-docker/docker.sysconfig \
+		$(TARGET_DIR)/etc/sysconfig/docker
+	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/docker-docker/docker-storage.sysconfig \
+		$(TARGET_DIR)/etc/sysconfig/docker-storage
+	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/docker-docker/docker-network.sysconfig \
+		$(TARGET_DIR)/etc/sysconfig/docker-network
 endef
 
 $(eval $(generic-package))

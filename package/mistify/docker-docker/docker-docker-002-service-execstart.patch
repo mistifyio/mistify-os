@@ -2,12 +2,15 @@ diff --git a/contrib/init/systemd/docker.service b/contrib/init/systemd/docker.s
 index bc73448..053408a 100644
 --- a/contrib/init/systemd/docker.service
 +++ b/contrib/init/systemd/docker.service
-@@ -5,7 +5,7 @@ After=network.target docker.socket
+@@ -5,7 +5,10 @@ After=network.target docker.socket
  Requires=docker.socket
  
  [Service]
 -ExecStart=/usr/bin/docker -d -H fd://
-+ExecStart=/usr/bin/docker -d -H fd:// -s zfs --storage-opt zfs.fsname=mistify/guests
++EnvironmentFile=-/etc/sysconfig/docker
++EnvironmentFile=-/etc/sysconfig/docker-storage
++EnvironmentFile=-/etc/sysconfig/docker-network
++ExecStart=/usr/bin/docker -d -H fd:// $OPTIONS $DOCKER_STORAGE_OPTIONS $DOCKER_NETWORK_OPTIONS
  MountFlags=slave
  LimitNOFILE=1048576
  LimitNPROC=1048576
