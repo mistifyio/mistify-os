@@ -1,0 +1,2717 @@
+From bf54a158dfa459ef51f5bf3160e5d6e6f1aa0740 Mon Sep 17 00:00:00 2001
+From: Phil Estes <estesp@linux.vnet.ibm.com>
+Date: Mon, 9 Mar 2015 09:31:12 -0400
+Subject: [PATCH 1/8] Add documentation for `--root` flag and user namespace
+ support
+
+Docker-DCO-1.1-Signed-off-by: Phil Estes <estesp@linux.vnet.ibm.com> (github: estesp)
+---
+ docs/sources/reference/commandline/cli.md | 35 +++++++++++++++++++++++++++++++
+ 1 file changed, 35 insertions(+)
+
+diff --git a/docs/sources/reference/commandline/cli.md b/docs/sources/reference/commandline/cli.md
+index 940f0f0..146d7ef 100644
+--- a/docs/sources/reference/commandline/cli.md
++++ b/docs/sources/reference/commandline/cli.md
+@@ -171,6 +171,7 @@ expect an integer, and they can only be specified once.
+       --mtu=0                                Set the containers network MTU
+       -p, --pidfile="/var/run/docker.pid"    Path to use for daemon PID file
+       --registry-mirror=[]                   Preferred Docker registry mirror
++      --root=""                              Set root user/uid remap option
+       -s, --storage-driver=""                Storage driver to use
+       --selinux-enabled=false                Enable selinux support
+       --storage-opt=[]                       Set storage driver options
+@@ -486,6 +487,40 @@ This example sets the execdriver to `cgroupfs`:
+      
+ Setting this option applies to all containers the daemon launches.
+ 
++### Daemon user namespace support
++
++Linux kernel user namespace support provides additional security by allowing
++the user and group IDs inside a user namespace to not match the same IDs on the
++Docker host.  Currently the Docker daemon only allows remapping the root user.
++Using the `--root` option available on the Docker daemon, you can choose to
++remap a container's root user to an unprivileged user on the Docker host.
++The daemon's namespace configuration applies to all containers the daemon runs;
++you cannot remap on a per-container basis.
++
++> **Note**: The restriction that user namespace maps are per-daemon relates to
++> the sharing of image layers across all containers on a Docker host. Since
++> file ownership must match the new mapping of user and group IDs, each layer
++> for that Docker daemon will be remapped to the proper ownership.
++
++To enable user namespace support, provide a `username` or `uid:gid` to the
++`--root` flag. If you want the daemon to create and use a default user
++for the remapped root, specify `default` instead. When you specify `default`, the daemon
++creates a user and group named `dockroot` (if they don't already exist). Then,
++the daemon uses `dockroot`'s uid and gid for the remapped root values inside all containers
++for that daemon instance.
++
++Example relying on default Docker username management:
++
++    $ sudo docker -d --root default
++
++Example using pre-existing username/group combination:
++
++    $ sudo docker -d ---root=cntrroot
++
++Example using a Linux uid:gid combination:
++
++    $ sudo docker -d --root 1001:1001
++
+ ### Daemon DNS options
+ 
+ To set the DNS server for all Docker containers, use
+
+From 5724e6f8a67089485e2f1ae2fd29918f9cd518f6 Mon Sep 17 00:00:00 2001
+From: Phil Estes <estesp@linux.vnet.ibm.com>
+Date: Fri, 20 Mar 2015 01:58:47 -0400
+Subject: [PATCH 2/8] Add utility functions/package for handling UID/GID
+ mappings
+
+Docker-DCO-1.1-Signed-off-by: Phil Estes <estesp@linux.vnet.ibm.com> (github: estesp)
+---
+ pkg/directory/directory_linux.go |  21 ++++++
+ pkg/idtools/idtools.go           | 140 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 161 insertions(+)
+ create mode 100644 pkg/idtools/idtools.go
+
+diff --git a/pkg/directory/directory_linux.go b/pkg/directory/directory_linux.go
+index 80fb9a8..9467cdf 100644
+--- a/pkg/directory/directory_linux.go
++++ b/pkg/directory/directory_linux.go
+@@ -3,7 +3,9 @@
+ package directory
+ 
+ import (
++	"io/ioutil"
+ 	"os"
++	"path"
+ 	"path/filepath"
+ 	"syscall"
+ )
+@@ -37,3 +39,22 @@ func Size(dir string) (size int64, err error) {
+ 	})
+ 	return
+ }
++
++// Move all contents of a directory to a subdirectory underneath the original path
++func MoveDirToSubdir(oldpath, subdir string) error {
++
++	infos, err := ioutil.ReadDir(oldpath)
++	if err != nil {
++		return err
++	}
++	for _, info := range infos {
++		if info.Name() != subdir {
++			oldName := path.Join(oldpath, info.Name())
++			newName := path.Join(oldpath, subdir, info.Name())
++			if err := os.Rename(oldName, newName); err != nil {
++				return err
++			}
++		}
++	}
++	return nil
++}
+diff --git a/pkg/idtools/idtools.go b/pkg/idtools/idtools.go
+new file mode 100644
+index 0000000..a55bf7b
+--- /dev/null
++++ b/pkg/idtools/idtools.go
+@@ -0,0 +1,140 @@
++package idtools
++
++import (
++	"fmt"
++	"math"
++	"os"
++)
++
++type IDMap struct {
++	ContainerID int `json:"container_id"`
++	HostID      int `json:"host_id"`
++	Size        int `json:"size"`
++}
++
++// Create a directory (include any along the path) and modify ownership to the
++// requested uid/gid.  If the directory already exists, still changes ownership
++func MkdirAllAs(path string, mode os.FileMode, ownerUid, ownerGid int) error {
++	return mkdirAs(path, mode, ownerUid, ownerGid, true)
++}
++
++// Create a directory and modify ownership to the requested uid/gid.  If the
++// directory already exists, still changes ownership
++func MkdirAs(path string, mode os.FileMode, ownerUid, ownerGid int) error {
++	return mkdirAs(path, mode, ownerUid, ownerGid, false)
++}
++
++func mkdirAs(path string, mode os.FileMode, ownerUid, ownerGid int, mkAll bool) error {
++
++	if mkAll {
++		if err := os.MkdirAll(path, mode); err != nil && !os.IsExist(err) {
++			return err
++		}
++	} else {
++		if err := os.Mkdir(path, mode); err != nil && !os.IsExist(err) {
++			return err
++		}
++	}
++	// even if it existed, we will chown to change ownership as requested
++	if err := os.Chown(path, ownerUid, ownerGid); err != nil {
++		return err
++	}
++	return nil
++}
++
++// Helper function to retrieve remapped root uid/gid in container
++// If the maps are empty, then the root uid/gid will default to "real" 0/0
++func GetRootUidGid(uidMap, gidMap []IDMap) (int, int, error) {
++	var uid, gid int
++
++	if uidMap != nil {
++		xUid, err := TranslateIDToHost(0, uidMap)
++		if err != nil {
++			return -1, -1, err
++		}
++		uid = xUid
++	}
++	if gidMap != nil {
++		xGid, err := TranslateIDToHost(0, gidMap)
++		if err != nil {
++			return -1, -1, err
++		}
++		gid = xGid
++	}
++	return uid, gid, nil
++}
++
++// Given an id mapping, translate a host ID to the proper container ID
++// If no map is provided, then the translation assumes a 1-to-1 mapping
++// and returns the passed in id #
++func TranslateIDToContainer(hostId int, idMap []IDMap) (int, error) {
++
++	if idMap == nil {
++		return hostId, nil
++	}
++	for _, m := range idMap {
++		if (hostId >= m.HostID) && (hostId <= (m.HostID + m.Size - 1)) {
++			contId := m.ContainerID + (hostId - m.HostID)
++			return contId, nil
++		}
++	}
++	return -1, fmt.Errorf("Host ID %d cannot be mapped to a container ID", hostId)
++}
++
++// Given an id mapping, translate a container ID to the proper host ID
++// If no map is provided, then the translation assumes a 1-to-1 mapping
++// and returns the passed in id #
++func TranslateIDToHost(contId int, idMap []IDMap) (int, error) {
++
++	if idMap == nil {
++		return contId, nil
++	}
++	for _, m := range idMap {
++		if (contId >= m.ContainerID) && (contId <= (m.ContainerID + m.Size - 1)) {
++			hostId := m.HostID + (contId - m.ContainerID)
++			return hostId, nil
++		}
++	}
++	return -1, fmt.Errorf("Container ID %d cannot be mapped to a host ID", contId)
++}
++
++// Create libcontainer/native execdriver consumable uid/gid mappings for a single
++// host uid/gid pair to be treated as root.  This is useful for a simple remap of root
++// rather than a more complex mapping of multiple IDs on host -> container
++func CreateIDMapsForRoot(uid, gid int) ([]IDMap, []IDMap, error) {
++
++	// Go and libcontainer expect int (32-bit signed) for uids/gids to handle
++	// cross-platform simplicity, so we have to give up on matching Linux
++	// uint32 for uid_t and gid_t values
++	if uid < 1 || gid < 1 {
++		return nil, nil, fmt.Errorf("Cannot create ID maps: uid, gid out of remap range")
++	}
++	return createIDMap(uid), createIDMap(gid), nil
++}
++
++func createIDMap(id int) []IDMap {
++	idMap := []IDMap{}
++
++	// The exact id mapping
++	idMap = append(idMap, IDMap{
++		ContainerID: 0,
++		HostID:      id,
++		Size:        1,
++	})
++
++	// the id mapping from 1 -> id-1
++	idMap = append(idMap, IDMap{
++		ContainerID: 1,
++		HostID:      1,
++		Size:        id - 1,
++	})
++
++	// the id mapping from id+1 -> ID_MAX
++	idMap = append(idMap, IDMap{
++		ContainerID: id + 1,
++		HostID:      id + 1,
++		Size:        math.MaxInt32 - id,
++	})
++
++	return idMap
++}
+
+From 359b16e8fa7a703989134f96b037539902d9fdb9 Mon Sep 17 00:00:00 2001
+From: Phil Estes <estesp@linux.vnet.ibm.com>
+Date: Tue, 10 Mar 2015 23:00:25 -0400
+Subject: [PATCH 3/8] Adds user namespace --root remapping as a per-daemon
+ setting
+
+Allow --root config option on daemon startup to specify the uid and gid
+that will be used as the remapped `root` inside containers started with
+this instance of the daemon.
+
+Handles multiple daemon roots named per the remapped root, and migrates
+from pre-user namespace support to a special "0.0" root (when user
+namespaces are turned off for the daemon) so that no images, containers,
+metadata is lost when running with user namespace support off.
+
+Adds support in execdriver, storage drivers, and chrootarchive pack and
+unpack commands to respect the user namespaced root setting.
+
+Docker-DCO-1.1-Signed-off-by: Phil Estes <estesp@linux.vnet.ibm.com> (github: estesp)
+---
+ daemon/config.go                                   |  69 +++++++++++-
+ daemon/container.go                                |   8 ++
+ daemon/daemon.go                                   | 124 +++++++++++++++++----
+ daemon/execdriver/driver.go                        |   6 +
+ daemon/execdriver/native/create.go                 |  42 +++++++
+ .../execdriver/native/template/default_template.go |   1 +
+ daemon/graphdriver/aufs/aufs.go                    |  35 ++++--
+ daemon/graphdriver/aufs/migrate.go                 |  13 ++-
+ daemon/graphdriver/btrfs/btrfs.go                  |  19 +++-
+ daemon/graphdriver/devmapper/deviceset.go          |  25 ++++-
+ daemon/graphdriver/devmapper/driver.go             |  25 ++++-
+ daemon/graphdriver/driver.go                       |  18 +--
+ daemon/graphdriver/fsdiff.go                       |  16 ++-
+ daemon/graphdriver/overlay/overlay.go              |  44 +++++---
+ daemon/graphdriver/vfs/driver.go                   |  31 ++++--
+ graph/graph.go                                     |  28 +++--
+ pkg/archive/archive.go                             |  42 +++++++
+ pkg/archive/archive_unix.go                        |   9 ++
+ pkg/archive/archive_windows.go                     |   5 +
+ pkg/archive/changes.go                             |   5 +-
+ pkg/archive/diff.go                                |  21 +++-
+ pkg/chrootarchive/diff.go                          |  21 +++-
+ pkg/idtools/idtools.go                             |   4 +-
+ 23 files changed, 518 insertions(+), 93 deletions(-)
+
+diff --git a/daemon/config.go b/daemon/config.go
+index f9931a3..376a854 100644
+--- a/daemon/config.go
++++ b/daemon/config.go
+@@ -1,6 +1,12 @@
+ package daemon
+ 
+ import (
++	"fmt"
++	"strconv"
++	"strings"
++
++	"github.com/docker/libcontainer/user"
++
+ 	"github.com/docker/docker/daemon/networkdriver"
+ 	"github.com/docker/docker/daemon/networkdriver/bridge"
+ 	"github.com/docker/docker/opts"
+@@ -32,6 +38,7 @@ type CommonConfig struct {
+ 	Pidfile        string
+ 	Root           string
+ 	TrustKeyPath   string
++	RemappedRoot   string
+ }
+ 
+ // InstallCommonFlags adds command-line options to the top-level flag parser for
+@@ -66,7 +73,7 @@ func (config *Config) InstallCommonFlags() {
+ 	flag.StringVar(&config.LogConfig.Type, []string{"-log-driver"}, "json-file", "Default driver for container logs")
+ 	opts.LogOptsVar(config.LogConfig.Config, []string{"-log-opt"}, "Set log driver options")
+ 	flag.BoolVar(&config.Bridge.EnableUserlandProxy, []string{"-userland-proxy"}, true, "Use userland proxy for loopback traffic")
+-
++	flag.StringVar(&config.RemappedRoot, []string{"-root"}, "", "User/Group [user|uid[:gid|:group]] for container root")
+ }
+ 
+ func getDefaultNetworkMtu() int {
+@@ -75,3 +82,63 @@ func getDefaultNetworkMtu() int {
+ 	}
+ 	return defaultNetworkMtu
+ }
++
++// Parse the remapped root (user namespace) option, which can be one of:
++//   username            - valid username from /etc/passwd
++//   username:groupname  - valid username; valid groupname from /etc/group
++//   uid                 - 32-bit unsigned int valid Linux UID value
++//   uid:gid             - uid value; 32-bit unsigned int Linux GID value
++//
++//  If no groupname is specified, and a username is specified, an attempt
++//  will be made to lookup a gid for that username as a groupname
++//
++//  If names are used, they are mapped to the appropriate 32-bit unsigned int
++func parseRemappedRoot(usergrp string) (int, int, error) {
++
++	var userId, groupId int
++
++	idparts := strings.Split(usergrp, ":")
++	if len(idparts) > 2 {
++		return 0, 0, fmt.Errorf("Invalid user/group specification in --root: %q", usergrp)
++	}
++
++	if uid, err := strconv.ParseInt(idparts[0], 10, 32); err == nil {
++		// must be a uid; take it as valid
++		userId = int(uid)
++		if len(idparts) == 1 {
++			// if the uid was numeric and no gid was specified, take the uid as the gid
++			groupId = userId
++		}
++	} else {
++		luser, err := user.LookupUser(idparts[0])
++		if err != nil {
++			return 0, 0, fmt.Errorf("Error during uid lookup for %q: %v", idparts[0], err)
++		}
++		userId = luser.Uid
++		if len(idparts) == 1 {
++			// we only have a string username, and no group specified; look up gid from username as group
++			group, err := user.LookupGroup(idparts[0])
++			if err != nil {
++				return 0, 0, fmt.Errorf("Error during gid lookup for %q: %v", idparts[0], err)
++			}
++			groupId = group.Gid
++		}
++	}
++
++	if len(idparts) == 2 {
++		// groupname or gid is separately specified and must be resolved
++		// to a unsigned 32-bit gid
++		if gid, err := strconv.ParseInt(idparts[1], 10, 32); err == nil {
++			// must be a gid, take it as valid
++			groupId = int(gid)
++		} else {
++			// not a number; attempt a lookup
++			group, err := user.LookupGroup(idparts[1])
++			if err != nil {
++				return 0, 0, fmt.Errorf("Error during gid lookup for %q: %v", idparts[1], err)
++			}
++			groupId = group.Gid
++		}
++	}
++	return userId, groupId, nil
++}
+diff --git a/daemon/container.go b/daemon/container.go
+index 8212ad2..9261f54 100644
+--- a/daemon/container.go
++++ b/daemon/container.go
+@@ -405,6 +405,13 @@ func populateCommand(c *Container, env []string) error {
+ 	processConfig.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+ 	processConfig.Env = env
+ 
++	remappedRoot := &execdriver.User{}
++	rootUid, rootGid := c.daemon.GetRemappedUidGid()
++	if rootUid != 0 {
++		remappedRoot.Uid = rootUid
++		remappedRoot.Gid = rootGid
++	}
++
+ 	c.command = &execdriver.Command{
+ 		ID:                 c.ID,
+ 		Rootfs:             c.RootfsPath(),
+@@ -413,6 +420,7 @@ func populateCommand(c *Container, env []string) error {
+ 		WorkingDir:         c.Config.WorkingDir,
+ 		Network:            en,
+ 		Ipc:                ipc,
++		RemappedRoot:       remappedRoot,
+ 		Pid:                pid,
+ 		UTS:                uts,
+ 		Resources:          resources,
+diff --git a/daemon/daemon.go b/daemon/daemon.go
+index 6530c30..88f8028 100644
+--- a/daemon/daemon.go
++++ b/daemon/daemon.go
+@@ -31,8 +31,10 @@ import (
+ 	"github.com/docker/docker/image"
+ 	"github.com/docker/docker/pkg/archive"
+ 	"github.com/docker/docker/pkg/broadcastwriter"
++	"github.com/docker/docker/pkg/directory"
+ 	"github.com/docker/docker/pkg/fileutils"
+ 	"github.com/docker/docker/pkg/graphdb"
++	"github.com/docker/docker/pkg/idtools"
+ 	"github.com/docker/docker/pkg/ioutils"
+ 	"github.com/docker/docker/pkg/namesgenerator"
+ 	"github.com/docker/docker/pkg/parsers"
+@@ -109,6 +111,8 @@ type Daemon struct {
+ 	defaultLogConfig runconfig.LogConfig
+ 	RegistryService  *registry.Service
+ 	EventsService    *events.Events
++	uidMaps          []idtools.IDMap
++	gidMaps          []idtools.IDMap
+ }
+ 
+ // Get looks for a container using the provided information, which could be
+@@ -595,7 +599,11 @@ func (daemon *Daemon) newContainer(name string, config *runconfig.Config, imgID
+ func (daemon *Daemon) createRootfs(container *Container) error {
+ 	// Step 1: create the container directory.
+ 	// This doubles as a barrier to avoid race conditions.
+-	if err := os.Mkdir(container.root, 0700); err != nil {
++	rootUid, rootGid, err := idtools.GetRootUidGid(daemon.uidMaps, daemon.gidMaps)
++	if err != nil {
++		return err
++	}
++	if err := idtools.MkdirAs(container.root, 0700, rootUid, rootGid); err != nil {
+ 		return err
+ 	}
+ 	initID := fmt.Sprintf("%s-init", container.ID)
+@@ -608,7 +616,7 @@ func (daemon *Daemon) createRootfs(container *Container) error {
+ 	}
+ 	defer daemon.driver.Put(initID)
+ 
+-	if err := graph.SetupInitLayer(initPath); err != nil {
++	if err := graph.SetupInitLayer(initPath, rootUid, rootGid); err != nil {
+ 		return err
+ 	}
+ 
+@@ -751,16 +759,28 @@ func NewDaemon(config *Config, registryService *registry.Service) (daemon *Daemo
+ 	// set up SIGUSR1 handler to dump Go routine stacks
+ 	setupSigusr1Trap()
+ 
+-	// set up the tmpDir to use a canonical path
+-	tmp, err := tempDir(config.Root)
+-	if err != nil {
+-		return nil, fmt.Errorf("Unable to get the TempDir under %s: %s", config.Root, err)
+-	}
+-	realTmp, err := fileutils.ReadSymlinkedDirectory(tmp)
+-	if err != nil {
+-		return nil, fmt.Errorf("Unable to get the full path to the TempDir (%s): %s", tmp, err)
++	// if the daemon was started with remapped root option, parse
++	// the config option to the int uid,gid values
++	var (
++		uidMaps, gidMaps []idtools.IDMap
++		rootUid, rootGid int
++	)
++	if config.RemappedRoot != "" {
++		uid, gid, err := parseRemappedRoot(config.RemappedRoot)
++		if err != nil {
++			return nil, err
++		}
++		rootUid = uid
++		rootGid = gid
++		logrus.Infof("User namespaces: root will be remapped to uid:gid: %d:%d", uid, gid)
++
++		if uMaps, gMaps, err := idtools.CreateIDMapsForRoot(uid, gid); err != nil {
++			return nil, fmt.Errorf("Can't create ID mappings for remapped root: %v", err)
++		} else {
++			uidMaps = uMaps
++			gidMaps = gMaps
++		}
+ 	}
+-	os.Setenv("TMPDIR", realTmp)
+ 
+ 	// get the canonical path to the Docker root directory
+ 	var realRoot string
+@@ -772,17 +792,72 @@ func NewDaemon(config *Config, registryService *registry.Service) (daemon *Daemo
+ 			return nil, fmt.Errorf("Unable to get the full path to root (%s): %s", config.Root, err)
+ 		}
+ 	}
+-	config.Root = realRoot
++
++	// the main docker root needs to be accessible by all users, as user namespace support
++	// will create subdirectories owned by either a) the real system root (when no remapping
++	// is setup) or b) the remapped root host ID (when --root=uid:gid is used)
++	// for "first time" users of user namespaces, we need to migrate the current directory
++	// contents to the "0.0" (root == root "namespace" daemon root)
++	nsRoot := "0.0"
++	if _, err := os.Stat(realRoot); err == nil {
++		// root current exists; we need to check for a prior migration
++		if _, err := os.Stat(path.Join(realRoot, nsRoot)); err != nil && os.IsNotExist(err) {
++			// need to migrate current root to "0.0" subroot
++			// 1. create non-usernamespaced root as "0.0"
++			if err := os.Mkdir(path.Join(realRoot, nsRoot), 0700); err != nil {
++				return nil, fmt.Errorf("Cannot create daemon root %q: %v", path.Join(realRoot, nsRoot), err)
++			}
++			// 2. move current root content to "0.0" new subroot
++			if err := directory.MoveDirToSubdir(realRoot, nsRoot); err != nil {
++				return nil, fmt.Errorf("Cannot migrate current daemon root %q for user namespaces: %v", realRoot, err)
++			}
++			// 3. chmod outer root to 755
++			if chmodErr := os.Chmod(realRoot, 0755); chmodErr != nil {
++				return nil, chmodErr
++			}
++		}
++	} else if os.IsNotExist(err) {
++		// no root exists yet, create it 0755 with root:root ownership
++		if err := os.MkdirAll(realRoot, 0755); err != nil {
++			return nil, err
++		}
++		// create the "0.0" subroot (so no future "migration" happens of the root)
++		if err := os.Mkdir(path.Join(realRoot, nsRoot), 0700); err != nil {
++			return nil, err
++		}
++	}
++
++	// for user namespaces we will create a subtree underneath the specified root
++	// with any/all specified remapped root uid/gid options on the daemon creating
++	// a new subdirectory with ownership set to the remapped uid/gid (so as to allow
++	// `chdir()` to work for containers namespaced to that uid/gid)
++	if config.RemappedRoot != "" {
++		nsRoot = fmt.Sprintf("%d.%d", rootUid, rootGid)
++	}
++	config.Root = path.Join(realRoot, nsRoot)
++	logrus.Debugf("Creating actual daemon root: %s", config.Root)
++
+ 	// Create the root directory if it doesn't exists
+-	if err := os.MkdirAll(config.Root, 0700); err != nil && !os.IsExist(err) {
+-		return nil, err
++	if err := idtools.MkdirAllAs(config.Root, 0700, rootUid, rootGid); err != nil {
++		return nil, fmt.Errorf("Cannot create daemon root: %s: %v", config.Root, err)
++	}
++
++	// set up the tmpDir to use a canonical path
++	tmp, err := tempDir(config.Root, rootUid, rootGid)
++	if err != nil {
++		return nil, fmt.Errorf("Unable to get the TempDir under %s: %s", config.Root, err)
+ 	}
++	realTmp, err := fileutils.ReadSymlinkedDirectory(tmp)
++	if err != nil {
++		return nil, fmt.Errorf("Unable to get the full path to the TempDir (%s): %s", tmp, err)
++	}
++	os.Setenv("TMPDIR", realTmp)
+ 
+ 	// Set the default driver
+ 	graphdriver.DefaultDriver = config.GraphDriver
+ 
+ 	// Load storage driver
+-	driver, err := graphdriver.New(config.Root, config.GraphOptions)
++	driver, err := graphdriver.New(config.Root, config.GraphOptions, uidMaps, gidMaps)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("error initializing graphdriver: %v", err)
+ 	}
+@@ -823,7 +898,7 @@ func NewDaemon(config *Config, registryService *registry.Service) (daemon *Daemo
+ 
+ 	daemonRepo := path.Join(config.Root, "containers")
+ 
+-	if err := os.MkdirAll(daemonRepo, 0700); err != nil && !os.IsExist(err) {
++	if err := idtools.MkdirAllAs(daemonRepo, 0700, rootUid, rootGid); err != nil && !os.IsExist(err) {
+ 		return nil, err
+ 	}
+ 
+@@ -833,12 +908,12 @@ func NewDaemon(config *Config, registryService *registry.Service) (daemon *Daemo
+ 	}
+ 
+ 	logrus.Debug("Creating images graph")
+-	g, err := graph.NewGraph(path.Join(config.Root, "graph"), d.driver)
++	g, err := graph.NewGraph(path.Join(config.Root, "graph"), d.driver, uidMaps, gidMaps)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+ 
+-	volumesDriver, err := graphdriver.GetDriver("vfs", config.Root, config.GraphOptions)
++	volumesDriver, err := graphdriver.GetDriver("vfs", config.Root, config.GraphOptions, uidMaps, gidMaps)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -898,7 +973,7 @@ func NewDaemon(config *Config, registryService *registry.Service) (daemon *Daemo
+ 
+ 	if sysInitPath != localCopy {
+ 		// When we find a suitable dockerinit binary (even if it's our local binary), we copy it into config.Root at localCopy for future use (so that the original can go away without that being a problem, for example during a package upgrade).
+-		if err := os.Mkdir(path.Dir(localCopy), 0700); err != nil && !os.IsExist(err) {
++		if err := idtools.MkdirAs(path.Dir(localCopy), 0700, rootUid, rootGid); err != nil && !os.IsExist(err) {
+ 			return nil, err
+ 		}
+ 		if _, err := fileutils.CopyFile(sysInitPath, localCopy); err != nil {
+@@ -933,6 +1008,8 @@ func NewDaemon(config *Config, registryService *registry.Service) (daemon *Daemo
+ 	d.defaultLogConfig = config.LogConfig
+ 	d.RegistryService = registryService
+ 	d.EventsService = eventsService
++	d.uidMaps = uidMaps
++	d.gidMaps = gidMaps
+ 
+ 	if err := d.restore(); err != nil {
+ 		return nil, err
+@@ -1078,6 +1155,11 @@ func (daemon *Daemon) ContainerGraph() *graphdb.Database {
+ 	return daemon.containerGraph
+ }
+ 
++func (daemon *Daemon) GetRemappedUidGid() (int, int) {
++	uid, gid, _ := idtools.GetRootUidGid(daemon.uidMaps, daemon.gidMaps)
++	return uid, gid
++}
++
+ func (daemon *Daemon) ImageGetCached(imgID string, config *runconfig.Config) (*image.Image, error) {
+ 	// Retrieve all images
+ 	images, err := daemon.Graph().Map()
+@@ -1111,12 +1193,12 @@ func (daemon *Daemon) ImageGetCached(imgID string, config *runconfig.Config) (*i
+ }
+ 
+ // tempDir returns the default directory to use for temporary files.
+-func tempDir(rootDir string) (string, error) {
++func tempDir(rootDir string, rootUid, rootGid int) (string, error) {
+ 	var tmpDir string
+ 	if tmpDir = os.Getenv("DOCKER_TMPDIR"); tmpDir == "" {
+ 		tmpDir = filepath.Join(rootDir, "tmp")
+ 	}
+-	return tmpDir, os.MkdirAll(tmpDir, 0700)
++	return tmpDir, idtools.MkdirAllAs(tmpDir, 0700, rootUid, rootGid)
+ }
+ 
+ func checkKernel() error {
+diff --git a/daemon/execdriver/driver.go b/daemon/execdriver/driver.go
+index 554ad82..fa1cb20 100644
+--- a/daemon/execdriver/driver.go
++++ b/daemon/execdriver/driver.go
+@@ -133,6 +133,11 @@ type Mount struct {
+ 	Slave       bool   `json:"slave"`
+ }
+ 
++type User struct {
++	Uid int `json:"root_uid"`
++	Gid int `json:"root_gid"`
++}
++
+ // Describes a process that will be run inside a container.
+ type ProcessConfig struct {
+ 	exec.Cmd `json:"-"`
+@@ -161,6 +166,7 @@ type Command struct {
+ 	Ipc                *Ipc              `json:"ipc"`
+ 	Pid                *Pid              `json:"pid"`
+ 	UTS                *UTS              `json:"uts"`
++	RemappedRoot       *User             `json:"remap_root"`
+ 	Resources          *Resources        `json:"resources"`
+ 	Mounts             []Mount           `json:"mounts"`
+ 	AllowedDevices     []*configs.Device `json:"allowed_devices"`
+diff --git a/daemon/execdriver/native/create.go b/daemon/execdriver/native/create.go
+index ff0da9a..c41b1cc 100644
+--- a/daemon/execdriver/native/create.go
++++ b/daemon/execdriver/native/create.go
+@@ -6,10 +6,12 @@ import (
+ 	"errors"
+ 	"fmt"
+ 	"net"
++	"os"
+ 	"strings"
+ 	"syscall"
+ 
+ 	"github.com/docker/docker/daemon/execdriver"
++	"github.com/docker/docker/pkg/idtools"
+ 	"github.com/docker/libcontainer/apparmor"
+ 	"github.com/docker/libcontainer/configs"
+ 	"github.com/docker/libcontainer/devices"
+@@ -33,6 +35,10 @@ func (d *driver) createContainer(c *execdriver.Command) (*configs.Config, error)
+ 		return nil, err
+ 	}
+ 
++	if err := d.setupRemappedRoot(container, c); err != nil {
++		return nil, err
++	}
++
+ 	if err := d.createNetwork(container, c); err != nil {
+ 		return nil, err
+ 	}
+@@ -187,6 +193,37 @@ func (d *driver) createUTS(container *configs.Config, c *execdriver.Command) err
+ 	return nil
+ }
+ 
++func (d *driver) setupRemappedRoot(container *configs.Config, c *execdriver.Command) error {
++	if c.RemappedRoot.Uid == 0 {
++		container.Namespaces.Remove(configs.NEWUSER)
++		return nil
++	}
++
++	uidMaps, gidMaps, err := idtools.CreateIDMapsForRoot(c.RemappedRoot.Uid, c.RemappedRoot.Gid)
++	if err != nil {
++		return err
++	}
++	// convert the Docker daemon id map to the libcontainer variant of the same struct
++	// this keeps us from having to import libcontainer code across Docker client + daemon packages
++	cuidMaps := []configs.IDMap{}
++	cgidMaps := []configs.IDMap{}
++	for _, idMap := range uidMaps {
++		cuidMaps = append(cuidMaps, configs.IDMap(idMap))
++	}
++	for _, idMap := range gidMaps {
++		cgidMaps = append(cgidMaps, configs.IDMap(idMap))
++	}
++	container.UidMappings = cuidMaps
++	container.GidMappings = cgidMaps
++
++	for _, node := range container.Devices {
++		node.Uid = uint32(c.RemappedRoot.Uid)
++		node.Gid = uint32(c.RemappedRoot.Gid)
++	}
++
++	return nil
++}
++
+ func (d *driver) setPrivileged(container *configs.Config) (err error) {
+ 	container.Capabilities = execdriver.GetAllCapabilities()
+ 	container.Cgroups.AllowAllDevices = true
+@@ -250,6 +287,11 @@ func (d *driver) setupMounts(container *configs.Config, c *execdriver.Command) e
+ 		if m.Slave {
+ 			flags |= syscall.MS_SLAVE
+ 		}
++
++		if err := os.Chown(m.Source, c.RemappedRoot.Uid, c.RemappedRoot.Gid); err != nil {
++			return err
++		}
++
+ 		container.Mounts = append(container.Mounts, &configs.Mount{
+ 			Source:      m.Source,
+ 			Destination: m.Destination,
+diff --git a/daemon/execdriver/native/template/default_template.go b/daemon/execdriver/native/template/default_template.go
+index ecedcfc..ac47e40 100644
+--- a/daemon/execdriver/native/template/default_template.go
++++ b/daemon/execdriver/native/template/default_template.go
+@@ -34,6 +34,7 @@ func New() *configs.Config {
+ 			{Type: "NEWIPC"},
+ 			{Type: "NEWPID"},
+ 			{Type: "NEWNET"},
++			{Type: "NEWUSER"},
+ 		}),
+ 		Cgroups: &configs.Cgroup{
+ 			Parent:          "docker",
+diff --git a/daemon/graphdriver/aufs/aufs.go b/daemon/graphdriver/aufs/aufs.go
+index b319d24..fc3bfc5 100644
+--- a/daemon/graphdriver/aufs/aufs.go
++++ b/daemon/graphdriver/aufs/aufs.go
+@@ -32,13 +32,15 @@ import (
+ 	"syscall"
+ 
+ 	"github.com/Sirupsen/logrus"
++	"github.com/docker/libcontainer/label"
++
+ 	"github.com/docker/docker/daemon/graphdriver"
+ 	"github.com/docker/docker/pkg/archive"
+ 	"github.com/docker/docker/pkg/chrootarchive"
+ 	"github.com/docker/docker/pkg/directory"
++	"github.com/docker/docker/pkg/idtools"
+ 	mountpk "github.com/docker/docker/pkg/mount"
+ 	"github.com/docker/docker/pkg/stringid"
+-	"github.com/docker/libcontainer/label"
+ )
+ 
+ var (
+@@ -59,13 +61,15 @@ func init() {
+ 
+ type Driver struct {
+ 	root       string
++	uidMaps    []idtools.IDMap
++	gidMaps    []idtools.IDMap
+ 	sync.Mutex // Protects concurrent modification to active
+ 	active     map[string]int
+ }
+ 
+ // New returns a new AUFS driver.
+ // An error is returned if AUFS is not supported.
+-func Init(root string, options []string) (graphdriver.Driver, error) {
++func Init(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
+ 
+ 	// Try to load the aufs kernel module
+ 	if err := supportsAufs(); err != nil {
+@@ -93,14 +97,20 @@ func Init(root string, options []string) (graphdriver.Driver, error) {
+ 	}
+ 
+ 	a := &Driver{
+-		root:   root,
+-		active: make(map[string]int),
++		root:    root,
++		active:  make(map[string]int),
++		uidMaps: uidMaps,
++		gidMaps: gidMaps,
+ 	}
+ 
++	rootUid, rootGid, err := idtools.GetRootUidGid(uidMaps, gidMaps)
++	if err != nil {
++		return nil, err
++	}
+ 	// Create the root aufs driver dir and return
+ 	// if it already exists
+ 	// If not populate the dir structure
+-	if err := os.MkdirAll(root, 0755); err != nil {
++	if err := idtools.MkdirAllAs(root, 0755, rootUid, rootGid); err != nil {
+ 		if os.IsExist(err) {
+ 			return a, nil
+ 		}
+@@ -112,7 +122,7 @@ func Init(root string, options []string) (graphdriver.Driver, error) {
+ 	}
+ 
+ 	for _, p := range paths {
+-		if err := os.MkdirAll(path.Join(root, p), 0755); err != nil {
++		if err := idtools.MkdirAllAs(path.Join(root, p), 0755, rootUid, rootGid); err != nil {
+ 			return nil, err
+ 		}
+ 	}
+@@ -206,8 +216,12 @@ func (a *Driver) createDirsFor(id string) error {
+ 		"diff",
+ 	}
+ 
++	rootUid, rootGid, err := idtools.GetRootUidGid(a.uidMaps, a.gidMaps)
++	if err != nil {
++		return err
++	}
+ 	for _, p := range paths {
+-		if err := os.MkdirAll(path.Join(a.rootPath(), p, id), 0755); err != nil {
++		if err := idtools.MkdirAllAs(path.Join(a.rootPath(), p, id), 0755, rootUid, rootGid); err != nil {
+ 			return err
+ 		}
+ 	}
+@@ -313,11 +327,16 @@ func (a *Driver) Diff(id, parent string) (archive.Archive, error) {
+ 	return archive.TarWithOptions(path.Join(a.rootPath(), "diff", id), &archive.TarOptions{
+ 		Compression:     archive.Uncompressed,
+ 		ExcludePatterns: []string{".wh..wh.*"},
++		UidMaps:         a.uidMaps,
++		GidMaps:         a.gidMaps,
+ 	})
+ }
+ 
+ func (a *Driver) applyDiff(id string, diff archive.ArchiveReader) error {
+-	return chrootarchive.Untar(diff, path.Join(a.rootPath(), "diff", id), nil)
++	return chrootarchive.Untar(diff, path.Join(a.rootPath(), "diff", id), &archive.TarOptions{
++		UidMaps: a.uidMaps,
++		GidMaps: a.gidMaps,
++	})
+ }
+ 
+ // DiffSize calculates the changes between the specified id
+diff --git a/daemon/graphdriver/aufs/migrate.go b/daemon/graphdriver/aufs/migrate.go
+index dd61098..7c88edb 100644
+--- a/daemon/graphdriver/aufs/migrate.go
++++ b/daemon/graphdriver/aufs/migrate.go
+@@ -6,6 +6,8 @@ import (
+ 	"io/ioutil"
+ 	"os"
+ 	"path"
++
++	"github.com/docker/docker/pkg/idtools"
+ )
+ 
+ type metadata struct {
+@@ -36,7 +38,7 @@ func pathExists(pth string) bool {
+ // For the migration we try to move the folder containing the layer files, if that
+ // fails because the data is currently mounted we will fallback to creating a
+ // symlink.
+-func (a *Driver) Migrate(pth string, setupInit func(p string) error) error {
++func (a *Driver) Migrate(pth string, setupInit func(p string, rootUid, rootGid int) error) error {
+ 	if pathExists(path.Join(pth, "graph")) {
+ 		if err := a.migrateRepositories(pth); err != nil {
+ 			return err
+@@ -57,12 +59,17 @@ func (a *Driver) migrateRepositories(pth string) error {
+ 	return nil
+ }
+ 
+-func (a *Driver) migrateContainers(pth string, setupInit func(p string) error) error {
++func (a *Driver) migrateContainers(pth string, setupInit func(p string, rootUid, rootGid int) error) error {
+ 	fis, err := ioutil.ReadDir(pth)
+ 	if err != nil {
+ 		return err
+ 	}
+ 
++	rootUid, rootGid, err := idtools.GetRootUidGid(a.uidMaps, a.gidMaps)
++	if err != nil {
++		return err
++	}
++
+ 	for _, fi := range fis {
+ 		if id := fi.Name(); fi.IsDir() && pathExists(path.Join(pth, id, "rw")) {
+ 			if err := tryRelocate(path.Join(pth, id, "rw"), path.Join(a.rootPath(), "diff", id)); err != nil {
+@@ -86,7 +93,7 @@ func (a *Driver) migrateContainers(pth string, setupInit func(p string) error) e
+ 					return err
+ 				}
+ 				// setup init layer
+-				if err := setupInit(initPath); err != nil {
++				if err := setupInit(initPath, rootUid, rootGid); err != nil {
+ 					return err
+ 				}
+ 
+diff --git a/daemon/graphdriver/btrfs/btrfs.go b/daemon/graphdriver/btrfs/btrfs.go
+index 1830ad4..2ca9499 100644
+--- a/daemon/graphdriver/btrfs/btrfs.go
++++ b/daemon/graphdriver/btrfs/btrfs.go
+@@ -17,6 +17,7 @@ import (
+ 	"unsafe"
+ 
+ 	"github.com/docker/docker/daemon/graphdriver"
++	"github.com/docker/docker/pkg/idtools"
+ 	"github.com/docker/docker/pkg/mount"
+ )
+ 
+@@ -24,7 +25,7 @@ func init() {
+ 	graphdriver.Register("btrfs", Init)
+ }
+ 
+-func Init(home string, options []string) (graphdriver.Driver, error) {
++func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
+ 	rootdir := path.Dir(home)
+ 
+ 	var buf syscall.Statfs_t
+@@ -36,7 +37,11 @@ func Init(home string, options []string) (graphdriver.Driver, error) {
+ 		return nil, graphdriver.ErrPrerequisites
+ 	}
+ 
+-	if err := os.MkdirAll(home, 0700); err != nil {
++	rootUid, rootGid, err := idtools.GetRootUidGid(uidMaps, gidMaps)
++	if err != nil {
++		return nil, err
++	}
++	if err := idtools.MkdirAllAs(home, 0700, rootUid, rootGid); err != nil {
+ 		return nil, err
+ 	}
+ 
+@@ -45,14 +50,18 @@ func Init(home string, options []string) (graphdriver.Driver, error) {
+ 	}
+ 
+ 	driver := &Driver{
+-		home: home,
++		home:    home,
++		uidMaps: uidMaps,
++		gidMaps: gidMaps,
+ 	}
+ 
+-	return graphdriver.NaiveDiffDriver(driver), nil
++	return graphdriver.NaiveDiffDriver(driver, uidMaps, gidMaps), nil
+ }
+ 
+ type Driver struct {
+-	home string
++	home    string
++	uidMaps []idtools.IDMap
++	gidMaps []idtools.IDMap
+ }
+ 
+ func (d *Driver) String() string {
+diff --git a/daemon/graphdriver/devmapper/deviceset.go b/daemon/graphdriver/devmapper/deviceset.go
+index 2480517..cc4ebee 100644
+--- a/daemon/graphdriver/devmapper/deviceset.go
++++ b/daemon/graphdriver/devmapper/deviceset.go
+@@ -19,11 +19,13 @@ import (
+ 	"time"
+ 
+ 	"github.com/Sirupsen/logrus"
++	"github.com/docker/libcontainer/label"
++
+ 	"github.com/docker/docker/daemon/graphdriver"
+ 	"github.com/docker/docker/pkg/devicemapper"
++	"github.com/docker/docker/pkg/idtools"
+ 	"github.com/docker/docker/pkg/parsers"
+ 	"github.com/docker/docker/pkg/units"
+-	"github.com/docker/libcontainer/label"
+ )
+ 
+ var (
+@@ -106,6 +108,8 @@ type DeviceSet struct {
+ 	Transaction           `json:"-"`
+ 	overrideUdevSyncCheck bool
+ 	deferredRemove        bool // use deferred removal
++	uidMaps               []idtools.IDMap
++	gidMaps               []idtools.IDMap
+ }
+ 
+ type DiskUsage struct {
+@@ -207,7 +211,11 @@ func (devices *DeviceSet) ensureImage(name string, size int64) (string, error) {
+ 	dirname := devices.loopbackDir()
+ 	filename := path.Join(dirname, name)
+ 
+-	if err := os.MkdirAll(dirname, 0700); err != nil && !os.IsExist(err) {
++	uid, gid, err := idtools.GetRootUidGid(devices.uidMaps, devices.gidMaps)
++	if err != nil {
++		return "", err
++	}
++	if err := idtools.MkdirAllAs(dirname, 0700, uid, gid); err != nil && !os.IsExist(err) {
+ 		return "", err
+ 	}
+ 
+@@ -1039,6 +1047,15 @@ func (devices *DeviceSet) initDevmapper(doInit bool) error {
+ 		}
+ 	}
+ 
++	//create the root dir of the devmapper driver ownership to match this
++	//daemon's remapped root uid/gid so containers can start properly
++	uid, gid, err := idtools.GetRootUidGid(devices.uidMaps, devices.gidMaps)
++	if err != nil {
++		return err
++	}
++	if err := idtools.MkdirAs(devices.root, 0700, uid, gid); err != nil && !os.IsExist(err) {
++		return err
++	}
+ 	if err := os.MkdirAll(devices.metadataDir(), 0700); err != nil && !os.IsExist(err) {
+ 		return err
+ 	}
+@@ -1700,7 +1717,7 @@ func (devices *DeviceSet) Status() *Status {
+ 	return status
+ }
+ 
+-func NewDeviceSet(root string, doInit bool, options []string) (*DeviceSet, error) {
++func NewDeviceSet(root string, doInit bool, options []string, uidMaps, gidMaps []idtools.IDMap) (*DeviceSet, error) {
+ 	devicemapper.SetDevDir("/dev")
+ 
+ 	devices := &DeviceSet{
+@@ -1714,6 +1731,8 @@ func NewDeviceSet(root string, doInit bool, options []string) (*DeviceSet, error
+ 		doBlkDiscard:          true,
+ 		thinpBlockSize:        DefaultThinpBlockSize,
+ 		deviceIdMap:           make([]byte, DeviceIdMapSz),
++		uidMaps:               uidMaps,
++		gidMaps:               gidMaps,
+ 	}
+ 
+ 	foundBlkDiscard := false
+diff --git a/daemon/graphdriver/devmapper/driver.go b/daemon/graphdriver/devmapper/driver.go
+index bdf7f87..0c438ce 100644
+--- a/daemon/graphdriver/devmapper/driver.go
++++ b/daemon/graphdriver/devmapper/driver.go
+@@ -9,8 +9,10 @@ import (
+ 	"path"
+ 
+ 	"github.com/Sirupsen/logrus"
++
+ 	"github.com/docker/docker/daemon/graphdriver"
+ 	"github.com/docker/docker/pkg/devicemapper"
++	"github.com/docker/docker/pkg/idtools"
+ 	"github.com/docker/docker/pkg/mount"
+ 	"github.com/docker/docker/pkg/units"
+ )
+@@ -26,12 +28,14 @@ func init() {
+ 
+ type Driver struct {
+ 	*DeviceSet
+-	home string
++	home    string
++	uidMaps []idtools.IDMap
++	gidMaps []idtools.IDMap
+ }
+ 
+ var backingFs = "<unknown>"
+ 
+-func Init(home string, options []string) (graphdriver.Driver, error) {
++func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
+ 	fsMagic, err := graphdriver.GetFSMagic(home)
+ 	if err != nil {
+ 		return nil, err
+@@ -40,7 +44,7 @@ func Init(home string, options []string) (graphdriver.Driver, error) {
+ 		backingFs = fsName
+ 	}
+ 
+-	deviceSet, err := NewDeviceSet(home, true, options)
++	deviceSet, err := NewDeviceSet(home, true, options, uidMaps, gidMaps)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -52,9 +56,11 @@ func Init(home string, options []string) (graphdriver.Driver, error) {
+ 	d := &Driver{
+ 		DeviceSet: deviceSet,
+ 		home:      home,
++		uidMaps:   uidMaps,
++		gidMaps:   gidMaps,
+ 	}
+ 
+-	return graphdriver.NaiveDiffDriver(d), nil
++	return graphdriver.NaiveDiffDriver(d, uidMaps, gidMaps), nil
+ }
+ 
+ func (d *Driver) String() string {
+@@ -133,8 +139,15 @@ func (d *Driver) Remove(id string) error {
+ func (d *Driver) Get(id, mountLabel string) (string, error) {
+ 	mp := path.Join(d.home, "mnt", id)
+ 
++	uid, gid, err := idtools.GetRootUidGid(d.uidMaps, d.gidMaps)
++	if err != nil {
++		return "", err
++	}
+ 	// Create the target directories if they don't exist
+-	if err := os.MkdirAll(mp, 0755); err != nil && !os.IsExist(err) {
++	if err := idtools.MkdirAllAs(path.Join(d.home, "mnt"), 0755, uid, gid); err != nil && !os.IsExist(err) {
++		return "", err
++	}
++	if err := idtools.MkdirAs(mp, 0755, uid, gid); err != nil && !os.IsExist(err) {
+ 		return "", err
+ 	}
+ 
+@@ -144,7 +157,7 @@ func (d *Driver) Get(id, mountLabel string) (string, error) {
+ 	}
+ 
+ 	rootFs := path.Join(mp, "rootfs")
+-	if err := os.MkdirAll(rootFs, 0755); err != nil && !os.IsExist(err) {
++	if err := idtools.MkdirAllAs(rootFs, 0755, uid, gid); err != nil && !os.IsExist(err) {
+ 		d.DeviceSet.UnmountDevice(id)
+ 		return "", err
+ 	}
+diff --git a/daemon/graphdriver/driver.go b/daemon/graphdriver/driver.go
+index 399a050..228eac6 100644
+--- a/daemon/graphdriver/driver.go
++++ b/daemon/graphdriver/driver.go
+@@ -8,7 +8,9 @@ import (
+ 	"strings"
+ 
+ 	"github.com/Sirupsen/logrus"
++
+ 	"github.com/docker/docker/pkg/archive"
++	"github.com/docker/docker/pkg/idtools"
+ )
+ 
+ type FsMagic uint32
+@@ -70,7 +72,7 @@ var (
+ 	}
+ )
+ 
+-type InitFunc func(root string, options []string) (Driver, error)
++type InitFunc func(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (Driver, error)
+ 
+ // ProtoDriver defines the basic capabilities of a driver.
+ // This interface exists solely to be a minimum set of methods
+@@ -137,18 +139,18 @@ func Register(name string, initFunc InitFunc) error {
+ 	return nil
+ }
+ 
+-func GetDriver(name, home string, options []string) (Driver, error) {
++func GetDriver(name, home string, options []string, uidMaps, gidMaps []idtools.IDMap) (Driver, error) {
+ 	if initFunc, exists := drivers[name]; exists {
+-		return initFunc(path.Join(home, name), options)
++		return initFunc(path.Join(home, name), options, uidMaps, gidMaps)
+ 	}
+ 	return nil, ErrNotSupported
+ }
+ 
+-func New(root string, options []string) (driver Driver, err error) {
++func New(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (driver Driver, err error) {
+ 	for _, name := range []string{os.Getenv("DOCKER_DRIVER"), DefaultDriver} {
+ 		if name != "" {
+ 			logrus.Debugf("[graphdriver] trying provided driver %q", name) // so the logs show specified driver
+-			return GetDriver(name, root, options)
++			return GetDriver(name, root, options, uidMaps, gidMaps)
+ 		}
+ 	}
+ 
+@@ -163,7 +165,7 @@ func New(root string, options []string) (driver Driver, err error) {
+ 			// of the state found from prior drivers, check in order of our priority
+ 			// which we would prefer
+ 			if prior == name {
+-				driver, err = GetDriver(name, root, options)
++				driver, err = GetDriver(name, root, options, uidMaps, gidMaps)
+ 				if err != nil {
+ 					// unlike below, we will return error here, because there is prior
+ 					// state, and now it is no longer supported/prereq/compatible, so
+@@ -183,7 +185,7 @@ func New(root string, options []string) (driver Driver, err error) {
+ 
+ 	// Check for priority drivers first
+ 	for _, name := range priority {
+-		driver, err = GetDriver(name, root, options)
++		driver, err = GetDriver(name, root, options, uidMaps, gidMaps)
+ 		if err != nil {
+ 			if err == ErrNotSupported || err == ErrPrerequisites || err == ErrIncompatibleFS {
+ 				continue
+@@ -195,7 +197,7 @@ func New(root string, options []string) (driver Driver, err error) {
+ 
+ 	// Check all registered drivers if no priority driver is found
+ 	for _, initFunc := range drivers {
+-		if driver, err = initFunc(root, options); err != nil {
++		if driver, err = initFunc(root, options, uidMaps, gidMaps); err != nil {
+ 			if err == ErrNotSupported || err == ErrPrerequisites || err == ErrIncompatibleFS {
+ 				continue
+ 			}
+diff --git a/daemon/graphdriver/fsdiff.go b/daemon/graphdriver/fsdiff.go
+index e091e61..e88b456 100644
+--- a/daemon/graphdriver/fsdiff.go
++++ b/daemon/graphdriver/fsdiff.go
+@@ -6,8 +6,10 @@ import (
+ 	"time"
+ 
+ 	"github.com/Sirupsen/logrus"
++
+ 	"github.com/docker/docker/pkg/archive"
+ 	"github.com/docker/docker/pkg/chrootarchive"
++	"github.com/docker/docker/pkg/idtools"
+ 	"github.com/docker/docker/pkg/ioutils"
+ )
+ 
+@@ -18,6 +20,8 @@ import (
+ // Notably, the AUFS driver doesn't need to be wrapped like this.
+ type naiveDiffDriver struct {
+ 	ProtoDriver
++	uidMaps []idtools.IDMap
++	gidMaps []idtools.IDMap
+ }
+ 
+ // NaiveDiffDriver returns a fully functional driver that wraps the
+@@ -27,8 +31,10 @@ type naiveDiffDriver struct {
+ //     Changes(id, parent string) ([]archive.Change, error)
+ //     ApplyDiff(id, parent string, diff archive.ArchiveReader) (size int64, err error)
+ //     DiffSize(id, parent string) (size int64, err error)
+-func NaiveDiffDriver(driver ProtoDriver) Driver {
+-	return &naiveDiffDriver{ProtoDriver: driver}
++func NaiveDiffDriver(driver ProtoDriver, uidMaps, gidMaps []idtools.IDMap) Driver {
++	return &naiveDiffDriver{ProtoDriver: driver,
++		uidMaps: uidMaps,
++		gidMaps: gidMaps}
+ }
+ 
+ // Diff produces an archive of the changes between the specified
+@@ -70,7 +76,7 @@ func (gdw *naiveDiffDriver) Diff(id, parent string) (arch archive.Archive, err e
+ 		return nil, err
+ 	}
+ 
+-	archive, err := archive.ExportChanges(layerFs, changes)
++	archive, err := archive.ExportChanges(layerFs, changes, gdw.uidMaps, gdw.gidMaps)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -119,9 +125,11 @@ func (gdw *naiveDiffDriver) ApplyDiff(id, parent string, diff archive.ArchiveRea
+ 	}
+ 	defer driver.Put(id)
+ 
++	options := &archive.TarOptions{UidMaps: gdw.uidMaps,
++		GidMaps: gdw.gidMaps}
+ 	start := time.Now().UTC()
+ 	logrus.Debugf("Start untar layer")
+-	if size, err = chrootarchive.ApplyLayer(layerFs, diff); err != nil {
++	if size, err = chrootarchive.ApplyLayer(layerFs, diff, options); err != nil {
+ 		return
+ 	}
+ 	logrus.Debugf("Untar time: %vs", time.Now().UTC().Sub(start).Seconds())
+diff --git a/daemon/graphdriver/overlay/overlay.go b/daemon/graphdriver/overlay/overlay.go
+index 5b0d3b7..d00d6d0 100644
+--- a/daemon/graphdriver/overlay/overlay.go
++++ b/daemon/graphdriver/overlay/overlay.go
+@@ -13,10 +13,12 @@ import (
+ 	"syscall"
+ 
+ 	"github.com/Sirupsen/logrus"
++	"github.com/docker/libcontainer/label"
++
+ 	"github.com/docker/docker/daemon/graphdriver"
+ 	"github.com/docker/docker/pkg/archive"
+ 	"github.com/docker/docker/pkg/chrootarchive"
+-	"github.com/docker/libcontainer/label"
++	"github.com/docker/docker/pkg/idtools"
+ )
+ 
+ // This is a small wrapper over the NaiveDiffWriter that lets us have a custom
+@@ -36,9 +38,9 @@ type naiveDiffDriverWithApply struct {
+ 	applyDiff ApplyDiffProtoDriver
+ }
+ 
+-func NaiveDiffDriverWithApply(driver ApplyDiffProtoDriver) graphdriver.Driver {
++func NaiveDiffDriverWithApply(driver ApplyDiffProtoDriver, uidMaps, gidMaps []idtools.IDMap) graphdriver.Driver {
+ 	return &naiveDiffDriverWithApply{
+-		Driver:    graphdriver.NaiveDiffDriver(driver),
++		Driver:    graphdriver.NaiveDiffDriver(driver, uidMaps, gidMaps),
+ 		applyDiff: driver,
+ 	}
+ }
+@@ -88,6 +90,8 @@ type Driver struct {
+ 	home       string
+ 	sync.Mutex // Protects concurrent modification to active
+ 	active     map[string]*ActiveMount
++	uidMaps    []idtools.IDMap
++	gidMaps    []idtools.IDMap
+ }
+ 
+ var backingFs = "<unknown>"
+@@ -96,7 +100,7 @@ func init() {
+ 	graphdriver.Register("overlay", Init)
+ }
+ 
+-func Init(home string, options []string) (graphdriver.Driver, error) {
++func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
+ 
+ 	if err := supportsOverlay(); err != nil {
+ 		return nil, graphdriver.ErrNotSupported
+@@ -123,17 +127,23 @@ func Init(home string, options []string) (graphdriver.Driver, error) {
+ 		return nil, graphdriver.ErrIncompatibleFS
+ 	}
+ 
++	rootUid, rootGid, err := idtools.GetRootUidGid(uidMaps, gidMaps)
++	if err != nil {
++		return nil, err
++	}
+ 	// Create the driver home dir
+-	if err := os.MkdirAll(home, 0755); err != nil && !os.IsExist(err) {
++	if err := idtools.MkdirAllAs(home, 0755, rootUid, rootGid); err != nil && !os.IsExist(err) {
+ 		return nil, err
+ 	}
+ 
+ 	d := &Driver{
+-		home:   home,
+-		active: make(map[string]*ActiveMount),
++		home:    home,
++		active:  make(map[string]*ActiveMount),
++		uidMaps: uidMaps,
++		gidMaps: gidMaps,
+ 	}
+ 
+-	return NaiveDiffDriverWithApply(d), nil
++	return NaiveDiffDriverWithApply(d, uidMaps, gidMaps), nil
+ }
+ 
+ func supportsOverlay() error {
+@@ -173,10 +183,15 @@ func (d *Driver) Cleanup() error {
+ 
+ func (d *Driver) Create(id string, parent string) (retErr error) {
+ 	dir := d.dir(id)
+-	if err := os.MkdirAll(path.Dir(dir), 0700); err != nil {
++
++	rootUid, rootGid, err := idtools.GetRootUidGid(d.uidMaps, d.gidMaps)
++	if err != nil {
++		return err
++	}
++	if err := idtools.MkdirAllAs(path.Dir(dir), 0700, rootUid, rootGid); err != nil {
+ 		return err
+ 	}
+-	if err := os.Mkdir(dir, 0700); err != nil {
++	if err := idtools.MkdirAs(dir, 0700, rootUid, rootGid); err != nil {
+ 		return err
+ 	}
+ 
+@@ -189,7 +204,7 @@ func (d *Driver) Create(id string, parent string) (retErr error) {
+ 
+ 	// Toplevel images are just a "root" dir
+ 	if parent == "" {
+-		if err := os.Mkdir(path.Join(dir, "root"), 0755); err != nil {
++		if err := idtools.MkdirAs(path.Join(dir, "root"), 0755, rootUid, rootGid); err != nil {
+ 			return err
+ 		}
+ 		return nil
+@@ -212,7 +227,7 @@ func (d *Driver) Create(id string, parent string) (retErr error) {
+ 		if err := os.Mkdir(path.Join(dir, "work"), 0700); err != nil {
+ 			return err
+ 		}
+-		if err := os.Mkdir(path.Join(dir, "merged"), 0700); err != nil {
++		if err := idtools.MkdirAs(path.Join(dir, "merged"), 0700, rootUid, rootGid); err != nil {
+ 			return err
+ 		}
+ 		if err := ioutil.WriteFile(path.Join(dir, "lower-id"), []byte(parent), 0666); err != nil {
+@@ -245,7 +260,7 @@ func (d *Driver) Create(id string, parent string) (retErr error) {
+ 	if err := os.Mkdir(path.Join(dir, "work"), 0700); err != nil {
+ 		return err
+ 	}
+-	if err := os.Mkdir(path.Join(dir, "merged"), 0700); err != nil {
++	if err := idtools.MkdirAs(path.Join(dir, "merged"), 0700, rootUid, rootGid); err != nil {
+ 		return err
+ 	}
+ 
+@@ -375,7 +390,8 @@ func (d *Driver) ApplyDiff(id string, parent string, diff archive.ArchiveReader)
+ 		return 0, err
+ 	}
+ 
+-	if size, err = chrootarchive.ApplyLayer(tmpRootDir, diff); err != nil {
++	options := &archive.TarOptions{UidMaps: d.uidMaps, GidMaps: d.gidMaps}
++	if size, err = chrootarchive.ApplyLayer(tmpRootDir, diff, options); err != nil {
+ 		return 0, err
+ 	}
+ 
+diff --git a/daemon/graphdriver/vfs/driver.go b/daemon/graphdriver/vfs/driver.go
+index 47d70fd..46ce44b 100644
+--- a/daemon/graphdriver/vfs/driver.go
++++ b/daemon/graphdriver/vfs/driver.go
+@@ -5,24 +5,37 @@ import (
+ 	"os"
+ 	"path"
+ 
++	"github.com/docker/libcontainer/label"
++
+ 	"github.com/docker/docker/daemon/graphdriver"
+ 	"github.com/docker/docker/pkg/chrootarchive"
+-	"github.com/docker/libcontainer/label"
++	"github.com/docker/docker/pkg/idtools"
+ )
+ 
+ func init() {
+ 	graphdriver.Register("vfs", Init)
+ }
+ 
+-func Init(home string, options []string) (graphdriver.Driver, error) {
++func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
+ 	d := &Driver{
+-		home: home,
++		home:    home,
++		uidMaps: uidMaps,
++		gidMaps: gidMaps,
++	}
++	rootUid, rootGid, err := idtools.GetRootUidGid(uidMaps, gidMaps)
++	if err != nil {
++		return nil, err
+ 	}
+-	return graphdriver.NaiveDiffDriver(d), nil
++	if err := idtools.MkdirAllAs(home, 0700, rootUid, rootGid); err != nil {
++		return nil, err
++	}
++	return graphdriver.NaiveDiffDriver(d, uidMaps, gidMaps), nil
+ }
+ 
+ type Driver struct {
+-	home string
++	home    string
++	uidMaps []idtools.IDMap
++	gidMaps []idtools.IDMap
+ }
+ 
+ func (d *Driver) String() string {
+@@ -39,10 +52,14 @@ func (d *Driver) Cleanup() error {
+ 
+ func (d *Driver) Create(id, parent string) error {
+ 	dir := d.dir(id)
+-	if err := os.MkdirAll(path.Dir(dir), 0700); err != nil {
++	rootUid, rootGid, err := idtools.GetRootUidGid(d.uidMaps, d.gidMaps)
++	if err != nil {
++		return err
++	}
++	if err := idtools.MkdirAllAs(path.Dir(dir), 0700, rootUid, rootGid); err != nil {
+ 		return err
+ 	}
+-	if err := os.Mkdir(dir, 0755); err != nil {
++	if err := idtools.MkdirAs(dir, 0755, rootUid, rootGid); err != nil {
+ 		return err
+ 	}
+ 	opts := []string{"level:s0"}
+diff --git a/graph/graph.go b/graph/graph.go
+index e95887f..6c789fe 100644
+--- a/graph/graph.go
++++ b/graph/graph.go
+@@ -19,10 +19,10 @@ import (
+ 	"github.com/docker/docker/daemon/graphdriver"
+ 	"github.com/docker/docker/image"
+ 	"github.com/docker/docker/pkg/archive"
++	"github.com/docker/docker/pkg/idtools"
+ 	"github.com/docker/docker/pkg/progressreader"
+ 	"github.com/docker/docker/pkg/streamformatter"
+ 	"github.com/docker/docker/pkg/stringid"
+-	"github.com/docker/docker/pkg/system"
+ 	"github.com/docker/docker/pkg/truncindex"
+ 	"github.com/docker/docker/runconfig"
+ )
+@@ -32,17 +32,24 @@ type Graph struct {
+ 	Root    string
+ 	idIndex *truncindex.TruncIndex
+ 	driver  graphdriver.Driver
++	uidMaps []idtools.IDMap
++	gidMaps []idtools.IDMap
+ }
+ 
+ // NewGraph instantiates a new graph at the given root path in the filesystem.
+ // `root` will be created if it doesn't exist.
+-func NewGraph(root string, driver graphdriver.Driver) (*Graph, error) {
++func NewGraph(root string, driver graphdriver.Driver, uidMaps, gidMaps []idtools.IDMap) (*Graph, error) {
+ 	abspath, err := filepath.Abs(root)
+ 	if err != nil {
+ 		return nil, err
+ 	}
++
++	rootUid, rootGid, err := idtools.GetRootUidGid(uidMaps, gidMaps)
++	if err != nil {
++		return nil, err
++	}
+ 	// Create the root directory if it doesn't exists
+-	if err := system.MkdirAll(root, 0700); err != nil && !os.IsExist(err) {
++	if err := idtools.MkdirAllAs(root, 0700, rootUid, rootGid); err != nil && !os.IsExist(err) {
+ 		return nil, err
+ 	}
+ 
+@@ -50,6 +57,8 @@ func NewGraph(root string, driver graphdriver.Driver) (*Graph, error) {
+ 		Root:    abspath,
+ 		idIndex: truncindex.NewTruncIndex([]string{}),
+ 		driver:  driver,
++		uidMaps: uidMaps,
++		gidMaps: gidMaps,
+ 	}
+ 	if err := graph.restore(); err != nil {
+ 		return nil, err
+@@ -230,7 +239,11 @@ func (graph *Graph) TempLayerArchive(id string, sf *streamformatter.StreamFormat
+ // Mktemp creates a temporary sub-directory inside the graph's filesystem.
+ func (graph *Graph) Mktemp(id string) (string, error) {
+ 	dir := filepath.Join(graph.Root, "_tmp", stringid.GenerateRandomID())
+-	if err := system.MkdirAll(dir, 0700); err != nil {
++	rootUid, rootGid, err := idtools.GetRootUidGid(graph.uidMaps, graph.gidMaps)
++	if err != nil {
++		return "", err
++	}
++	if err := idtools.MkdirAllAs(dir, 0700, rootUid, rootGid); err != nil {
+ 		return "", err
+ 	}
+ 	return dir, nil
+@@ -270,7 +283,7 @@ func bufferToFile(f *os.File, src io.Reader) (int64, digest.Digest, error) {
+ //
+ // This extra layer is used by all containers as the top-most ro layer. It protects
+ // the container from unwanted side-effects on the rw layer.
+-func SetupInitLayer(initLayer string) error {
++func SetupInitLayer(initLayer string, rootUid, rootGid int) error {
+ 	for pth, typ := range map[string]string{
+ 		"/dev/pts":         "dir",
+ 		"/dev/shm":         "dir",
+@@ -293,12 +306,12 @@ func SetupInitLayer(initLayer string) error {
+ 
+ 		if _, err := os.Stat(filepath.Join(initLayer, pth)); err != nil {
+ 			if os.IsNotExist(err) {
+-				if err := system.MkdirAll(filepath.Join(initLayer, filepath.Dir(pth)), 0755); err != nil {
++				if err := idtools.MkdirAllAs(filepath.Join(initLayer, filepath.Dir(pth)), 0755, rootUid, rootGid); err != nil {
+ 					return err
+ 				}
+ 				switch typ {
+ 				case "dir":
+-					if err := system.MkdirAll(filepath.Join(initLayer, pth), 0755); err != nil {
++					if err := idtools.MkdirAllAs(filepath.Join(initLayer, pth), 0755, rootUid, rootGid); err != nil {
+ 						return err
+ 					}
+ 				case "file":
+@@ -307,6 +320,7 @@ func SetupInitLayer(initLayer string) error {
+ 						return err
+ 					}
+ 					f.Close()
++					f.Chown(rootUid, rootGid)
+ 				default:
+ 					if err := os.Symlink(typ, filepath.Join(initLayer, pth)); err != nil {
+ 						return err
+diff --git a/pkg/archive/archive.go b/pkg/archive/archive.go
+index 76d52c0..26899b2 100644
+--- a/pkg/archive/archive.go
++++ b/pkg/archive/archive.go
+@@ -19,6 +19,7 @@ import (
+ 
+ 	"github.com/Sirupsen/logrus"
+ 	"github.com/docker/docker/pkg/fileutils"
++	"github.com/docker/docker/pkg/idtools"
+ 	"github.com/docker/docker/pkg/pools"
+ 	"github.com/docker/docker/pkg/promise"
+ 	"github.com/docker/docker/pkg/system"
+@@ -34,6 +35,8 @@ type (
+ 		Compression     Compression
+ 		NoLchown        bool
+ 		Name            string
++		UidMaps         []idtools.IDMap
++		GidMaps         []idtools.IDMap
+ 	}
+ 
+ 	// Archiver allows the reuse of most utility functions of this package
+@@ -169,6 +172,8 @@ type tarAppender struct {
+ 
+ 	// for hardlink mapping
+ 	SeenFiles map[uint64]string
++	UidMaps   []idtools.IDMap
++	GidMaps   []idtools.IDMap
+ }
+ 
+ // canonicalTarName provides a platform-independent and consistent posix-style
+@@ -236,6 +241,25 @@ func (ta *tarAppender) addTarFile(path, name string) error {
+ 		hdr.Xattrs["security.capability"] = string(capability)
+ 	}
+ 
++	//handle re-mapping container ID mappings back to host ID mappings before
++	//writing tar headers/files
++	if ta.UidMaps != nil || ta.GidMaps != nil {
++		uid, gid, err := getFileUidGid(fi.Sys())
++		if err != nil {
++			return err
++		}
++		xUid, err := idtools.TranslateIDToContainer(uid, ta.UidMaps)
++		if err != nil {
++			return err
++		}
++		xGid, err := idtools.TranslateIDToContainer(gid, ta.GidMaps)
++		if err != nil {
++			return err
++		}
++		hdr.Uid = xUid
++		hdr.Gid = xGid
++	}
++
+ 	if err := ta.TarWriter.WriteHeader(hdr); err != nil {
+ 		return err
+ 	}
+@@ -409,6 +433,8 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error)
+ 			TarWriter: tar.NewWriter(compressWriter),
+ 			Buffer:    pools.BufioWriter32KPool.Get(nil),
+ 			SeenFiles: make(map[uint64]string),
++			UidMaps:   options.UidMaps,
++			GidMaps:   options.GidMaps,
+ 		}
+ 		// this buffer is needed for the duration of this piped stream
+ 		defer pools.BufioWriter32KPool.Put(ta.Buffer)
+@@ -562,6 +588,22 @@ loop:
+ 			}
+ 		}
+ 		trBuf.Reset(tr)
++		// if the options contain a unique uid, gid for untar, pass them in via the hdr
++		// so lchown sets the requested uid/gid after writing the file
++		if options.UidMaps != nil {
++			xUid, err := idtools.TranslateIDToHost(hdr.Uid, options.UidMaps)
++			if err != nil {
++				return err
++			}
++			hdr.Uid = xUid
++		}
++		if options.GidMaps != nil {
++			xGid, err := idtools.TranslateIDToHost(hdr.Gid, options.GidMaps)
++			if err != nil {
++				return err
++			}
++			hdr.Gid = xGid
++		}
+ 		if err := createTarFile(path, dest, hdr, trBuf, !options.NoLchown); err != nil {
+ 			return err
+ 		}
+diff --git a/pkg/archive/archive_unix.go b/pkg/archive/archive_unix.go
+index 6dc96a4..ceaa3ff 100644
+--- a/pkg/archive/archive_unix.go
++++ b/pkg/archive/archive_unix.go
+@@ -44,6 +44,15 @@ func setHeaderForSpecialDevice(hdr *tar.Header, ta *tarAppender, name string, st
+ 	return
+ }
+ 
++func getFileUidGid(stat interface{}) (int, int, error) {
++	s, ok := stat.(*syscall.Stat_t)
++
++	if !ok {
++		return -1, -1, errors.New("cannot convert stat value to syscall.Stat_t")
++	}
++	return int(s.Uid), int(s.Gid), nil
++}
++
+ func major(device uint64) uint64 {
+ 	return (device >> 8) & 0xfff
+ }
+diff --git a/pkg/archive/archive_windows.go b/pkg/archive/archive_windows.go
+index 593346d..0535d62 100644
+--- a/pkg/archive/archive_windows.go
++++ b/pkg/archive/archive_windows.go
+@@ -38,3 +38,8 @@ func setHeaderForSpecialDevice(hdr *tar.Header, ta *tarAppender, name string, st
+ 	// do nothing. no notion of Rdev, Inode, Nlink in stat on Windows
+ 	return
+ }
++
++func getFileUidGid(stat interface{}) (int, int, error) {
++	// no notion of file ownership mapping yet on Windows
++	return 0, 0, nil
++}
+diff --git a/pkg/archive/changes.go b/pkg/archive/changes.go
+index d03af0f..e991502 100644
+--- a/pkg/archive/changes.go
++++ b/pkg/archive/changes.go
+@@ -13,6 +13,7 @@ import (
+ 	"time"
+ 
+ 	"github.com/Sirupsen/logrus"
++	"github.com/docker/docker/pkg/idtools"
+ 	"github.com/docker/docker/pkg/pools"
+ 	"github.com/docker/docker/pkg/system"
+ )
+@@ -369,13 +370,15 @@ func ChangesSize(newDir string, changes []Change) int64 {
+ }
+ 
+ // ExportChanges produces an Archive from the provided changes, relative to dir.
+-func ExportChanges(dir string, changes []Change) (Archive, error) {
++func ExportChanges(dir string, changes []Change, uidMaps, gidMaps []idtools.IDMap) (Archive, error) {
+ 	reader, writer := io.Pipe()
+ 	go func() {
+ 		ta := &tarAppender{
+ 			TarWriter: tar.NewWriter(writer),
+ 			Buffer:    pools.BufioWriter32KPool.Get(nil),
+ 			SeenFiles: make(map[uint64]string),
++			UidMaps:   uidMaps,
++			GidMaps:   gidMaps,
+ 		}
+ 		// this buffer is needed for the duration of this piped stream
+ 		defer pools.BufioWriter32KPool.Put(ta.Buffer)
+diff --git a/pkg/archive/diff.go b/pkg/archive/diff.go
+index a8314bc..cffdd85 100644
+--- a/pkg/archive/diff.go
++++ b/pkg/archive/diff.go
+@@ -10,11 +10,12 @@ import (
+ 	"strings"
+ 	"syscall"
+ 
++	"github.com/docker/docker/pkg/idtools"
+ 	"github.com/docker/docker/pkg/pools"
+ 	"github.com/docker/docker/pkg/system"
+ )
+ 
+-func UnpackLayer(dest string, layer ArchiveReader) (size int64, err error) {
++func UnpackLayer(dest string, layer ArchiveReader, options *TarOptions) (size int64, err error) {
+ 	tr := tar.NewReader(layer)
+ 	trBuf := pools.BufioReader32KPool.Get(tr)
+ 	defer pools.BufioReader32KPool.Put(trBuf)
+@@ -124,6 +125,22 @@ func UnpackLayer(dest string, layer ArchiveReader) (size int64, err error) {
+ 				srcData = tmpFile
+ 			}
+ 
++			//if options has a specific uid/gid, then set the hdr uid/gid so that
++			//the Lchown sets the ownership as requested
++			if options.UidMaps != nil {
++				xUid, err := idtools.TranslateIDToHost(srcHdr.Uid, options.UidMaps)
++				if err != nil {
++					return 0, err
++				}
++				srcHdr.Uid = xUid
++			}
++			if options.GidMaps != nil {
++				xGid, err := idtools.TranslateIDToHost(srcHdr.Gid, options.GidMaps)
++				if err != nil {
++					return 0, err
++				}
++				srcHdr.Gid = xGid
++			}
+ 			if err := createTarFile(path, dest, srcHdr, srcData, true); err != nil {
+ 				return 0, err
+ 			}
+@@ -164,5 +181,5 @@ func ApplyLayer(dest string, layer ArchiveReader) (int64, error) {
+ 	if err != nil {
+ 		return 0, err
+ 	}
+-	return UnpackLayer(dest, layer)
++	return UnpackLayer(dest, layer, &TarOptions{})
+ }
+diff --git a/pkg/chrootarchive/diff.go b/pkg/chrootarchive/diff.go
+index 8d97c76..e24cb21 100644
+--- a/pkg/chrootarchive/diff.go
++++ b/pkg/chrootarchive/diff.go
+@@ -23,6 +23,12 @@ func applyLayer() {
+ 	runtime.LockOSThread()
+ 	flag.Parse()
+ 
++	var options *archive.TarOptions
++
++	if err := json.Unmarshal([]byte(os.Getenv("OPT")), &options); err != nil {
++		fatal(err)
++	}
++
+ 	if err := chroot(flag.Arg(0)); err != nil {
+ 		fatal(err)
+ 	}
+@@ -36,7 +42,7 @@ func applyLayer() {
+ 	}
+ 
+ 	os.Setenv("TMPDIR", tmpDir)
+-	size, err := archive.UnpackLayer("/", os.Stdin)
++	size, err := archive.UnpackLayer("/", os.Stdin, options)
+ 	os.RemoveAll(tmpDir)
+ 	if err != nil {
+ 		fatal(err)
+@@ -52,7 +58,7 @@ func applyLayer() {
+ 	os.Exit(0)
+ }
+ 
+-func ApplyLayer(dest string, layer archive.ArchiveReader) (size int64, err error) {
++func ApplyLayer(dest string, layer archive.ArchiveReader, options *archive.TarOptions) (size int64, err error) {
+ 	dest = filepath.Clean(dest)
+ 	decompressed, err := archive.DecompressStream(layer)
+ 	if err != nil {
+@@ -60,9 +66,20 @@ func ApplyLayer(dest string, layer archive.ArchiveReader) (size int64, err error
+ 	}
+ 
+ 	defer decompressed.Close()
++	if options == nil {
++		options = &archive.TarOptions{}
++	}
++	if options.ExcludePatterns == nil {
++		options.ExcludePatterns = []string{}
++	}
+ 
++	data, err := json.Marshal(options)
++	if err != nil {
++		return 0, fmt.Errorf("ApplyLayer json encode: %v", err)
++	}
+ 	cmd := reexec.Command("docker-applyLayer", dest)
+ 	cmd.Stdin = decompressed
++	cmd.Env = append(cmd.Env, fmt.Sprintf("OPT=%s", data))
+ 
+ 	outBuf, errBuf := new(bytes.Buffer), new(bytes.Buffer)
+ 	cmd.Stdout, cmd.Stderr = outBuf, errBuf
+diff --git a/pkg/idtools/idtools.go b/pkg/idtools/idtools.go
+index a55bf7b..78fccbf 100644
+--- a/pkg/idtools/idtools.go
++++ b/pkg/idtools/idtools.go
+@@ -4,6 +4,8 @@ import (
+ 	"fmt"
+ 	"math"
+ 	"os"
++
++	"github.com/docker/docker/pkg/system"
+ )
+ 
+ type IDMap struct {
+@@ -27,7 +29,7 @@ func MkdirAs(path string, mode os.FileMode, ownerUid, ownerGid int) error {
+ func mkdirAs(path string, mode os.FileMode, ownerUid, ownerGid int, mkAll bool) error {
+ 
+ 	if mkAll {
+-		if err := os.MkdirAll(path, mode); err != nil && !os.IsExist(err) {
++		if err := system.MkdirAll(path, mode); err != nil && !os.IsExist(err) {
+ 			return err
+ 		}
+ 	} else {
+
+From 1e0c810e37c1851ad5d81be5a5d15674ee8466ee Mon Sep 17 00:00:00 2001
+From: Phil Estes <estesp@linux.vnet.ibm.com>
+Date: Wed, 22 Apr 2015 14:24:04 -0400
+Subject: [PATCH 4/8] Add support for user namespaces in the builder
+
+Allows building Dockerfiles with remapped root in the daemon.  Correctly
+creates layers which are already properly owned by the remapped root.
+
+Docker-DCO-1.1-Signed-off-by: Phil Estes <estesp@linux.vnet.ibm.com> (github: estesp)
+---
+ builder/evaluator.go   | 20 +++++++++++---------
+ builder/internals.go   | 41 ++++++++++++++++++++++++++++++++---------
+ builder/job.go         | 12 ++++++++++++
+ daemon/daemon.go       |  4 ++++
+ pkg/archive/archive.go | 40 +++++++++++++++++++++++++++++++++++-----
+ 5 files changed, 94 insertions(+), 23 deletions(-)
+
+diff --git a/builder/evaluator.go b/builder/evaluator.go
+index 62f86bb..e52d4c5 100644
+--- a/builder/evaluator.go
++++ b/builder/evaluator.go
+@@ -32,6 +32,7 @@ import (
+ 	"github.com/docker/docker/builder/parser"
+ 	"github.com/docker/docker/cliconfig"
+ 	"github.com/docker/docker/daemon"
++	"github.com/docker/docker/pkg/archive"
+ 	"github.com/docker/docker/pkg/fileutils"
+ 	"github.com/docker/docker/pkg/streamformatter"
+ 	"github.com/docker/docker/pkg/stringid"
+@@ -110,15 +111,16 @@ type Builder struct {
+ 	// both of these are controlled by the Remove and ForceRemove options in BuildOpts
+ 	TmpContainers map[string]struct{} // a map of containers used for removes
+ 
+-	dockerfileName string        // name of Dockerfile
+-	dockerfile     *parser.Node  // the syntax tree of the dockerfile
+-	image          string        // image name for commit processing
+-	maintainer     string        // maintainer name. could probably be removed.
+-	cmdSet         bool          // indicates is CMD was set in current Dockerfile
+-	BuilderFlags   *BuilderFlags // current cmd's BuilderFlags - temporary
+-	context        tarsum.TarSum // the context is a tarball that is uploaded by the client
+-	contextPath    string        // the path of the temporary directory the local context is unpacked to (server side)
+-	noBaseImage    bool          // indicates that this build does not start from any base image, but is being built from an empty file system.
++	defaultArchiver *archive.Archiver // archive instance for encoding remapped root uid/gid settings
++	dockerfileName  string            // name of Dockerfile
++	dockerfile      *parser.Node      // the syntax tree of the dockerfile
++	image           string            // image name for commit processing
++	maintainer      string            // maintainer name. could probably be removed.
++	cmdSet          bool              // indicates is CMD was set in current Dockerfile
++	BuilderFlags    *BuilderFlags     // current cmd's BuilderFlags - temporary
++	context         tarsum.TarSum     // the context is a tarball that is uploaded by the client
++	contextPath     string            // the path of the temporary directory the local context is unpacked to (server side)
++	noBaseImage     bool              // indicates that this build does not start from any base image, but is being built from an empty file system.
+ 
+ 	// Set resource restrictions for build containers
+ 	cpuSetCpus   string
+diff --git a/builder/internals.go b/builder/internals.go
+index ff91ba9..c06559e 100644
+--- a/builder/internals.go
++++ b/builder/internals.go
+@@ -27,6 +27,7 @@ import (
+ 	"github.com/docker/docker/pkg/archive"
+ 	"github.com/docker/docker/pkg/chrootarchive"
+ 	"github.com/docker/docker/pkg/httputils"
++	"github.com/docker/docker/pkg/idtools"
+ 	"github.com/docker/docker/pkg/ioutils"
+ 	"github.com/docker/docker/pkg/jsonmessage"
+ 	"github.com/docker/docker/pkg/parsers"
+@@ -652,12 +653,22 @@ func (b *Builder) checkPathForAddition(orig string) error {
+ 
+ func (b *Builder) addContext(container *daemon.Container, orig, dest string, decompress bool) error {
+ 	var (
+-		err        error
++		err     error
++		rootUid int
++		rootGid int
++
+ 		destExists = true
+ 		origPath   = path.Join(b.contextPath, orig)
+ 		destPath   string
+ 	)
+ 
++	if b.defaultArchiver != nil {
++		rootUid, rootGid, err = idtools.GetRootUidGid(b.defaultArchiver.UidMaps, b.defaultArchiver.GidMaps)
++		if err != nil {
++			return err
++		}
++	}
++
+ 	destPath, err = container.GetResourcePath(dest)
+ 	if err != nil {
+ 		return err
+@@ -685,7 +696,7 @@ func (b *Builder) addContext(container *daemon.Container, orig, dest string, dec
+ 	}
+ 
+ 	if fi.IsDir() {
+-		return copyAsDirectory(origPath, destPath, destExists)
++		return copyAsDirectory(origPath, destPath, destExists, rootUid, rootGid, b.defaultArchiver)
+ 	}
+ 
+ 	// If we are adding a remote file (or we've been told not to decompress), do not try to untar it
+@@ -710,8 +721,14 @@ func (b *Builder) addContext(container *daemon.Container, orig, dest string, dec
+ 	if err := os.MkdirAll(path.Dir(destPath), 0755); err != nil {
+ 		return err
+ 	}
+-	if err := chrootarchive.CopyWithTar(origPath, destPath); err != nil {
+-		return err
++	if b.defaultArchiver != nil {
++		if err := b.defaultArchiver.CopyWithTar(origPath, destPath); err != nil {
++			return err
++		}
++	} else {
++		if err := chrootarchive.CopyWithTar(origPath, destPath); err != nil {
++			return err
++		}
+ 	}
+ 
+ 	resPath := destPath
+@@ -719,14 +736,20 @@ func (b *Builder) addContext(container *daemon.Container, orig, dest string, dec
+ 		resPath = path.Join(destPath, path.Base(origPath))
+ 	}
+ 
+-	return fixPermissions(origPath, resPath, 0, 0, destExists)
++	return fixPermissions(origPath, resPath, rootUid, rootGid, destExists)
+ }
+ 
+-func copyAsDirectory(source, destination string, destExisted bool) error {
+-	if err := chrootarchive.CopyWithTar(source, destination); err != nil {
+-		return err
++func copyAsDirectory(source, destination string, destExisted bool, rootUid, rootGid int, archiver *archive.Archiver) error {
++	if archiver != nil {
++		if err := archiver.CopyWithTar(source, destination); err != nil {
++			return err
++		}
++	} else {
++		if err := chrootarchive.CopyWithTar(source, destination); err != nil {
++			return err
++		}
+ 	}
+-	return fixPermissions(source, destination, 0, 0, destExisted)
++	return fixPermissions(source, destination, rootUid, rootGid, destExisted)
+ }
+ 
+ func fixPermissions(source, destination string, uid, gid int, destExisted bool) error {
+diff --git a/builder/job.go b/builder/job.go
+index c081dbe..3a521af 100644
+--- a/builder/job.go
++++ b/builder/job.go
+@@ -15,6 +15,7 @@ import (
+ 	"github.com/docker/docker/daemon"
+ 	"github.com/docker/docker/graph/tags"
+ 	"github.com/docker/docker/pkg/archive"
++	"github.com/docker/docker/pkg/chrootarchive"
+ 	"github.com/docker/docker/pkg/httputils"
+ 	"github.com/docker/docker/pkg/parsers"
+ 	"github.com/docker/docker/pkg/streamformatter"
+@@ -143,6 +144,16 @@ func Build(d *daemon.Daemon, buildConfig *Config) error {
+ 
+ 	sf := streamformatter.NewJSONStreamFormatter()
+ 
++	var defaultArchiver *archive.Archiver
++	uidMaps, gidMaps := d.GetUidGidMaps()
++	if uidMaps != nil || gidMaps != nil {
++		defaultArchiver = &archive.Archiver{
++			Untar:   chrootarchive.Untar,
++			UidMaps: uidMaps,
++			GidMaps: gidMaps,
++		}
++	}
++
+ 	builder := &Builder{
+ 		Daemon: d,
+ 		OutStream: &streamformatter.StdoutFormater{
+@@ -161,6 +172,7 @@ func Build(d *daemon.Daemon, buildConfig *Config) error {
+ 		OutOld:          buildConfig.Stdout,
+ 		StreamFormatter: sf,
+ 		AuthConfig:      buildConfig.AuthConfig,
++		defaultArchiver: defaultArchiver,
+ 		ConfigFile:      buildConfig.ConfigFile,
+ 		dockerfileName:  buildConfig.DockerfileName,
+ 		cpuShares:       buildConfig.CpuShares,
+diff --git a/daemon/daemon.go b/daemon/daemon.go
+index 88f8028..f70dc5e 100644
+--- a/daemon/daemon.go
++++ b/daemon/daemon.go
+@@ -1155,6 +1155,10 @@ func (daemon *Daemon) ContainerGraph() *graphdb.Database {
+ 	return daemon.containerGraph
+ }
+ 
++func (daemon *Daemon) GetUidGidMaps() ([]idtools.IDMap, []idtools.IDMap) {
++	return daemon.uidMaps, daemon.gidMaps
++}
++
+ func (daemon *Daemon) GetRemappedUidGid() (int, int) {
+ 	uid, gid, _ := idtools.GetRootUidGid(daemon.uidMaps, daemon.gidMaps)
+ 	return uid, gid
+diff --git a/pkg/archive/archive.go b/pkg/archive/archive.go
+index 26899b2..21f217b 100644
+--- a/pkg/archive/archive.go
++++ b/pkg/archive/archive.go
+@@ -40,9 +40,13 @@ type (
+ 	}
+ 
+ 	// Archiver allows the reuse of most utility functions of this package
+-	// with a pluggable Untar function.
++	// with a pluggable Untar function. Also, to facilitate the passing of
++	// specific id mappings for untar, an archiver can be created with maps
++	// which will then be passed to Untar operations
+ 	Archiver struct {
+-		Untar func(io.Reader, string, *TarOptions) error
++		Untar   func(io.Reader, string, *TarOptions) error
++		UidMaps []idtools.IDMap
++		GidMaps []idtools.IDMap
+ 	}
+ 
+ 	// breakoutError is used to differentiate errors related to breaking out
+@@ -53,7 +57,7 @@ type (
+ 
+ var (
+ 	ErrNotImplemented = errors.New("Function not implemented")
+-	defaultArchiver   = &Archiver{Untar}
++	defaultArchiver   = &Archiver{Untar: Untar, UidMaps: nil, GidMaps: nil}
+ )
+ 
+ const (
+@@ -656,7 +660,15 @@ func (archiver *Archiver) TarUntar(src, dst string) error {
+ 		return err
+ 	}
+ 	defer archive.Close()
+-	return archiver.Untar(archive, dst, nil)
++
++	var options *TarOptions
++	if archiver.UidMaps != nil || archiver.GidMaps != nil {
++		options = &TarOptions{
++			UidMaps: archiver.UidMaps,
++			GidMaps: archiver.GidMaps,
++		}
++	}
++	return archiver.Untar(archive, dst, options)
+ }
+ 
+ // TarUntar is a convenience function which calls Tar and Untar, with the output of one piped into the other.
+@@ -743,6 +755,17 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
+ 		hdr.Name = filepath.Base(dst)
+ 		hdr.Mode = int64(chmodTarEntry(os.FileMode(hdr.Mode)))
+ 
++		xUid, err := idtools.TranslateIDToHost(hdr.Uid, archiver.UidMaps)
++		if err != nil {
++			return err
++		}
++		xGid, err := idtools.TranslateIDToHost(hdr.Gid, archiver.GidMaps)
++		if err != nil {
++			return err
++		}
++		hdr.Uid = xUid
++		hdr.Gid = xGid
++
+ 		tw := tar.NewWriter(w)
+ 		defer tw.Close()
+ 		if err := tw.WriteHeader(hdr); err != nil {
+@@ -758,7 +781,14 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
+ 			err = er
+ 		}
+ 	}()
+-	return archiver.Untar(r, filepath.Dir(dst), nil)
++	var options *TarOptions
++	if archiver.UidMaps != nil || archiver.GidMaps != nil {
++		options = &TarOptions{
++			UidMaps: archiver.UidMaps,
++			GidMaps: archiver.GidMaps,
++		}
++	}
++	return archiver.Untar(r, filepath.Dir(dst), options)
+ }
+ 
+ // CopyFileWithTar emulates the behavior of the 'cp' command-line
+
+From 462d184d840afbb82a5c32d1d3ea5d9120f5763d Mon Sep 17 00:00:00 2001
+From: Phil Estes <estesp@linux.vnet.ibm.com>
+Date: Fri, 24 Apr 2015 14:16:18 -0400
+Subject: [PATCH 5/8] Fix test framework and mount/volume permission issue for
+ user namespaces
+
+Properly handle bind mount ownership; also modify special mounts for
+/etc/{resolv.conf,hostname,hosts} to have remapped root ownership.
+
+Update all unit tests for proper func. signatures for user namespaces
+Update integration-cli tests based on changes to daemon root layout and
+related changes.
+Update integration test for "daemon restart" to point to the proper root
+dir
+
+Docker-DCO-1.1-Signed-off-by: Phil Estes <estesp@linux.vnet.ibm.com> (github: estesp)
+---
+ daemon/config.go                          |  2 +-
+ daemon/execdriver/native/create.go        |  6 +-----
+ daemon/graphdriver/aufs/aufs_test.go      |  2 +-
+ daemon/graphdriver/graphtest/graphtest.go |  2 +-
+ daemon/volumes.go                         | 10 ++++++++++
+ graph/graph_test.go                       |  4 ++--
+ graph/tags_unit_test.go                   |  4 ++--
+ integration-cli/docker_cli_build_test.go  | 12 ++++++++----
+ integration-cli/docker_cli_cp_test.go     |  6 +++---
+ integration-cli/docker_cli_daemon_test.go | 11 +++++++----
+ integration-cli/docker_test_vars.go       |  3 ++-
+ integration-cli/docker_utils.go           | 12 ++++++++----
+ pkg/archive/changes_posix_test.go         |  4 ++--
+ pkg/archive/changes_test.go               |  2 +-
+ pkg/chrootarchive/archive_test.go         |  4 ++--
+ volumes/repository_test.go                |  2 +-
+ 16 files changed, 52 insertions(+), 34 deletions(-)
+
+diff --git a/daemon/config.go b/daemon/config.go
+index 376a854..178d4f6 100644
+--- a/daemon/config.go
++++ b/daemon/config.go
+@@ -73,7 +73,7 @@ func (config *Config) InstallCommonFlags() {
+ 	flag.StringVar(&config.LogConfig.Type, []string{"-log-driver"}, "json-file", "Default driver for container logs")
+ 	opts.LogOptsVar(config.LogConfig.Config, []string{"-log-opt"}, "Set log driver options")
+ 	flag.BoolVar(&config.Bridge.EnableUserlandProxy, []string{"-userland-proxy"}, true, "Use userland proxy for loopback traffic")
+-	flag.StringVar(&config.RemappedRoot, []string{"-root"}, "", "User/Group [user|uid[:gid|:group]] for container root")
++	flag.StringVar(&config.RemappedRoot, []string{"-root"}, "", "Remapped container root as uid:gid")
+ }
+ 
+ func getDefaultNetworkMtu() int {
+diff --git a/daemon/execdriver/native/create.go b/daemon/execdriver/native/create.go
+index c41b1cc..b29bdd7 100644
+--- a/daemon/execdriver/native/create.go
++++ b/daemon/execdriver/native/create.go
+@@ -6,12 +6,12 @@ import (
+ 	"errors"
+ 	"fmt"
+ 	"net"
+-	"os"
+ 	"strings"
+ 	"syscall"
+ 
+ 	"github.com/docker/docker/daemon/execdriver"
+ 	"github.com/docker/docker/pkg/idtools"
++
+ 	"github.com/docker/libcontainer/apparmor"
+ 	"github.com/docker/libcontainer/configs"
+ 	"github.com/docker/libcontainer/devices"
+@@ -288,10 +288,6 @@ func (d *driver) setupMounts(container *configs.Config, c *execdriver.Command) e
+ 			flags |= syscall.MS_SLAVE
+ 		}
+ 
+-		if err := os.Chown(m.Source, c.RemappedRoot.Uid, c.RemappedRoot.Gid); err != nil {
+-			return err
+-		}
+-
+ 		container.Mounts = append(container.Mounts, &configs.Mount{
+ 			Source:      m.Source,
+ 			Destination: m.Destination,
+diff --git a/daemon/graphdriver/aufs/aufs_test.go b/daemon/graphdriver/aufs/aufs_test.go
+index 6dea9bb..03a5dfa 100644
+--- a/daemon/graphdriver/aufs/aufs_test.go
++++ b/daemon/graphdriver/aufs/aufs_test.go
+@@ -24,7 +24,7 @@ func init() {
+ }
+ 
+ func testInit(dir string, t *testing.T) graphdriver.Driver {
+-	d, err := Init(dir, nil)
++	d, err := Init(dir, nil, nil, nil)
+ 	if err != nil {
+ 		if err == graphdriver.ErrNotSupported {
+ 			t.Skip(err)
+diff --git a/daemon/graphdriver/graphtest/graphtest.go b/daemon/graphdriver/graphtest/graphtest.go
+index d9908d4..5a93244 100644
+--- a/daemon/graphdriver/graphtest/graphtest.go
++++ b/daemon/graphdriver/graphtest/graphtest.go
+@@ -71,7 +71,7 @@ func newDriver(t *testing.T, name string) *Driver {
+ 		t.Fatal(err)
+ 	}
+ 
+-	d, err := graphdriver.GetDriver(name, root, nil)
++	d, err := graphdriver.GetDriver(name, root, nil, nil, nil)
+ 	if err != nil {
+ 		t.Logf("graphdriver: %v\n", err)
+ 		if err == graphdriver.ErrNotSupported || err == graphdriver.ErrPrerequisites || err == graphdriver.ErrIncompatibleFS {
+diff --git a/daemon/volumes.go b/daemon/volumes.go
+index 49fc812..14fbba9 100644
+--- a/daemon/volumes.go
++++ b/daemon/volumes.go
+@@ -240,14 +240,24 @@ func validMountMode(mode string) bool {
+ 
+ func (container *Container) specialMounts() []execdriver.Mount {
+ 	var mounts []execdriver.Mount
++	rootUid, rootGid := container.daemon.GetRemappedUidGid()
+ 	if container.ResolvConfPath != "" {
+ 		mounts = append(mounts, execdriver.Mount{Source: container.ResolvConfPath, Destination: "/etc/resolv.conf", Writable: !container.hostConfig.ReadonlyRootfs, Private: true})
++		if err := os.Chown(container.ResolvConfPath, rootUid, rootGid); err != nil {
++			logrus.Errorf("Could not modify ownership of %q for potentially remapped root; error = %v", container.ResolvConfPath, err)
++		}
+ 	}
+ 	if container.HostnamePath != "" {
+ 		mounts = append(mounts, execdriver.Mount{Source: container.HostnamePath, Destination: "/etc/hostname", Writable: !container.hostConfig.ReadonlyRootfs, Private: true})
++		if err := os.Chown(container.HostnamePath, rootUid, rootGid); err != nil {
++			logrus.Errorf("Could not modify ownership of %q for potentially remapped root; error = %v", container.HostnamePath, err)
++		}
+ 	}
+ 	if container.HostsPath != "" {
+ 		mounts = append(mounts, execdriver.Mount{Source: container.HostsPath, Destination: "/etc/hosts", Writable: !container.hostConfig.ReadonlyRootfs, Private: true})
++		if err := os.Chown(container.HostsPath, rootUid, rootGid); err != nil {
++			logrus.Errorf("Could not modify ownership of %q for potentially remapped root; error = %v", container.HostsPath, err)
++		}
+ 	}
+ 	return mounts
+ }
+diff --git a/graph/graph_test.go b/graph/graph_test.go
+index 81471b6..62b6658 100644
+--- a/graph/graph_test.go
++++ b/graph/graph_test.go
+@@ -289,11 +289,11 @@ func tempGraph(t *testing.T) (*Graph, graphdriver.Driver) {
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
+-	driver, err := graphdriver.New(tmp, nil)
++	driver, err := graphdriver.New(tmp, nil, nil, nil)
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
+-	graph, err := NewGraph(tmp, driver)
++	graph, err := NewGraph(tmp, driver, nil, nil)
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
+diff --git a/graph/tags_unit_test.go b/graph/tags_unit_test.go
+index d1ddc67..01392c9 100644
+--- a/graph/tags_unit_test.go
++++ b/graph/tags_unit_test.go
+@@ -52,11 +52,11 @@ func fakeTar() (io.Reader, error) {
+ }
+ 
+ func mkTestTagStore(root string, t *testing.T) *TagStore {
+-	driver, err := graphdriver.New(root, nil)
++	driver, err := graphdriver.New(root, nil, nil, nil)
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
+-	graph, err := NewGraph(root, driver)
++	graph, err := NewGraph(root, driver, nil, nil)
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
+diff --git a/integration-cli/docker_cli_build_test.go b/integration-cli/docker_cli_build_test.go
+index 73aef80..d05d5a0 100644
+--- a/integration-cli/docker_cli_build_test.go
++++ b/integration-cli/docker_cli_build_test.go
+@@ -2228,7 +2228,8 @@ func (s *DockerSuite) TestBuildContextCleanup(c *check.C) {
+ 	testRequires(c, SameHostDaemon)
+ 
+ 	name := "testbuildcontextcleanup"
+-	entries, err := ioutil.ReadDir("/var/lib/docker/tmp")
++	// FIXME: assumes that this test runs as "real root" (not user namespaced)
++	entries, err := ioutil.ReadDir("/var/lib/docker/0.0/tmp")
+ 	if err != nil {
+ 		c.Fatalf("failed to list contents of tmp dir: %s", err)
+ 	}
+@@ -2239,7 +2240,8 @@ func (s *DockerSuite) TestBuildContextCleanup(c *check.C) {
+ 	if err != nil {
+ 		c.Fatal(err)
+ 	}
+-	entriesFinal, err := ioutil.ReadDir("/var/lib/docker/tmp")
++	// FIXME: assumes that this test runs as "real root" (not user namespaced)
++	entriesFinal, err := ioutil.ReadDir("/var/lib/docker/0.0/tmp")
+ 	if err != nil {
+ 		c.Fatalf("failed to list contents of tmp dir: %s", err)
+ 	}
+@@ -2253,7 +2255,8 @@ func (s *DockerSuite) TestBuildContextCleanupFailedBuild(c *check.C) {
+ 	testRequires(c, SameHostDaemon)
+ 
+ 	name := "testbuildcontextcleanup"
+-	entries, err := ioutil.ReadDir("/var/lib/docker/tmp")
++	// FIXME: assumes that this test runs as "real root" (not user namespaced)
++	entries, err := ioutil.ReadDir("/var/lib/docker/0.0/tmp")
+ 	if err != nil {
+ 		c.Fatalf("failed to list contents of tmp dir: %s", err)
+ 	}
+@@ -2264,7 +2267,8 @@ func (s *DockerSuite) TestBuildContextCleanupFailedBuild(c *check.C) {
+ 	if err == nil {
+ 		c.Fatalf("expected build to fail, but it didn't")
+ 	}
+-	entriesFinal, err := ioutil.ReadDir("/var/lib/docker/tmp")
++	// FIXME: assumes that this test runs as "real root" (not user namespaced)
++	entriesFinal, err := ioutil.ReadDir("/var/lib/docker/0.0/tmp")
+ 	if err != nil {
+ 		c.Fatalf("failed to list contents of tmp dir: %s", err)
+ 	}
+diff --git a/integration-cli/docker_cli_cp_test.go b/integration-cli/docker_cli_cp_test.go
+index 26e778e..3d2c518 100644
+--- a/integration-cli/docker_cli_cp_test.go
++++ b/integration-cli/docker_cli_cp_test.go
+@@ -382,7 +382,7 @@ func (s *DockerSuite) TestCpSpecialFiles(c *check.C) {
+ 	// Copy actual /etc/resolv.conf
+ 	_, _ = dockerCmd(c, "cp", cleanedContainerID+":/etc/resolv.conf", outDir)
+ 
+-	expected, err := ioutil.ReadFile("/var/lib/docker/containers/" + cleanedContainerID + "/resolv.conf")
++	expected, err := readContainerFile(cleanedContainerID, "resolv.conf")
+ 	actual, err := ioutil.ReadFile(outDir + "/resolv.conf")
+ 
+ 	if !bytes.Equal(actual, expected) {
+@@ -392,7 +392,7 @@ func (s *DockerSuite) TestCpSpecialFiles(c *check.C) {
+ 	// Copy actual /etc/hosts
+ 	_, _ = dockerCmd(c, "cp", cleanedContainerID+":/etc/hosts", outDir)
+ 
+-	expected, err = ioutil.ReadFile("/var/lib/docker/containers/" + cleanedContainerID + "/hosts")
++	expected, err = readContainerFile(cleanedContainerID, "hosts")
+ 	actual, err = ioutil.ReadFile(outDir + "/hosts")
+ 
+ 	if !bytes.Equal(actual, expected) {
+@@ -402,7 +402,7 @@ func (s *DockerSuite) TestCpSpecialFiles(c *check.C) {
+ 	// Copy actual /etc/resolv.conf
+ 	_, _ = dockerCmd(c, "cp", cleanedContainerID+":/etc/hostname", outDir)
+ 
+-	expected, err = ioutil.ReadFile("/var/lib/docker/containers/" + cleanedContainerID + "/hostname")
++	expected, err = readContainerFile(cleanedContainerID, "hostname")
+ 	actual, err = ioutil.ReadFile(outDir + "/hostname")
+ 
+ 	if !bytes.Equal(actual, expected) {
+diff --git a/integration-cli/docker_cli_daemon_test.go b/integration-cli/docker_cli_daemon_test.go
+index b2eb46b..d23c61b 100644
+--- a/integration-cli/docker_cli_daemon_test.go
++++ b/integration-cli/docker_cli_daemon_test.go
+@@ -384,7 +384,7 @@ func (s *DockerDaemonSuite) TestDaemonUpgradeWithVolumes(c *check.C) {
+ 		c.Fatal(err)
+ 	}
+ 
+-	configDir := filepath.Join(graphDir, "volumes")
++	configDir := filepath.Join(graphDir, "0.0/volumes")
+ 
+ 	if err := os.RemoveAll(configDir); err != nil {
+ 		c.Fatal(err)
+@@ -781,7 +781,8 @@ func (s *DockerDaemonSuite) TestDaemonLoggingDriverDefault(c *check.C) {
+ 	if out, err := s.d.Cmd("wait", id); err != nil {
+ 		c.Fatal(out, err)
+ 	}
+-	logPath := filepath.Join(s.d.folder, "graph", "containers", id, id+"-json.log")
++	//FIXME: Assume integration-cli tests run with real root daemon (not user namespaced)
++	logPath := filepath.Join(s.d.root, "0.0", "containers", id, id+"-json.log")
+ 
+ 	if _, err := os.Stat(logPath); err != nil {
+ 		c.Fatal(err)
+@@ -823,7 +824,8 @@ func (s *DockerDaemonSuite) TestDaemonLoggingDriverDefaultOverride(c *check.C) {
+ 	if out, err := s.d.Cmd("wait", id); err != nil {
+ 		c.Fatal(out, err)
+ 	}
+-	logPath := filepath.Join(s.d.folder, "graph", "containers", id, id+"-json.log")
++	//FIXME: Assume integration-cli tests run with real root daemon (not user namespaced)
++	logPath := filepath.Join(s.d.root, "0.0", "containers", id, id+"-json.log")
+ 
+ 	if _, err := os.Stat(logPath); err == nil || !os.IsNotExist(err) {
+ 		c.Fatalf("%s shouldn't exits, error on Stat: %s", logPath, err)
+@@ -865,7 +867,8 @@ func (s *DockerDaemonSuite) TestDaemonLoggingDriverNoneOverride(c *check.C) {
+ 	if out, err := s.d.Cmd("wait", id); err != nil {
+ 		c.Fatal(out, err)
+ 	}
+-	logPath := filepath.Join(s.d.folder, "graph", "containers", id, id+"-json.log")
++	//FIXME: Assume integration-cli tests run with real root daemon (not user namespaced)
++	logPath := filepath.Join(s.d.root, "0.0", "containers", id, id+"-json.log")
+ 
+ 	if _, err := os.Stat(logPath); err != nil {
+ 		c.Fatal(err)
+diff --git a/integration-cli/docker_test_vars.go b/integration-cli/docker_test_vars.go
+index 9cb28b2..79d8d59 100644
+--- a/integration-cli/docker_test_vars.go
++++ b/integration-cli/docker_test_vars.go
+@@ -16,7 +16,8 @@ var (
+ 	// the private registry to use for tests
+ 	privateRegistryURL = "127.0.0.1:5000"
+ 
+-	dockerBasePath       = "/var/lib/docker"
++	//FIXME: assume that tests are run with real root and not user namespaced
++	dockerBasePath       = "/var/lib/docker/0.0"
+ 	volumesConfigPath    = dockerBasePath + "/volumes"
+ 	volumesStoragePath   = dockerBasePath + "/vfs/dir"
+ 	containerStoragePath = dockerBasePath + "/containers"
+diff --git a/integration-cli/docker_utils.go b/integration-cli/docker_utils.go
+index c8681e6..c095bdb 100644
+--- a/integration-cli/docker_utils.go
++++ b/integration-cli/docker_utils.go
+@@ -31,6 +31,7 @@ type Daemon struct {
+ 	c              *check.C
+ 	logFile        *os.File
+ 	folder         string
++	root           string
+ 	stdin          io.WriteCloser
+ 	stdout, stderr io.ReadCloser
+ 	cmd            *exec.Cmd
+@@ -63,9 +64,10 @@ func NewDaemon(c *check.C) *Daemon {
+ 	if err != nil {
+ 		c.Fatalf("Could not make %q an absolute path: %v", dir, err)
+ 	}
++	daemonRoot := filepath.Join(daemonFolder, "root")
+ 
+-	if err := os.MkdirAll(filepath.Join(daemonFolder, "graph"), 0600); err != nil {
+-		c.Fatalf("Could not create %s/graph directory", daemonFolder)
++	if err := os.MkdirAll(daemonRoot, 0755); err != nil {
++		c.Fatalf("Could not create daemon root %q: %v", dir, err)
+ 	}
+ 
+ 	userlandProxy := true
+@@ -78,6 +80,7 @@ func NewDaemon(c *check.C) *Daemon {
+ 	return &Daemon{
+ 		c:             c,
+ 		folder:        daemonFolder,
++		root:          daemonRoot,
+ 		storageDriver: os.Getenv("DOCKER_GRAPHDRIVER"),
+ 		execDriver:    os.Getenv("DOCKER_EXECDRIVER"),
+ 		userlandProxy: userlandProxy,
+@@ -95,7 +98,7 @@ func (d *Daemon) Start(arg ...string) error {
+ 	args := []string{
+ 		"--host", d.sock(),
+ 		"--daemon",
+-		"--graph", fmt.Sprintf("%s/graph", d.folder),
++		"--graph", d.root,
+ 		"--pidfile", fmt.Sprintf("%s/docker.pid", d.folder),
+ 		fmt.Sprintf("--userland-proxy=%t", d.userlandProxy),
+ 	}
+@@ -1089,7 +1092,8 @@ func readFile(src string, c *check.C) (content string) {
+ }
+ 
+ func containerStorageFile(containerId, basename string) string {
+-	return filepath.Join("/var/lib/docker/containers", containerId, basename)
++	//FIXME: Assume that the tests are run as root (0.0) without user namespace remapping
++	return filepath.Join("/var/lib/docker/0.0/containers", containerId, basename)
+ }
+ 
+ // docker commands that use this function must be run with the '-d' switch.
+diff --git a/pkg/archive/changes_posix_test.go b/pkg/archive/changes_posix_test.go
+index 9d528e6..5a3282b 100644
+--- a/pkg/archive/changes_posix_test.go
++++ b/pkg/archive/changes_posix_test.go
+@@ -61,7 +61,7 @@ func TestHardLinkOrder(t *testing.T) {
+ 	sort.Sort(changesByPath(changes))
+ 
+ 	// ExportChanges
+-	ar, err := ExportChanges(dest, changes)
++	ar, err := ExportChanges(dest, changes, nil, nil)
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
+@@ -73,7 +73,7 @@ func TestHardLinkOrder(t *testing.T) {
+ 	// reverse sort
+ 	sort.Sort(sort.Reverse(changesByPath(changes)))
+ 	// ExportChanges
+-	arRev, err := ExportChanges(dest, changes)
++	arRev, err := ExportChanges(dest, changes, nil, nil)
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
+diff --git a/pkg/archive/changes_test.go b/pkg/archive/changes_test.go
+index 290b2dd..4f8ee96 100644
+--- a/pkg/archive/changes_test.go
++++ b/pkg/archive/changes_test.go
+@@ -382,7 +382,7 @@ func TestApplyLayer(t *testing.T) {
+ 		t.Fatal(err)
+ 	}
+ 
+-	layer, err := ExportChanges(dst, changes)
++	layer, err := ExportChanges(dst, changes, nil, nil)
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
+diff --git a/pkg/chrootarchive/archive_test.go b/pkg/chrootarchive/archive_test.go
+index f9b5b09..b60378e 100644
+--- a/pkg/chrootarchive/archive_test.go
++++ b/pkg/chrootarchive/archive_test.go
+@@ -349,7 +349,7 @@ func TestChrootApplyEmptyArchiveFromSlowReader(t *testing.T) {
+ 		t.Fatal(err)
+ 	}
+ 	stream := &slowEmptyTarReader{size: 10240, chunkSize: 1024}
+-	if _, err := ApplyLayer(dest, stream); err != nil {
++	if _, err := ApplyLayer(dest, stream, nil); err != nil {
+ 		t.Fatal(err)
+ 	}
+ }
+@@ -375,7 +375,7 @@ func TestChrootApplyDotDotFile(t *testing.T) {
+ 	if err := os.MkdirAll(dest, 0700); err != nil {
+ 		t.Fatal(err)
+ 	}
+-	if _, err := ApplyLayer(dest, stream); err != nil {
++	if _, err := ApplyLayer(dest, stream, nil); err != nil {
+ 		t.Fatal(err)
+ 	}
+ }
+diff --git a/volumes/repository_test.go b/volumes/repository_test.go
+index 801c225..feaf848 100644
+--- a/volumes/repository_test.go
++++ b/volumes/repository_test.go
+@@ -156,7 +156,7 @@ func newRepo(root string) (*Repository, error) {
+ 	configPath := filepath.Join(root, "repo-config")
+ 	graphDir := filepath.Join(root, "repo-graph")
+ 
+-	driver, err := graphdriver.GetDriver("vfs", graphDir, []string{})
++	driver, err := graphdriver.GetDriver("vfs", graphDir, []string{}, nil, nil)
+ 	if err != nil {
+ 		return nil, err
+ 	}
+
+From 7ea6ec9d75528f2f2392aa5f49ca676f7034daf7 Mon Sep 17 00:00:00 2001
+From: Phil Estes <estesp@linux.vnet.ibm.com>
+Date: Wed, 29 Apr 2015 10:41:55 -0400
+Subject: [PATCH 6/8] Conflict options (lxc execdriver and --privileged) with
+ root remapping
+
+Make sure that we error out of daemon start if root is remapped and the
+the lxc execdriver is selected (given this implementation only
+supports the native/libcontainer execdriver)
+
+Also, error out on start of a docker container with --privileged, as
+privileged and user namespaced root are mutually exclusive
+
+Docker-DCO-1.1-Signed-off-by: Phil Estes <estesp@linux.vnet.ibm.com> (github: estesp)
+---
+ daemon/daemon.go | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/daemon/daemon.go b/daemon/daemon.go
+index f70dc5e..9dd3f3d 100644
+--- a/daemon/daemon.go
++++ b/daemon/daemon.go
+@@ -759,6 +759,10 @@ func NewDaemon(config *Config, registryService *registry.Service) (daemon *Daemo
+ 	// set up SIGUSR1 handler to dump Go routine stacks
+ 	setupSigusr1Trap()
+ 
++	if config.ExecDriver != "native" && config.RemappedRoot != "" {
++		return nil, fmt.Errorf("User namespace root remapping is only supported with the native execdriver")
++	}
++
+ 	// if the daemon was started with remapped root option, parse
+ 	// the config option to the int uid,gid values
+ 	var (
+@@ -1267,6 +1271,9 @@ func (daemon *Daemon) verifyHostConfig(hostConfig *runconfig.HostConfig) ([]stri
+ 		hostConfig.OomKillDisable = false
+ 		return warnings, fmt.Errorf("Your kernel does not support oom kill disable.")
+ 	}
++	if hostConfig.Privileged && daemon.config.RemappedRoot != "" {
++		return warnings, fmt.Errorf("Privileged mode is incompatible with user namespaces/root remapping")
++	}
+ 
+ 	return warnings, nil
+ }
+
+From 5a06e84913abf4fad8e966d4e69fac42610b5688 Mon Sep 17 00:00:00 2001
+From: Phil Estes <estesp@linux.vnet.ibm.com>
+Date: Tue, 12 May 2015 23:20:58 +1000
+Subject: [PATCH 7/8] Update zfs driver to be uid/gid map aware
+
+Still need to implement actual graphdriver's root ownership mapping and
+any other changes necessary to have ZFS support user namespace-aware
+layers.
+
+Docker-DCO-1.1-Signed-off-by: Phil Estes <estesp@linux.vnet.ibm.com> (github: estesp)
+---
+ daemon/graphdriver/zfs/zfs.go | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/daemon/graphdriver/zfs/zfs.go b/daemon/graphdriver/zfs/zfs.go
+index dbaf325..00359bc 100644
+--- a/daemon/graphdriver/zfs/zfs.go
++++ b/daemon/graphdriver/zfs/zfs.go
+@@ -13,6 +13,7 @@ import (
+ 
+ 	log "github.com/Sirupsen/logrus"
+ 	"github.com/docker/docker/daemon/graphdriver"
++	"github.com/docker/docker/pkg/idtools"
+ 	"github.com/docker/docker/pkg/mount"
+ 	"github.com/docker/docker/pkg/parsers"
+ 	zfs "github.com/mistifyio/go-zfs"
+@@ -33,7 +34,7 @@ func (*Logger) Log(cmd []string) {
+ 	log.Debugf("[zfs] %s", strings.Join(cmd, " "))
+ }
+ 
+-func Init(base string, opt []string) (graphdriver.Driver, error) {
++func Init(base string, opt []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
+ 	var err error
+ 	options, err := parseOptions(opt)
+ 	if err != nil {
+@@ -91,8 +92,10 @@ func Init(base string, opt []string) (graphdriver.Driver, error) {
+ 		dataset:          rootDataset,
+ 		options:          options,
+ 		filesystemsCache: filesystemsCache,
++		uidMaps:          uidMaps,
++		gidMaps:          gidMaps,
+ 	}
+-	return graphdriver.NaiveDiffDriver(d), nil
++	return graphdriver.NaiveDiffDriver(d, uidMaps, gidMaps), nil
+ }
+ 
+ func parseOptions(opt []string) (ZfsOptions, error) {
+@@ -157,6 +160,8 @@ type Driver struct {
+ 	options          ZfsOptions
+ 	sync.Mutex       // protects filesystem cache against concurrent access
+ 	filesystemsCache map[string]bool
++	uidMaps          []idtools.IDMap
++	gidMaps          []idtools.IDMap
+ }
+ 
+ func (d *Driver) String() string {
+
+From efefd02d2c26f54f5f46ba72644d03bb17021970 Mon Sep 17 00:00:00 2001
+From: Phil Estes <estesp@linux.vnet.ibm.com>
+Date: Tue, 19 May 2015 03:11:10 -0700
+Subject: [PATCH 8/8] Add basic verification of remapped root working properly
+
+Add a single test to validate that the uid/gid maps are set properly for
+a remapped root on a daemon started with `--root`; as well as validate
+that files written are owned by the remapped root.
+
+Docker-DCO-1.1-Signed-off-by: Phil Estes <estesp@linux.vnet.ibm.com> (github: estesp)
+---
+ integration-cli/docker_cli_daemon_test.go | 48 +++++++++++++++++++++++++++++++
+ 1 file changed, 48 insertions(+)
+
+diff --git a/integration-cli/docker_cli_daemon_test.go b/integration-cli/docker_cli_daemon_test.go
+index d23c61b..f67d52e 100644
+--- a/integration-cli/docker_cli_daemon_test.go
++++ b/integration-cli/docker_cli_daemon_test.go
+@@ -15,6 +15,7 @@ import (
+ 	"strings"
+ 	"time"
+ 
++	"github.com/docker/docker/pkg/system"
+ 	"github.com/docker/libtrust"
+ 	"github.com/go-check/check"
+ )
+@@ -1173,3 +1174,50 @@ func (s *DockerDaemonSuite) TestDaemonRestartWithSockerAsVolume(c *check.C) {
+ 	c.Assert(err, check.IsNil, check.Commentf("Output: %s", out))
+ 	c.Assert(s.d.Restart(), check.IsNil)
+ }
++
++// user namespaces test: run daemon with remapped root setting
++// 1. validate uid/gid maps are set properly
++// 2. verify that files created are owned by remapped root
++func (s *DockerDaemonSuite) TestDaemonUserNamespaceRootSetting(c *check.C) {
++	testRequires(c, NativeExecDriver)
++	testRequires(c, SameHostDaemon)
++
++	c.Assert(s.d.StartWithBusybox("--root", "9999:9999"), check.IsNil)
++
++	tmpDir, err := ioutil.TempDir("", "userns")
++	if err != nil {
++		c.Fatal(err)
++	}
++	defer os.RemoveAll(tmpDir)
++
++	//writeable by the remapped root UID/GID pair
++	c.Assert(os.Chown(tmpDir, 9999, 9999), check.IsNil)
++
++	out, err := s.d.Cmd("run", "-d", "--name", "userns9999", "-v", tmpDir+":/goofy", "busybox", "touch", "/goofy/testfile", ";", "top")
++	c.Assert(err, check.IsNil, check.Commentf("Output: %s", out))
++
++	pid, err := s.d.Cmd("inspect", "--format='{{.State.Pid}}'", "userns9999")
++	if err != nil {
++		c.Fatalf("Could not inspect running container: out: %q; err: %v", pid, err)
++	}
++	// check the uid and gid maps for the PID to ensure root is remapped
++	// (cmd = cat /proc/<pid>/uid_map | grep -E '0\s+9999\s+1')
++	out, rc1, err := runCommandPipelineWithOutput(
++		exec.Command("cat", "/proc/"+strings.TrimSpace(pid)+"/uid_map"),
++		exec.Command("grep", "-E", "0[[:space:]]+9999[[:space:]]+1"))
++	c.Assert(rc1, check.Equals, 0, check.Commentf("Didn't match uid_map: output: %s", out))
++
++	out, rc2, err := runCommandPipelineWithOutput(
++		exec.Command("cat", "/proc/"+strings.TrimSpace(pid)+"/gid_map"),
++		exec.Command("grep", "-E", "0[[:space:]]+9999[[:space:]]+1"))
++	c.Assert(rc2, check.Equals, 0, check.Commentf("Didn't match gid_map: output: %s", out))
++
++	// check that the touched file is owned by 9999:9999
++	stat, err := system.Stat(filepath.Join(tmpDir, "testfile"))
++	if err != nil {
++		c.Fatal(err)
++	}
++	c.Assert(stat.Uid(), check.Equals, uint32(9999), check.Commentf("Touched file not owned by remapped root UID"))
++	c.Assert(stat.Gid(), check.Equals, uint32(9999), check.Commentf("Touched file not owned by remapped root GID"))
++
++}

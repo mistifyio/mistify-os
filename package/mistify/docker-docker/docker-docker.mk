@@ -104,6 +104,7 @@ endef
 
 define DOCKER_DOCKER_USERS
 	- - docker -1 * - - - Docker Application Container Framework
+	dockroot 502 dockroot 502 * - - - Unprivileged container root
 endef
 
 define DOCKER_DOCKER_INSTALL_TARGET_CMDS
