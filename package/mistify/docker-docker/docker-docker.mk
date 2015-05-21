@@ -1,10 +1,10 @@
 ################################################################################
 #
-# docker
+# docker-docker
 #
 ################################################################################
 
-DOCKER_DOCKER_VERSION = ac2521b87cfb9670bd3bfbf1a1ef8d8075e63737
+DOCKER_DOCKER_VERSION = aac645ae047601fed1550c9d59d7c8ea978203b0
 DOCKER_DOCKER_SITE    = git@github.com:docker/docker.git
 DOCKER_DOCKER_SITE_METHOD = git
 DOCKER_DOCKER_LICENSE = Apache
@@ -12,11 +12,23 @@ DOCKER_DOCKER_LICENSE_FILES = LICENSE
 DOCKER_DOCKER_DEPENDENCIES = libcontainer sqlite zfs
 
 GOPATH = $(O)/tmp/GOPATH
+DOCKER_DOCKER_GOSRC = $(GOPATH)/src/github.com/docker/docker
 
-# Fixed cset IDs (TODO: extract from Dockerfile)
-REGISTRY_COMMIT  = c448e0416925a9876d5576e412703c9b8b865e19
-DOCKER_PY_COMMIT = d39da1167975aaeb6c423b99621ecda1223477b8
-TOMLV_COMMIT     = 9baf8a8a9f2ed20a8e54160840c492f937eeaf9a
+# These are evaluated at runtime
+REGISTRY_IMPORT  = github.com/docker/distribution
+REGISTRY_COMMIT  = `awk '/^ENV REGISTRY_COMMIT / { print $$3; }' $(@D)/Dockerfile`
+DOCKER_PY_IMPORT = github.com/docker/docker-py
+DOCKER_PY_COMMIT = `awk '/^ENV DOCKER_PY_COMMIT / { print $$3; }' $(@D)/Dockerfile`
+TOMLV_IMPORT     = github.com/BurntSushi/toml
+TOMLV_COMMIT     = `awk '/^ENV TOMLV_COMMIT / { print $$3; }' $(@D)/Dockerfile`
+
+# Versions handpicked by us
+MD2MAN_IMPORT      = github.com/cpuguy83/go-md2man
+MD2MAN_COMMIT      = v1.0.2
+BLACKFRIDAY_IMPORT = github.com/russross/blackfriday
+BLACKFRIDAY_COMMIT = 4bed88b4fd00fbb66b49b0f38ed3dd0b902ab515
+SANITIZED_IMPORT   = github.com/shurcooL/sanitized_anchor_name
+SANITIZED_COMMIT   = 11a20b799bf22a02808c862eb6ca09f7fb38f84a
 
 # See values in project/PACKAGERS.md
 DOCKER_BUILDTAGS =
@@ -29,70 +41,53 @@ DOCKER_BUILDTAGS += exclude_graphdriver_devicemapper
 
 
 define DOCKER_DOCKER_BUILD_CMDS
-	rm -rf $(GOPATH)/src/github.com/docker/docker
-
-	# Grab go-zfs
-	GOPATH=$(@D)/vendor \
-	GOROOT=$(GOROOT) \
-	PATH=$(GOROOT)/bin:$(PATH) \
-		go get gopkg.in/mistifyio/go-zfs.v2
-
-	# Grab Go's cover tool for dead-simple code coverage testing
-	GOPATH=$(@D)/vendor \
-	GOROOT=$(GOROOT) \
-	PATH=$(GOROOT)/bin:$(PATH) \
-	go get golang.org/x/tools/cmd/cover
+	mkdir -p $(DOCKER_DOCKER_GOSRC)
+	rsync -av --delete-after --exclude=.git --exclude-from=$(@D)/.gitignore \
+		$(@D)/ $(DOCKER_DOCKER_GOSRC)/
 
 	# Install registry
-	rm -rf $(GOPATH)/src/github.com/docker/distribution \
-		&& git clone https://github.com/docker/distribution.git \
-			$(GOPATH)/src/github.com/docker/distribution \
-		&& (cd $(GOPATH)/src/github.com/docker/distribution \
+	rm -rf $(GOPATH)/src/$(REGISTRY_IMPORT) \
+		&& git clone git://$(REGISTRY_IMPORT) $(GOPATH)/src/$(REGISTRY_IMPORT) \
+		&& (cd $(GOPATH)/src/$(REGISTRY_IMPORT) \
 			&& git checkout -q $(REGISTRY_COMMIT)) \
-		&& GOPATH=$(GOPATH)/src/github.com/docker/distribution/Godeps/_workspace:$(GOPATH) \
+		&& GOPATH=$(GOPATH)/src/$(REGISTRY_IMPORT)/Godeps/_workspace:$(GOPATH) \
 		GOROOT=$(GOROOT) \
 		PATH=$(GOROOT)/bin:$(PATH) \
 		go build -o $(GOPATH)/bin/registry-v2 \
-			github.com/docker/distribution/cmd/registry
+			$(REGISTRY_IMPORT)/cmd/registry
 
 	# Get the "docker-py" source so we can run their integration tests
-	rm -rf $(@D)/docker-py \
-		&& git clone https://github.com/docker/docker-py.git $(@D)/docker-py \
-		&& (cd $(@D)/docker-py \
+	rm -rf $(DOCKER_DOCKER_GOSRC)/docker-py \
+		&& git clone git://$(DOCKER_PY_IMPORT) $(DOCKER_DOCKER_GOSRC)/docker-py \
+		&& (cd $(DOCKER_DOCKER_GOSRC)/docker-py \
 			&& git checkout -q $(DOCKER_PY_COMMIT))
 
-	# Copy ourselves to $(GOPATH)
-	$(INSTALL) -m 755 -d $(GOPATH)/src/github.com/docker/docker \
-		&& rsync -av --delete-after --exclude=.git --exclude-from=$(@D)/.gitignore \
-			$(@D)/ $(GOPATH)/src/github.com/docker/docker/
+	# Download man page generator and toml validator
+	for import in $(MD2MAN_IMPORT) $(BLACKFRIDAY_IMPORT) \
+		$(SANITIZED_IMPORT) $(TOMLV_IMPORT); do \
+		rm -rf $(GOPATH)/src/$$import \
+			&& mkdir -p $(GOPATH)/src/$$import \
+			&& git clone git://$$import $(GOPATH)/src/$$import; \
+	done
 
-	# Install man page generator
-	# go-md2man needs golang.org/x/net
-	rm -rf $(GOPATH)/src/github.com/cpuguy83/go-md2man \
-			$(GOPATH)/src/github.com/russross/blackfriday \
-	&& git clone -b v1.0.1 https://github.com/cpuguy83/go-md2man.git \
-			$(GOPATH)/src/github.com/cpuguy83/go-md2man \
-		&& git clone -b v1.2 https://github.com/russross/blackfriday.git \
-			$(GOPATH)/src/github.com/russross/blackfriday \
-		&& GOPATH=$(GOPATH)/src/github.com/docker/docker/vendor:$(GOPATH) \
-		GOROOT=$(GOROOT) \
-		PATH=$(GOROOT)/bin:$(PATH) \
-		go install -v github.com/cpuguy83/go-md2man
+	(cd $(GOPATH)/src/$(MD2MAN_IMPORT) && \
+		git checkout -q $(MD2MAN_COMMIT))
+	(cd $(GOPATH)/src/$(BLACKFRIDAY_IMPORT) && \
+		git checkout -q $(BLACKFRIDAY_COMMIT))
+	(cd $(GOPATH)/src/$(SANITIZED_IMPORT) && \
+		git checkout -q $(SANITIZED_COMMIT))
+	(cd $(GOPATH)/src/$(TOMLV_IMPORT) && \
+		git checkout -q $(TOMLV_COMMIT))
 
-	# install toml validator
-	rm -rf $(GOPATH)/src/github.com/BurntSushi/toml \
-		&& git clone https://github.com/BurntSushi/toml.git \
-			$(GOPATH)/src/github.com/BurntSushi/toml \
-		&& (cd $(GOPATH)/src/github.com/BurntSushi/toml \
-			&& git checkout -q $(TOMLV_COMMIT)) \
-		&& GOPATH=$(GOPATH) \
-		GOROOT=$(GOROOT) \
-		PATH=$(GOROOT)/bin:$(PATH) \
-		go install -v github.com/BurntSushi/toml/cmd/tomlv
+	# Build dependencies
+	GOPATH=$(GOPATH) \
+	GOROOT=$(GOROOT) \
+	PATH=$(GOROOT)/bin:$(PATH) \
+	go install -v $(MD2MAN_IMPORT) $(TOMLV_IMPORT)
 
 	# Do the rest of the build
-	cd $(GOPATH)/src/github.com/docker/docker \
-		&& GOPATH=$(GOPATH)/src/github.com/docker/docker/vendor:$(GOPATH) \
+	cd $(DOCKER_DOCKER_GOSRC) \
+		&& GOPATH=$(DOCKER_DOCKER_GOSRC)/vendor:$(GOPATH) \
 		GOROOT=$(GOROOT) \
 		PATH=$(GOROOT)/bin:$(PATH) \
 		CGO_ENABLED=1 \
@@ -116,10 +111,10 @@ define DOCKER_DOCKER_INSTALL_TARGET_CMDS
 	$(INSTALL) -m 755 -d $(TARGET_DIR)/var/lib/docker
 	read DOCKER_VERSION < $(@D)/VERSION \
 		&& $(INSTALL) -m 755 -D \
-			$(GOPATH)/src/github.com/docker/docker/bundles/$$DOCKER_VERSION/dynbinary/docker-$$DOCKER_VERSION \
+			$(DOCKER_DOCKER_GOSRC)/bundles/$$DOCKER_VERSION/dynbinary/docker-$$DOCKER_VERSION \
 			$(TARGET_DIR)/usr/bin/docker \
 		&& $(INSTALL) -m 755 -D \
-			$(GOPATH)/src/github.com/docker/docker/bundles/$$DOCKER_VERSION/dynbinary/dockerinit-$$DOCKER_VERSION \
+			$(DOCKER_DOCKER_GOSRC)/bundles/$$DOCKER_VERSION/dynbinary/dockerinit-$$DOCKER_VERSION \
 			$(TARGET_DIR)/usr/lib/docker/dockerinit
 	# Include our udev rules
 	$(INSTALL) -m 644 $(@D)/contrib/udev/80-docker.rules \

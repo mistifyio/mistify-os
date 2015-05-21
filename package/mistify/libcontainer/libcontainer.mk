@@ -4,52 +4,49 @@
 #
 ################################################################################
 
-LIBCONTAINER_VERSION = e59984353acde7207aa1115e261847bf4ddd9a8f
+LIBCONTAINER_VERSION = a4a648ce3016ad7a5d0bb40359ec2ca81aa7640c
 LIBCONTAINER_SITE    = https://github.com/docker/libcontainer.git
 LIBCONTAINER_SITE_METHOD = git
 LIBCONTAINER_LICENSE = Apache
 LIBCONTAINER_LICENSE_FILES = LICENSE
 
-GOPATH=$(O)/tmp/GOPATH
+GOPATH = $(O)/tmp/GOPATH
+LIBCONTAINER_GOSRC = $(GOPATH)/src/github.com/docker/libcontainer
 
 define LIBCONTAINER_BUILD_CMDS
-	# GO apparently wants the install path to be independent of the
-	# build path. Use a temporary directory to do the build.
-	mkdir -p $(GOPATH)/src/github.com/docker/libcontainer
-	echo D=$(@D)
-	rsync -av --delete-after --exclude=.git \
-		$(@D)/ $(GOPATH)/src/github.com/docker/libcontainer/
+	mkdir -p $(LIBCONTAINER_GOSRC)
+	rsync -av --delete-after --exclude=.git --exclude-from=$(@D)/.gitignore \
+		$(@D)/ $(LIBCONTAINER_GOSRC)/
 
-	# Fetch and install Go coverage tool in $(GOPATH)
+	# Need Docker term package, can't rely on $(DOCKER_DOCKER_GOSRC)
+	mkdir -p $(LIBCONTAINER_GOSRC)/vendor/src/github.com/docker
+	rm -rf $(LIBCONTAINER_GOSRC)/vendor/src/github.com/docker/docker \
+		&& git clone https://github.com/docker/docker.git \
+			$(LIBCONTAINER_GOSRC)/vendor/src/github.com/docker/docker \
+		&& (cd $(LIBCONTAINER_GOSRC)/vendor/src/github.com/docker/docker \
+			&& git checkout -q $(DOCKER_DOCKER_VERSION))
+
+	# Build and install term package
+	GOPATH=$(GOPATH):$(LIBCONTAINER_GOSRC)/vendor \
 	GOROOT=$(GOROOT) \
 	PATH=$(GOROOT)/bin:$(PATH) \
-	GOPATH=$(GOPATH) \
-	go get golang.org/x/tools/cmd/cover
-
-	# Fetch and install Docker term package
-	GOROOT=$(GOROOT) \
-	PATH=$(GOROOT)/bin:$(PATH) \
-	GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/libcontainer/vendor \
-	go get github.com/docker/docker/pkg/term
-
-	cd $(GOPATH)/src/github.com/docker/libcontainer && \
-		GOROOT=$(GOROOT) \
-		PATH=$(GOROOT)/bin:$(PATH) \
-		GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/libcontainer/vendor \
-		GOROOT=$(GOROOT) \
-		go get -d -v ./...
+	go install -v github.com/docker/docker/pkg/term
 
 	GOROOT=$(GOROOT) \
 	PATH=$(GOROOT)/bin:$(PATH) \
-	GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/libcontainer/vendor \
+	GOPATH=$(GOPATH):$(LIBCONTAINER_GOSRC)/vendor \
 	make direct-build \
-		-C $(GOPATH)/src/github.com/docker/libcontainer
+		-C $(LIBCONTAINER_GOSRC)
 
 	GOROOT=$(GOROOT) \
 	PATH=$(GOROOT)/bin:$(PATH) \
-	GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/libcontainer/vendor \
+	GOPATH=$(GOPATH):$(LIBCONTAINER_GOSRC)/vendor \
 	make direct-install \
-		-C $(GOPATH)/src/github.com/docker/libcontainer
+		-C $(LIBCONTAINER_GOSRC)
+endef
+
+define LIBCONTAINER_INSTALL_STAGING_CMDS
+	# when GOPATH moves to staging
 endef
 
 define LIBCONTAINER_INSTALL_TARGET_CMDS
