@@ -1,2 +1,2 @@
-OPTIONS=
+OPTIONS=--root=dockroot
 DOCKER_RAMDISK=1
