@@ -70,7 +70,7 @@ echo "$LINENO: done"
 echo "$LINENO: setting up etcd keys"
 etcdctl set /lochness/hypervisors/${uuids[0]}/config/dhcpd true
 etcdctl set /lochness/hypervisors/${uuids[0]}/config/dns true
-etcdctl set /lochness/hypervisors/${uuids[0]}/config/enfield true
+etcdctl set /lochness/hypervisors/${uuids[0]}/config/cbootstrapd true
 etcdctl set /lochness/hypervisors/${uuids[0]}/config/etcd true
 etcdctl set /lochness/hypervisors/${uuids[0]}/config/tftpd true
 
@@ -222,7 +222,7 @@ nameserver ${ips[1]}
 nameserver ${ips[2]}
 nameserver ${ips[0]}
 EOF
-systemctl stop etcd confd named dhcpd enfield tftpd
+systemctl stop etcd confd named dhcpd cbootstrapd tftpd
 rm -rf /mistify/data/etcd/*
 systemctl start etcd
 echo "$LINENO: done"
