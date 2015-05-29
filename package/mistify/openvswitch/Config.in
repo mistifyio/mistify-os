@@ -2,7 +2,6 @@ config BR2_PACKAGE_OPENVSWITCH
 	bool "openvswitch"
 	select BR2_PACKAGE_OPENSSL
 	select BR2_PACKAGE_VTUN
-	depends on BR2_INET_IPV6
 	depends on BR2_USE_MMU # fork()
 	help
 	  Open vSwitch is a production quality, multilayer virtual switch
