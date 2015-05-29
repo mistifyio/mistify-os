@@ -29,11 +29,11 @@ define LOCHNESS_BUILD_CMDS
 endef
 
 define LOCHNESS_INSTALL_TARGET_CMDS
-	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/lochness/kappa.service \
-		$(TARGET_DIR)/lib/systemd/system/kappa.service
+	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/lochness/nconfigd.service \
+		$(TARGET_DIR)/lib/systemd/system/nconfigd.service
 
-	ln -sf ../kappa.service \
-		$(TARGET_DIR)/lib/systemd/system/multi-user.target.wants/kappa.service
+	ln -sf ../nconfigd.service \
+		$(TARGET_DIR)/lib/systemd/system/multi-user.target.wants/nconfigd.service
 endef
 
 

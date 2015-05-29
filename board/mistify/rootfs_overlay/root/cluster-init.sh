@@ -63,8 +63,8 @@ ip=${ips[0]}
 nm=24
 gw=192.168.200.1
 
-echo "$LINENO: stopping kappa to avoid races"
-systemctl stop kappa
+echo "$LINENO: stopping nconfigd to avoid races"
+systemctl stop nconfigd
 echo "$LINENO: done"
 
 echo "$LINENO: setting up etcd keys"
@@ -113,15 +113,15 @@ EOF
 systemctl restart systemd-networkd && ip addr del $ip/$nm dev ens3 || :
 echo "$LINENO: done"
 
-echo "$LINENO: ensuring kappa has started and getting its pid"
-systemctl start kappa
+echo "$LINENO: ensuring nconfigd has started and getting its pid"
+systemctl start nconfigd
 sleep 2
-kappapid=$(pidof kappa)
-echo "$LINENO: kappa has a pid of:$kappapid"
+nconfigdpid=$(pidof nconfigd)
+echo "$LINENO: nconfigd has a pid of:$nconfigdpid"
 echo "$LINENO: done"
 
-echo "$LINENO: waiting for kappa/ansible"
-do_until 1 test -d /proc/$kappapid
+echo "$LINENO: waiting for nconfigd/ansible"
+do_until 1 test -d /proc/$nconfigdpid
 dig +short dns.services.lochness.local @127.0.0.1 -p 15353 || echo "$LINENO: ok well that failed, but lets continue anyway"
 echo "$LINENO: done"
 
@@ -154,11 +154,11 @@ for i in $(seq 0 $stop); do
 done
 echo "$LINENO: done"
 
-echo "$LINENO: waiting for kappa to process new nodes, then stopping kappa"
-journalctl -fu kappa.service | grep --line-buffered 'PLAY RECAP' | while read line; do
+echo "$LINENO: waiting for nconfigd to process new nodes, then stopping nconfigd"
+journalctl -fu nconfigd.service | grep --line-buffered 'PLAY RECAP' | while read line; do
 	break
 done
-systemctl stop kappa
+systemctl stop nconfigd
 echo "$LINENO: done"
 
 echo "$LINENO: waiting for etcd to come back fully"
@@ -238,6 +238,6 @@ while read key value; do
 done < /tmp/etcd.dump
 echo "$LINENO: done"
 
-echo "$LINENO: restarting kappa so it can do its thing"
-systemctl restart kappa
+echo "$LINENO: restarting nconfigd so it can do its thing"
+systemctl restart nconfigd
 echo "$LINENO: done"
