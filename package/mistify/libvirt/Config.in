@@ -4,7 +4,6 @@ comment "libvirt requires a toolchain with WCHAR, THREADS and LARGEFILE support"
 config BR2_PACKAGE_LIBVIRT
 	bool "libvirt"
 	depends on BR2_USE_WCHAR                    # gnutls
-	depends on BR2_LARGEFILE                    # lvm2
 	depends on BR2_USE_MMU                      # lvm2
 	depends on BR2_TOOLCHAIN_HAS_THREADS        # libnl
 	select BR2_PACKAGE_GETTEXT
