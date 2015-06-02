@@ -193,7 +193,7 @@ tcuri:,\
 toolchaindir:,\
 toolchainprefix:,\
 toolchainbranch:,\
-toolchainroottag:,\
+toolchaintag:,\
 gouri:,\
 godir:,\
 gotag:,\
