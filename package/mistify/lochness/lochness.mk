@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LOCHNESS_VERSION = 20150527
+LOCHNESS_VERSION = d3ad8b63bdae1d7c8b5e0447608bbd96b011a1d2
 LOCHNESS_SITE    = git@github.com:mistifyio/lochness.git
 LOCHNESS_SITE_METHOD = git
 LOCHNESS_LICENSE = Apache
@@ -29,11 +29,11 @@ define LOCHNESS_BUILD_CMDS
 endef
 
 define LOCHNESS_INSTALL_TARGET_CMDS
-	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/lochness/kappa.service \
-		$(TARGET_DIR)/lib/systemd/system/kappa.service
+	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/lochness/nconfigd.service \
+		$(TARGET_DIR)/lib/systemd/system/nconfigd.service
 
-	ln -sf ../kappa.service \
-		$(TARGET_DIR)/lib/systemd/system/multi-user.target.wants/kappa.service
+	ln -sf ../nconfigd.service \
+		$(TARGET_DIR)/lib/systemd/system/multi-user.target.wants/nconfigd.service
 endef
 
 

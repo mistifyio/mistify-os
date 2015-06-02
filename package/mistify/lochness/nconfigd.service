@@ -5,7 +5,7 @@ After=etcd.service
 
 [Service]
 EnvironmentFile=-/tmp/mistify-config
-ExecStart=/usr/sbin/kappa --once
+ExecStart=/usr/sbin/nconfigd --once
 Restart=always
 RestartSec=5s
 
