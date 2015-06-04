@@ -27,6 +27,8 @@ build-toolchain () {
     mkdir -p $TC_LOCAL_TARBALLS_DIR
     cd $toolchaindir
     time $ctng build 2>&1 | tee $logdir/tc-`date +%y%m%d%H%M%S`.log
+    tail build.log | grep "Build completed"
+
     if [ $? -gt 0 ]; then
 	die "The toolchain build failed."
     fi
