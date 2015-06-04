@@ -7,6 +7,7 @@ source scripts/mistify-functions.sh
 
 jenkinsdefault=$(get_build_default jenkins http://mistify-dev-2.office.omniti.com:8081)
 jenkinsjobdefault=$(get_build_default jenkinsjob MistifyOS-remote)
+jenkinsmistifybranchdefault=$(get_build_default jenkinsmistifybranch $mistifybranch)
 
 usage () {
     cat << EOF
@@ -24,11 +25,15 @@ Usage: $0 [options] [-- joboptions]
         The job to execute. This must match a name in the Jenkins job list. This
         is saved in the file: $statedir/jenkinsjob
         [job=$jenkinsjobdefault]
+    --mistifybranch <branch>
+        The Mistify-OS branch or tag to checkout for the build.
+        This is saved in the file: $statedir/jenkinsmistifybranch
+        [mistifybranch=$jenkinsmistifybranchdefault]
     -- <joboptions>
         Anything following the "--" is passed directly to the Jenkins server.
         This can be additional options to pass to a script or a complete
         command line depending upon how the job is configured on the server. The
-        job needs to be configured to accept a parameter named "options".
+        job needs to be configured to accept a parameter named "mistify_job_options".
 
     Parameters passed to the Jenkins server:
         [branch=$mistifybranch]
@@ -64,7 +69,7 @@ while [ $# -ge 1 ]; do
     case "$1" in
 	--)
 	    shift
-	    options=$*
+	    mistify_job_options=$*
 	    break
 	    ;;
 	--jenkins)
@@ -73,6 +78,10 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--job)
 	    jenkinsjob=$2
+	    shift
+	    ;;
+	--mistifybranch)
+	    jenkinsmistifybranch=$2
 	    shift
 	    ;;
 	--dryrun)
@@ -100,24 +109,29 @@ if [ -z "$jenkinsjob" ]; then
     jenkinsjob=$jenkinsjobdefault
 fi
 
-if [ -n "$options" ]; then
-  message "Options are: $options"
-  params="&options="
-  params+=`echo $options | sed 's/ /%20/g'`
+if [ -z "$jenkinsmistifybranch" ]; then
+    jenkinsmistifybranch=$jenkinsmistifybranchdefault
+fi
+
+if [ -n "$mistify_job_options" ]; then
+  message "Options are: $mistify_job_options"
+  params="&mistify_job_options="
+  params+=`echo $mistify_job_options | sed 's/ /%20/g'`
   message "Adding Jenkins parameters: $params"
 fi
 
-jenkinscommand="wget -O /dev/null $jenkins/job/$jenkinsjob/buildWithParameters?token=buildmistify&branch=$mistifybranch$params"
+jenkinscommand="wget -O /dev/null $jenkins/job/$jenkinsjob/buildWithParameters?token=buildmistify&mistify_branch=$jenkinsmistifybranch$params"
 
 if [ -n "$dryrun" ]; then
   message "Just a test run -- not building."
 else
   set_build_default jenkins $jenkins
   set_build_default jenkinsjob $jenkinsjob
+  set_build_default jenkinsmistifybranch $jenkinsmistifybranch
 fi
 
 message "Triggering a remote build on Jenkins server: $jenkins"
-message "The branch is: $mistifybranch"
+message "The branch is: $jenkinsmistifybranch"
 $dryrun $jenkinscommand
 if [ $? -gt 0 ]; then
   error The Jenkins server is not running at the URL or did not accept the job.
