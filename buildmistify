@@ -52,16 +52,13 @@ Usage: ./buildmistify [options] [target]
         toolchain. This is saved in the file
         $statedir/toolchainprefix
         [toolchainprefix=`cat $statedir/toolchainprefix`]
-    --toolchainbranch <label>
-        Checkout the toolchain using a specified branch. NOTE: This option
-        supercedes the --toolchaintag option. The branch name is saved in the
-        file $statedir/toolchainbranch.
-        [toolchainbranch=`cat $statedir/toolchainbranch`]
-    --toolchaintag <tag>
-        Checkout the toolchain using a specific tag. To reset to the master
-        branch use the --toolchainbranch option. The tag is saved in the file
-        $statedir/toolchaintag.
-        [toolchaintag=`cat $statedir/toolchaintag`]
+    --toolchainversion <version>
+        Checkout the toolchain using a specified version. This can be a branch
+        or tag name or even a commit ID. The branch name is saved in the
+        file $statedir/toolchainversion.
+        [toolchainversion=`cat $statedir/toolchainversion`]
+    --toolchainreset
+	Reset the toolchain related options to their defaults.
     ==== go ====
     --godir <dir>
         Where the GO source code is cloned to before building. This is saved in
@@ -192,8 +189,8 @@ a=`getopt -l "\
 tcuri:,\
 toolchaindir:,\
 toolchainprefix:,\
-toolchainbranch:,\
-toolchaintag:,\
+toolchainversion:,\
+toolchainreset,\
 gouri:,\
 godir:,\
 gotag:,\
@@ -241,13 +238,12 @@ while [ $# -ge 1 ]; do
 	    toolchainprefix=$2
 	    shift
 	    ;;
-	--toolchainbranch)
-	    toolchainbranch=$2
+	--toolchainversion)
+	    toolchainversion=$2
 	    shift
 	    ;;
-	--toolchaintag)
-	    toolchaintag=$2
-	    shift
+	--toolchainreset)
+	    toolchainreset=y
 	    ;;
 	--gouri)
 	    gouri=$2
