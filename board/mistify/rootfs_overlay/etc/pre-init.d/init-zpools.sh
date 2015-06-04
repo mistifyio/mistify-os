@@ -20,7 +20,7 @@ if [ $? -ne 0 ]; then
     ZPOOLCANDIDATES=`echo "$DISKDEVS" | awk '{print $1}'`
     # Don't use the boot drive.
     for D in $ZPOOLCANDIDATES; do
-	if sfdisk -l $D | grep "\*"; then
+	if sfdisk -q -l $D | grep "\*"; then
 	    echo "Excluding boot drive $D."
 	    continue
 	else
