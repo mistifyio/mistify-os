@@ -28,8 +28,7 @@ build-toolchain () {
     cd $toolchaindir
     time $ctng build 2>&1 | tee $logdir/tc-`date +%y%m%d%H%M%S`.log
     if [ $? -gt 0 ]; then
-	error "The toolchain build failed."
-	exit 1
+	die "The toolchain build failed."
     fi
 }
 
@@ -86,8 +85,7 @@ install-toolchain () {
 	# git again to update just in case.
 	#-
 	if [ $? -gt 0 ]; then
-	    error "Cloning the toolchain encountered an error."
-	    exit 1
+	    die "Cloning the toolchain encountered an error."
 	fi
     fi
     cd $toolchaindir
@@ -98,8 +96,7 @@ install-toolchain () {
 
     run git checkout $toolchainversion
     if [ $? -ne 0 ]; then
-	error "Attempted to checkout the toolchain build tool using an invalid ID: $toolchainversion"
-	exit 1
+	die "Attempted to checkout the toolchain build tool using an invalid ID: $toolchainversion"
     fi
     #+
     # If on a branch then pull the latest changes.
@@ -155,8 +152,7 @@ install-toolchain () {
 	    ls -l $tcc $tcconfig
 	    cp $tcc $tcconfig
 	    if [ $? -gt 0 ]; then
-		error "Failed to save $tcconfig"
-		exit 1
+		die "Failed to save $tcconfig"
 	    else
 		rm $toolchainbuilt
 		message "Toolchain config file has been saved to: $tcconfig"
