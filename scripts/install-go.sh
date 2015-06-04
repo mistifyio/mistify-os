@@ -3,6 +3,9 @@
 # NOTE: The go repo is mirrored on github. The install instructions point to
 # the googlesource repo so that URL is the default for this script. Of course
 # it can be overridden using the --gouri command line option.
+# NOTE: This relies upon the toolchainversion variable from the install-toolchain
+# script. This is because th path to the toolchain is embedded and different
+# versions of the toolchain can be selected.
 #-
 gouridefault=git@github.com:golang/go.git
 godirdefault=$PWD/go
@@ -58,10 +61,13 @@ install-go () {
     message "The go branch or tag is: $gotag"
     echo $gotag >$statedir/gotag
 
-    GOROOT=$godir/$gotag/go
+    golabel=$gotag-$toolchainversion
+    verbose The Go label is: $golabel
+
+    GOROOT=$godir/$golabel/go
     verbose "The go binaries are located at: $GOROOT"
 
-    if [ -f $godir/.$gotag-built ]; then
+    if [ -f $godir/.$golabel-built ]; then
 	message "Using go version $gotag."
 	return
     fi
@@ -72,8 +78,8 @@ install-go () {
 	message "Just a test run -- not building the toolchain."
 	verbose "./all.bash"
     else
-	run mkdir -p $godir/$gotag
-	cd $godir/$gotag
+	run mkdir -p $godir/$golabel
+	cd $godir/$golabel
 	verbose "Working directory is: $PWD"
 	if [ ! -d go ]; then
 	    run git clone $gouri
@@ -97,6 +103,6 @@ install-go () {
 	unset CXX_FOR_TARGET
 	unset CGO_ENABLED
 
-	touch $godir/.$gotag-built
+	touch $godir/.$golabel-built
     fi
 }
