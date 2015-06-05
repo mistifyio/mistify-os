@@ -680,14 +680,6 @@ message "Project dir: $projectdir"
 # Be sure the toolchain is installed.
 #-
 install-toolchain
-if [[ $? -gt 0 ]]; then
-    #+
-    # If the toolchain was built then a full rebuild is needed.
-    #-
-    warning "The toolchain has changed. A full target rebuild is recommended."
-    warning "Run ./buildmistify clean and then ./buildmistify to rebuild."
-    exit
-fi
 install-go
 
 #+
