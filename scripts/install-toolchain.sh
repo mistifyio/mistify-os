@@ -6,16 +6,19 @@
 #
 # This script is intended to be sourced by the buildmistify script.
 #-
+
 #+
-# TODO: toolchaintag needs to be updated at release time to use the tag corresponding
-# to the release.
+# NOTE: Because go references the linker corresponding to the compiler with which
+# go was built the install-go script needs to know verion of the toolchain.
+# The variable "toolchainversion" serves this purpose and is used to name the
+# directory in which the go compiler is installed.
 #-
-tcconfigdefault=$PWD/configs/mistify-tc.config
-tcuridefault=git@github.com:crosstool-ng/crosstool-ng.git
-toolchaindirdefault=$PWD/toolchain
-toolchainprefixdefault=x86_64-unknown-linux-gnu
-toolchainbranchdefault="master"
-toolchaintagdefault=
+#+
+# TODO:  This needs to be updated at release time to use the tag corresponding
+# to the crosstool version or commit ID to use by default. This can be a branch,
+# tag or even a commit ID.
+#-
+toolchaincommit=crosstool-ng-1.21.0
 
 config-toolchain () {
     cd $1
@@ -38,155 +41,113 @@ build-toolchain () {
     mkdir -p $TC_LOCAL_TARBALLS_DIR
     cd $toolchaindir
     time $ctng build 2>&1 | tee $logdir/tc-`date +%y%m%d%H%M%S`.log
+    tail build.log | grep "Build completed"
+
     if [ $? -gt 0 ]; then
-	error "The toolchain build failed."
-	exit 1
+	die "The toolchain build failed."
     fi
+    touch $toolchainbuilt
+}
+
+save-settings () {
+    verbose Saving toolchain build settings.
+    set_build_default tcconfig $tcconfig
+    set_build_default tcuri $tcuri
+    set_build_default toolchaindir $toolchaindir
+    set_build_default toolchainprefix $toolchainprefix
+    set_build_default toolchainversion $toolchainversion
 }
 
 install-toolchain () {
+    if [ -n "$toolchainreset" ]; then
+	for d in tcconfig tcuri toolchaindir toolchainprefix toolchainversion
+	do
+	    verbose Resetting default: $d
+	    reset_build_default $d
+	done
+    fi
+    tcconfigdefault=$(get_build_default tcconfig $PWD/configs/mistify-tc.config)
+    tcuridefault=$(get_build_default tcuri git@github.com:crosstool-ng/crosstool-ng.git)
+    toolchaindirdefault=$(get_build_default toolchaindir $PWD/toolchain)
+    toolchainprefixdefault=$(get_build_default toolchainprefix x86_64-unknown-linux-gnu)
+    toolchainversiondefault=$(get_build_default toolchainversion $toolchaincommit)
+
     #+
     # Determine the location of the toolchain directory.
     #-
     if [ -z "$toolchaindir" ]; then
-	if [ -f $statedir/toolchaindir ]; then
-	    toolchaindir=`cat $statedir/toolchaindir`
-	else
-	    toolchaindir=$toolchaindirdefault
-	fi
-	message "Using toolchain located at: $toolchaindir"
+	toolchaindir=$toolchaindirdefault
     fi
-    echo $toolchaindir >$statedir/toolchaindir
+    message "Using toolchain located at: $toolchaindir"
     #+
     # Determine the toolchain variation to use.
     #-
     if [ -z "$toolchainprefix" ]; then
-	if [ -f $statedir/toolchainprefix ]; then
-	    toolchainprefix=`cat $statedir/toolchainprefix`
-	else
-	    toolchainprefix=$toolchainprefixdefault
-	fi
-	message "Using toolchain variation: $toolchainprefix"
+	toolchainprefix=$toolchainprefixdefault
     fi
-    echo $toolchainprefix >$statedir/toolchainprefix
+    message "Using toolchain variation: $toolchainprefix"
     #+
     # Determine the uri to use to fetch the toolchain source.
     #-
     if [ -z "$tcuri" ]; then
-	if [ -f $statedir/tcuri ]; then
-	    tcuri=`cat $statedir/tcuri`
-	else
-	    tcuri=$tcuridefault
-	fi
+	tcuri=$tcuridefault
     fi
     message "The toolchain build tool repository is: $tcuri"
-    echo $tcuri >$statedir/tcuri
 
-    #+
-    # If the toolchainbranch option is used then ignore the toolchaintag option.
-    # NOTE: Specifying a branch overrides using a tag.
-    #-
-    if [ ! -z "$toolchainbranch" ]; then
-	message "Switching to toolchain build tool branch: $toolchainbranch"
-	if [ ! -z "$toolchaintag" ]; then
-	    warning "Ignoring --toolchaintag"
-	    toolchaintag=
-	fi
-	rm -f $statedir/toolchaintag
-    else
-	if [ -f $statedir/toolchainbranch ]; then
-	    toolchainbranch=`cat $statedir/toolchainbranch`
-	else
-	    toolchainbranch=$toolchainbranchdefault
-	fi
+    if [ -z "$toolchainversion" ]; then
+	toolchainversion=$toolchainversiondefault
     fi
-    echo $toolchainbranch >$statedir/toolchainbranch
+    # This is also used by install-go.
+    message "The toolchain version is: $toolchainversion"
 
     if [ ! -f $toolchaindir/README ]; then
-	message 'Fetching toolchain build tool branch "master" from the toolchain repository.'
+	message 'Cloning toolchain build tool from the toolchain repository.'
 	git clone $tcuri $toolchaindir
 	#+
 	# TODO: It is possible that the previous clone failed. Might want to use
 	# git again to update just in case.
 	#-
 	if [ $? -gt 0 ]; then
-	    error "Fetching the toolchain encountered an error."
-	    exit 1
+	    die "Cloning the toolchain encountered an error."
 	fi
     fi
+
     cd $toolchaindir
 
-    #+
-    # Determine the tag to use to sync toolchain to.
-    # NOTE: Having branch and tag separate helps avoid an ambiguity which could
-    # result in accidentally creating a branch when a tag was intended.
-    # NOTE: If toolchaintag is set at this point then it wasn't overridden by
-    # specifying a branch.
-    #-
-    if [ ! -z "$toolchaintag" ]; then
-	toolchainbranch=
-	message "Switching to toolchain build tool tag: $toolchaintag"
-	echo $toolchaintag >$statedir/toolchaintag
-    else
-	if [ -f $statedir/toolchaintag ]; then
-	    toolchainbranch=
-	    toolchaintag=`cat $statedir/toolchaintag`
-	fi
-    fi
+    verbose toolchainversion is: $toolchainversion
+    message "Fetching toolchain update from remote repository."
+    git fetch
 
-    #+
-    # Verify using the desired toolchain version. If the branch or tag doesn't exist
-    # locally then fetch an update from the repo.
-    #-
-    if [ ! -z "$toolchaintag" ]; then
-	message "Using toolchain tag: $toolchaintag"
-	git tag | grep $toolchaintag
-	if [ $? -ne 0 ]; then
-	    message "Local toolchain build tool tag $toolchaintag doesn't exist."
-	    message "Fetching toolchain update from remote repository."
-	    git fetch
-	fi
-	toolchainlabel="tags/$toolchaintag"
-    else
-	message "Using toolchain build tool branch: $toolchainbranch"
-	git branch | grep $toolchainbranch
-	if [ $? -ne 0 ]; then
-	    message "Local toolchain branch $toolchainbranch doesn't exist."
-	    message "Fetching update from remote toolchain repository."
-	    git fetch
-	fi
-	toolchainlabel=$toolchainbranch
-    fi
-
-    run git checkout $toolchainlabel
+    run git checkout $toolchainversion
     if [ $? -ne 0 ]; then
-	error "Attempted to checkout the toolchain build tool using an invalid tag or branch: $toolchainlabel"
-	exit 1
+	die "Attempted to checkout the toolchain build tool using an invalid ID: $toolchainversion"
     fi
-    run git pull
-    message "The toolchain build tool synced to: $toolchainlabel"
-
+    #+
+    # If on a branch then pull the latest changes.
+    #-
+    run_ignore git symbolic-ref --short HEAD
+    if [ $? -eq 0 ]; then
+	message Updating from branch: $toolchainversion
+	run git pull
+    else
+	message Toolchain version $toolchainversion is not a branch. Not updating.
+    fi
     #+
     # Setup the correct toolchain config file.
     #-
     if [ -z "$tcconfig" ]; then
-	if [ -f $statedir/tcconfig ]; then
-	    tcconfig=`cat $statedir/tcconfig`
-	else
-	    tcconfig=$tcconfigdefault
-	fi
+	tcconfig=$tcconfigdefault
     fi
     message "The toolchain config file is: $tcconfig"
-    echo $tcconfig >$statedir/tcconfig
 
     #+
     # These variables are used within the crosstool-ng config file which helps
     # avoid having to modify the config when changing toolchain branches or
     # tags.
     #-
-    export TC_ARCH_SUFFIX=-$toolchainlabel
+    export TC_ARCH_SUFFIX=-$toolchainversion
     export TC_PREFIX=$toolchainprefix
-    export TC_PREFIX_DIR=$toolchaindir/variations/$toolchainlabel
+    export TC_PREFIX_DIR=$toolchaindir/variations/$toolchainversion
     export TC_LOCAL_TARBALLS_DIR=$downloaddir
     toolchainkernelheaders=`grep CT_KERNEL_VERSION $tcconfig | cut -d \" -f 2`
     message "TC_ARCH_SUFFIX: $TC_ARCH_SUFFIX"
@@ -197,8 +158,8 @@ install-toolchain () {
     ctng="./ct-ng"
     tcc=$toolchaindir/.config
 
-    toolchainconfigured=$TC_PREFIX_DIR/../.$toolchainlabel-configured
-    toolchainbuilt=$TC_PREFIX_DIR/../.$toolchainlabel-built
+    toolchainconfigured=$TC_PREFIX_DIR/../.$toolchainversion-configured
+    toolchainbuilt=$TC_PREFIX_DIR/../.$toolchainversion-built
 
     if [[ "$target" == "toolchain-menuconfig" ]]; then
 	cd $toolchaindir
@@ -210,8 +171,7 @@ install-toolchain () {
 	    ls -l $tcc $tcconfig
 	    cp $tcc $tcconfig
 	    if [ $? -gt 0 ]; then
-		error "Failed to save $tcconfig"
-		exit 1
+		die "Failed to save $tcconfig"
 	    else
 		rm $toolchainbuilt
 		message "Toolchain config file has been saved to: $tcconfig"
@@ -227,20 +187,14 @@ install-toolchain () {
 		warning "The toolchain configuration has changed -- rebuilding the toolchain."
 		rm -f $toolchainbuilt
 	    fi
-	    echo $tcconfig >$statedir/tcconfig
-	    if [ ! -f $toolchainbuilt ]; then
-	        build-toolchain
-		touch $toolchainbuilt
-		return 1
-	    fi
 	else
 	    error "The toolchain config file doesn't exist."
-	    message "Run ./buildmistify toolchain-menuconfig."
-	    exit 1
+	    die "Run ./buildmistify toolchain-menuconfig."
 	fi
     fi
     #+
-    # Don't build the toolchain if it has already been built. If
+    # Don't build the toolchain if it has already been built.
+    #-
     if [ -f $toolchainbuilt ]; then
 	    message "Using toolchain installed at: $TC_PREFIX_DIR"
 	    return 0
@@ -251,12 +205,12 @@ install-toolchain () {
     message "Toolchain not built."
     message "Installing toolchain to: $TC_PREFIX_DIR"
 
-    if [ -n "$testing" ]; then
+    if [ -n "$dryrun" ]; then
 	message "Just a test run -- not building the toolchain."
 	verbose "$ctng build"
     else
 	build-toolchain
-	touch $toolchainbuilt
+	save-settings
     fi
     return 0
 }
