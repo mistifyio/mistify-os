@@ -6,6 +6,20 @@
 #
 # This script is intended to be sourced by the buildmistify script.
 #-
+
+#+
+# NOTE: Because go references the linker corresponding to the compiler with which
+# go was built the install-go script needs to know verion of the toolchain.
+# The variable "toolchainversion" serves this purpose and is used to name the
+# directory in which the go compiler is installed.
+#-
+#+
+# TODO:  This needs to be updated at release time to use the tag corresponding
+# to the crosstool version or commit ID to use by default. This can be a branch,
+# tag or even a commit ID.
+#-
+toolchaincommit=crosstool-ng-1.21.0
+
 config-toolchain () {
     cd $1
     run ./bootstrap
@@ -32,6 +46,16 @@ build-toolchain () {
     if [ $? -gt 0 ]; then
 	die "The toolchain build failed."
     fi
+    touch $toolchainbuilt
+}
+
+save-settings () {
+    verbose Saving toolchain build settings.
+    set_build_default tcconfig $tcconfig
+    set_build_default tcuri $tcuri
+    set_build_default toolchaindir $toolchaindir
+    set_build_default toolchainprefix $toolchainprefix
+    set_build_default toolchainversion $toolchainversion
 }
 
 install-toolchain () {
@@ -46,11 +70,7 @@ install-toolchain () {
     tcuridefault=$(get_build_default tcuri git@github.com:crosstool-ng/crosstool-ng.git)
     toolchaindirdefault=$(get_build_default toolchaindir $PWD/toolchain)
     toolchainprefixdefault=$(get_build_default toolchainprefix x86_64-unknown-linux-gnu)
-    #+
-    # TODO: toolchaintversion needs to be updated at release time to use the tag corresponding
-    # to the release.
-    #-
-    toolchainversiondefault=$(get_build_default toolchainversion crosstool-ng-1.21.0)
+    toolchainversiondefault=$(get_build_default toolchainversion $toolchaincommit)
 
     #+
     # Determine the location of the toolchain directory.
@@ -77,6 +97,7 @@ install-toolchain () {
     if [ -z "$toolchainversion" ]; then
 	toolchainversion=$toolchainversiondefault
     fi
+    # This is also used by install-go.
     message "The toolchain version is: $toolchainversion"
 
     if [ ! -f $toolchaindir/README ]; then
@@ -90,6 +111,7 @@ install-toolchain () {
 	    die "Cloning the toolchain encountered an error."
 	fi
     fi
+
     cd $toolchaindir
 
     verbose toolchainversion is: $toolchainversion
@@ -114,14 +136,9 @@ install-toolchain () {
     # Setup the correct toolchain config file.
     #-
     if [ -z "$tcconfig" ]; then
-	if [ -f $statedir/tcconfig ]; then
-	    tcconfig=`cat $statedir/tcconfig`
-	else
-	    tcconfig=$tcconfigdefault
-	fi
+	tcconfig=$tcconfigdefault
     fi
     message "The toolchain config file is: $tcconfig"
-    echo $tcconfig >$statedir/tcconfig
 
     #+
     # These variables are used within the crosstool-ng config file which helps
@@ -170,16 +187,9 @@ install-toolchain () {
 		warning "The toolchain configuration has changed -- rebuilding the toolchain."
 		rm -f $toolchainbuilt
 	    fi
-	    echo $tcconfig >$statedir/tcconfig
-	    if [ ! -f $toolchainbuilt ]; then
-	        build-toolchain
-		touch $toolchainbuilt
-		return 1
-	    fi
 	else
 	    error "The toolchain config file doesn't exist."
-	    message "Run ./buildmistify toolchain-menuconfig."
-	    exit 1
+	    die "Run ./buildmistify toolchain-menuconfig."
 	fi
     fi
     #+
@@ -200,13 +210,7 @@ install-toolchain () {
 	verbose "$ctng build"
     else
 	build-toolchain
-	touch $toolchainbuilt
-	verbose Saving toolchain build settings.
-	set_build_default tcconfig $tcconfig
-	set_build_default tcuri $tcuri
-	set_build_default toolchaindir $toolchaindir
-	set_build_default toolchainprefix $toolchainprefix
-	set_build_default toolchainversion $toolchainversion
+	save-settings
     fi
     return 0
 }
