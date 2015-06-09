@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LOCHNESS_ANSIBLE_VERSION = 710d50caa2e20ce743687ce74256f73198849f38
+LOCHNESS_ANSIBLE_VERSION = 42e74861ddcb40fb77d1f688234b79600b4b0731
 LOCHNESS_ANSIBLE_SITE    = git@github.com:mistifyio/lochness-ansible.git
 LOCHNESS_ANSIBLE_SITE_METHOD = git
 LOCHNESS_ANSIBLE_LICENSE = Apache
