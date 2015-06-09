@@ -404,7 +404,7 @@ set_build_default bruri $bruri
 if [ -z "$buildrootversion" ]; then
   buildrootversion=$buildrootversiondefault
 fi
-message "The Buildroot vesion is: $buildrootversion"
+message "The Buildroot version is: $buildrootversion"
 
 if [ ! -f $buildrootdir/README ]; then
   message "Cloning Buildroot from the Buildroot project repository."
@@ -414,13 +414,13 @@ if [ ! -f $buildrootdir/README ]; then
   # git again to update just in case.
   #-
   if [ $? -gt 0 ]; then
-    die "Fetching Buildroot encountered an error."
+    die "Cloning Buildroot encountered an error."
   fi
 fi
 
 cd $buildrootdir
 
-message "Fetching update from the remote repository."
+message "Fetching Buildroot update from the remote repository."
 git fetch
 
 
