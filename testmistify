@@ -7,7 +7,15 @@
 source scripts/mistify-functions.sh
 source test/scripts/mistify-test-defaults.sh
 
-builddirdefault=$(get_test_default builddir $(get_build_default variantbuilddir build/base))
+builddirdefault=$(get_test_default builddir \
+			$(get_build_default variantbuilddir build/base))
+buildrootversiondefault=$(get_test_default buildrootversion \
+			$(get_build_default buildrootversion master))
+toolchainversiondefault=$(get_test_default toolchainversion \
+			$(get_build_default toolchainversion master))
+gotagdefault=$(get_test_default gotag \
+			$(get_build_default gotag master))
+
 testlibdirdefault=$(get_test_default testlibdir test)
 
 testbeddirdefault=$(get_test_default testbeddir $testlibdirdefault/testbeds)
@@ -21,6 +29,7 @@ testsuitedefault=$(get_test_default testsuite defaulttests)
 
 testlogdirdefault=$(get_test_default testlogdir $builddirdefault/testlogs)
 
+
 usage () {
     cat << EOF
 Usage: $0 [options] [-- test suite options]
@@ -33,10 +42,30 @@ Usage: $0 [options] [-- test suite options]
   Options:
     ==== System Under Test ====
     --builddir <dir>
-        The Mistify-OS build to test. This defaults to the most recent build.
+        The path to the directory where Mistify-OS was built (see buildmistify).
+        This option is passed to the test suites on the command line in the
+        variable BUILDDIR and defaults to the most recent build.
         This option is saved in the file:
         $testmistifystatedir/builddir
         [builddir=$builddirdefault]
+    --buildrootversion <version>
+        The version of Buildroot to use and can be a branch, tag or a commit ID.
+        This option is passed to the test suites on the command line in the
+        variable BUILDROOTVERSION and defaults to the version used for the most
+        recent build (see buildmistify). This option is saved in the file:
+        $testmistifystatedir/buildrootversion
+        [buildrootversion=$buildrootversiondefault]
+    --toolchainversion <version>
+        The version of the toolchain to use and can be a branch, tag or a commit
+        ID. This option is passed to the test suites on the command line in the
+        variable TOOLCHAINVERSION and defaults to the version used for the most
+        recent build (see buildmistify). This option is saved in the file:
+        $testmistifystatedir/toolchainversion
+        [toolchainversion=$toolchainversiondefault]
+    --gotag <tag>
+        The tag to use when fetching the GO source code from the repository.
+        This is saved in the file $testmistifystatedir/gotag.
+        [gotag=$gotagdefault]
     ==== Test Environment ====
     --testlibdir <dir>
         Where the test case and test suite library resides. This option is saved
@@ -108,6 +137,28 @@ Usage: $0 [options] [-- test suite options]
     -h|--help
         Display this usage.
 
+    ==== Variables Passed On the Command Line ====
+    PWD = The current directory.
+    USER = The current user as indicated in the \$USER environment variable.
+    HOME = The current user's home directory as indicated in the \$HOME
+        environment variable.
+    MISTIFYBRANCH = The active Mistify-OS branch as reported by git.
+    BUILDROOTVERSION = The version of buildroot to pass to the test suites. This
+        is used to modify test case behavior based upon the version of Buildroot.
+    TOOLCHAINVERSION = The version of the toolchain to pass to the test suites.
+        This is used to modify test case behavior based upon the version of the
+        toolchain used to build Mistify-OS.
+    GOTAG = The version of Go to buld. This is used to modify test case behavior
+        based upon the version of Go.
+    BUILDDIR = The directory in which Mistify-OS was built. Test cases can use
+        this to test against different builds of the Mistify-OS.
+    TESTDISTRO = The Linux distribution used for container based testing. The
+        test container is initialized using this distribution (see mistify.robot).
+    TESTBED = The path to the file which describes the environment in which to
+        test.
+    These can be overridden on the command line using the "-v" option mentioned
+    next.
+
     ==== Test Suite Options ====
         Any options following "--" on the commnand line are passed to pybot.
         Read the Robot Framework documentation for a list of available options.
@@ -116,7 +167,6 @@ Usage: $0 [options] [-- test suite options]
 
   NOTE: This script maintains state in:
   $testmistifystatedir.
-  NOTE: Currently this script can only be run against an existing build.
 EOF
 }
 
@@ -125,6 +175,9 @@ EOF
 #-
 a=`getopt -l "\
 builddir:,\
+buildrootversion:,\
+toolchainversion:,\
+gotag:,\
 testlibdir:,\
 testbeddir:,\
 testbed:,\
@@ -158,6 +211,18 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--builddir)
 	    builddir=$2
+	    shift
+	    ;;
+	--buildrootversion)
+	    buildrootversion=$2
+	    shift
+	    ;;
+	--toolchainversion)
+	    toolchainversion=$2
+	    shift
+	    ;;
+	--gotag)
+	    gotag=$2
 	    shift
 	    ;;
 	--testlibdir)
@@ -241,12 +306,8 @@ done
 # For now one must build before one can test!!
 #-
 if [ -z "$builddir" ]; then
-    if [ -f $testmistifystatedir/builddir ]; then
-	    builddir=`cat $testmistifystatedir/builddir`
-    else
-	if [ -d "$builddirdefault" ]; then
-	    builddir=$builddirdefault
-	fi
+    if [ -d "$builddirdefault" ]; then
+	builddir=$builddirdefault
     fi
 fi
 
@@ -261,55 +322,58 @@ else
 fi
 
 #####
+if [ -z "$buildrootversion" ]; then
+    buildrootversion=$buildrootversiondefault
+fi
+verbose Setting BUILDROOTVERSION to $buildrootversion
+
+#####
+if [ -z "$toolchainversion" ]; then
+    toolchainversion=$toolchainversiondefault
+fi
+verbose Setting TOOLCHAINVERSION to $toolchainversion
+
+#####
+if [ -z "$gotag" ]; then
+    gotag=$gotagdefault
+fi
+verbose Setting TOOLCHAINVERSION to $toolchainversion
+
+#####
 
 if [ -z "$testlibdir" ]; then
-    if [ -f $testmistifystatedir/testlibdir ]; then
-	    testlibdir=`cat $testmistifystatedir/testlibdir`
-    else
-	    testlibdir=$testlibdirdefault
-    fi
+    testlibdir=$testlibdirdefault
 fi
 
 if [ -d "$testlibdir" ]; then
     echo $testlibdir >$testmistifystatedir/testlibdir
     verbose "Using test library located in: $testlibdir"
 else
-    error "Test library $testlibdir does not exist"
-    exit 1
+    die "Test library $testlibdir does not exist"
 fi
 
 #####
 if [ -z "$testbeddir" ]; then
-    if [ -f $testmistifystatedir/testbeddir ]; then
-	    testbeddir=`cat $testmistifystatedir/testbeddir`
-    else
-	    testbeddir=$testbeddirdefault
-    fi
+    testbeddir=$testbeddirdefault
 fi
 
 if [ -d "$testbeddir" ]; then
     echo $testbeddir >$testmistifystatedir/testbeddir
     verbose "Using test bed directory in: $testbeddir"
 else
-    error "Test bed definition directory $testbeddir does not exist"
-    exit 1
+    die "Test bed definition directory $testbeddir does not exist"
 fi
 
 #####
 if [ -z "$testbed" ]; then
-    if [ -f $testmistifystatedir/testbed ]; then
-	    testbed=`cat $testmistifystatedir/testbed`
-    else
-	    testbed=$testbeddefault
-    fi
+    testbed=$testbeddefault
 fi
 
 if [ -f "$testbeddir/$testbed" ]; then
     echo $testbed >$testmistifystatedir/testbed
     verbose "Using test bed defintion: $testbed"
 else
-    error "Test bed definition $testbed does not exist"
-    exit 1
+    die "Test bed definition $testbed does not exist"
 fi
 
 #####
@@ -320,8 +384,7 @@ fi
 if [ -d "$testdistrodir" ]; then
     verbose "Using test distro directory in: $testdistrodir"
 else
-    error "Test distro definition directory $testdistrodir does not exist"
-    exit 1
+    die "Test distro definition directory $testdistrodir does not exist"
 fi
 
 #####
@@ -330,10 +393,9 @@ if [ -z "$testdistro" ]; then
 fi
 
 if [ -f "$testdistrodir/$testdistro" ]; then
-    verbose "Using test distro defintion: $testdistro"
+    verbose "Using test distro definition: $testdistro"
 else
-    error "Test distro definition $testdistro does not exist"
-    exit 1
+    die "Test distro definition $testdistro does not exist"
 fi
 
 #####
@@ -344,8 +406,7 @@ fi
 if [ -d "$testsuitedir" ]; then
     verbose "Using test suite directory in: $testsuitedir"
 else
-    error "Test suite definition directory $testsuitedir does not exist"
-    exit 1
+    die "Test suite definition directory $testsuitedir does not exist"
 fi
 
 #####
@@ -357,8 +418,7 @@ if [ -d "$testsuitedir/$testsuite" ]; then
     tests=$testsuitedir/$testsuite
     verbose "Using test suite: $testsuitedir/$testsuite"
 else
-    error "Test suite $testsuitedir/$testsuite does not exist"
-    exit 1
+    die "Test suite $testsuitedir/$testsuite does not exist"
 fi
 
 #####
@@ -367,8 +427,7 @@ if [ -n "$testcase" ]; then
         tests=$testlibdir/$testcase
         verbose "Running $testcase ($testsuite ignored)"
     else
-        error "Test case $testcase does not exist"
-        exit 1
+        die "Test case $testcase does not exist"
     fi
 fi
 
@@ -408,6 +467,9 @@ mkdir -p $testlogdir
 pybotcommand="pybot $verboseoption -d $testlogdir \
     -v PWD:`pwd` \
     -v MISTIFYBRANCH:$mistifybranch \
+    -v BUILDROOTVERSION:$buildrootversion \
+    -v TOOLCHAINVERSION:$toolchainversion \
+    -v GOTAG:$gotag \
     -v BUILDDIR:$builddir \
     -v TESTDISTRO:$testdistrodir/$testdistro \
     -v TESTBED:$testbeddir/$testbed \
