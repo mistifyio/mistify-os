@@ -36,7 +36,8 @@ Usage: $0 [options] [-- joboptions]
         job needs to be configured to accept a parameter named "mistify_job_options".
 
     Parameters passed to the Jenkins server:
-        [branch=$mistifybranch]
+        [mistify_branch=$mistifybranch]
+        [mistify_job_options=<joboptions>]
     ==== other ====
     --dryrun
         Just testing what will happen with this script. Don't send anything to
