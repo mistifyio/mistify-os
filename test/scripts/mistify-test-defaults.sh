@@ -37,6 +37,17 @@ function set_test_default() {
     verbose The default $1 has been set to $2
 }
 
+function reset_test_default() {
+    # Parameters:
+    #   1: option name
+    if [ -e $testmistifystatedir/$1 ]; then
+      rm $testmistifystatedir/$1
+      verbose Option $1 default has been reset.
+    else
+      verbose Option $1 has not been set.
+    fi
+}
+
 # Network configuration
 
 tapdefault=$(get_test_default tap tap0)
