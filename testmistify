@@ -293,7 +293,7 @@ builddirdefault=$(get_test_default builddir \
 buildrootversiondefault=$(get_test_default buildrootversion \
 			$(get_build_default buildrootversion master))
 toolchainversiondefault=$(get_test_default toolchainversion \
-			$(get_build_default toolchainversion master))
+			$(get_build_default toolchainversion crosstool-ng-1.21.0))
 gotagdefault=$(get_test_default gotag \
 			$(get_build_default gotag master))
 
@@ -356,7 +356,7 @@ verbose Setting TOOLCHAINVERSION to $toolchainversion
 if [ -z "$gotag" ]; then
     gotag=$gotagdefault
 fi
-verbose Setting TOOLCHAINVERSION to $toolchainversion
+verbose Setting GOTAG to $gotag
 
 #####
 
