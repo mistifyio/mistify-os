@@ -24,11 +24,11 @@ ${downloaddir}=	${mistifybuilddir}/downloads
 
 @{checkpoints}=
 ...	Using Buildroot located at:
-...	Fetching Buildroot branch
-...	Using Buildroot
+...	The Buildroot version is
+...	Buildroot synced to
 ...	The kernel headers version is:
 ...	Using toolchain variation:
-...	Configuring the toolchain build.
+...	The toolchain version is
 ...	Installing user-supplied crosstool-NG configuration
 ...	Installing GMP for host: done
 ...	Installing MPFR for host: done
@@ -42,10 +42,42 @@ ${downloaddir}=	${mistifybuilddir}/downloads
 ...	Installing pass-2 core C compiler: done
 ...	Installing C library: done
 ...	Installing final compiler: done
-...	Using go located at:
+...	The go branch or tag is
 ...	Building compilers and Go bootstrap tool for host, linux/amd64
 ...	Building packages and commands for linux/amd64
 ...	Installed Go for linux/amd64
+
+@{target_bin_files}=
+...	systemctl
+
+@{target_usr_bin_files}=
+...	ansible
+...	etcdctl
+
+@{target_sbin_files}=
+...	ip
+...	mount.zfs
+...	zfs
+...	zpool
+
+@{target_usr_sbin_files}=
+...	etcd
+...	beanstalkd
+...	cbootstrapd
+...	cdhcpd
+...	cguestd
+...	chypervisord
+...	cplacerd
+...	cworkerd
+...	nconfigd
+...	nheartbeatd
+...	queensland
+
+@{target_opt_mistify_sbin_files}=
+...	mistify-agent
+...	mistify-agent-docker
+...	mistify-agent-image
+...	mistify-agent-libvirt
 
 *** Test Cases ***
 Get Container IP Address
@@ -147,19 +179,55 @@ Monitor The Build
     :FOR  ${_i}  IN RANGE  ${_m}
     	\  ${_t}=  Get Time  |  NOW
     	\  Log To Console  \nCheckpoint: ${_i} at: ${_t}
-    	\  ${_s}  ${_o}=  Run Keyword And Ignore Error  ssh.Read Until  make: Leaving directory
+    	\  ${_s}  ${_o}=  Run Keyword And Ignore Error
+    	\  ...  ssh.Read Until  The Mistify-OS build is complete
     	\  Exit For Loop If  '${_s}' == 'PASS'
     	\  ${_l}=  Get Lines Containing String  ${_o}  : Entering directory
     	\  Log To Console  ${_l}
-    ${_o}=	ssh.Read Until  rootfs.cpio
-    Should Contain  ${_o}  bzImage.buildroot
-    Should Contain  ${_o}  initrd.buildroot
+    ssh.Read Until  ${prompt}
     ssh.Set Client Configuration  timeout=3s
 
-Verify The Build
-    Log To Console  Checking the build log file.
+Verify Target Directory
+    ${_d}=  Set Variable  ${mistifybuilddir}/${MISTIFY_CLONE_DIR}/build/mistify/base/target
+    Log To Console  \nEntering: ${_d}
+    ssh.Write  cd ${_d}
+    ${_o}=	ssh.Read Until  ${prompt}
+    ssh.Write  pwd
+    ${_o}=	ssh.Read Until  ${prompt}
+    Log To Console  \n${_o}
+    Should Contain  ${_o}  /build/mistify/base/target
+
+Verify The bin Files
+    Verify Files Exist  bin  @{target_bin_files}
+
+Verify The usr/bin Files
+    Verify Files Exist  usr/bin  @{target_usr_bin_files}
+
+Verify The sbin Files
+    Verify Files Exist  sbin  @{target_sbin_files}
+
+Verify The usr/sbin Files
+    Verify Files Exist  usr/sbin  @{target_usr_sbin_files}
+
+Verify The opt/mistify/sbin Files
+    Verify Files Exist  opt/mistify/sbin  @{target_opt_mistify_sbin_files}
+
 
 *** Keywords ***
+
+Verify Files Exist
+    [Documentation]  Using ls verify files exist in a directory.
+
+    [Arguments]	${_path}  @{_files}
+    Log To Console  \nChecking the ${_path} files.
+    ssh.Write  ls ${_path}
+    ${_o}=	ssh.Read Until  ${prompt}
+    Log To Console  \n${_o}
+    :FOR  ${_f}  IN  @{_files}
+    	\  Log To Console  Checking: ${_path}/${_f}
+    	\  Should Contain  ${_o}  ${_f}
+
+
 Setup Testsuite
     # The variable CONTAINER_ID is passed on the test mistify command line
     # by the Jenkins job to uniquely identify containers and avoid collision
