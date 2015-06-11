@@ -7,29 +7,6 @@
 source scripts/mistify-functions.sh
 source test/scripts/mistify-test-defaults.sh
 
-builddirdefault=$(get_test_default builddir \
-			$(get_build_default variantbuilddir build/base))
-buildrootversiondefault=$(get_test_default buildrootversion \
-			$(get_build_default buildrootversion master))
-toolchainversiondefault=$(get_test_default toolchainversion \
-			$(get_build_default toolchainversion master))
-gotagdefault=$(get_test_default gotag \
-			$(get_build_default gotag master))
-
-testlibdirdefault=$(get_test_default testlibdir test)
-
-testbeddirdefault=$(get_test_default testbeddir $testlibdirdefault/testbeds)
-testbeddefault=$(get_test_default testbed labrat.robot)
-
-testdistrodirdefault=$(get_test_default testdistrodir $testlibdirdefault/distros)
-testdistrodefault=$(get_test_default testdistro ubuntu-trusty-amd64.robot)
-
-testsuitedirdefault=$(get_test_default testsuitedir $testlibdirdefault/testsuites)
-testsuitedefault=$(get_test_default testsuite defaulttests)
-
-testlogdirdefault=$(get_test_default testlogdir $builddirdefault/testlogs)
-
-
 usage () {
     cat << EOF
 Usage: $0 [options] [-- test suite options]
@@ -125,6 +102,8 @@ Usage: $0 [options] [-- test suite options]
         Most often this is used to pass variables on the command line which are
         specific to a given test. e.g. "-v VAR:varvalue"
     ==== other ====
+    --resetdefaults
+        Reset options back to their default values.
     --verbose
         Verbose output from this script.
     --dryrun
@@ -189,6 +168,7 @@ testcase:,\
 exitonfailure,\
 tag:,\
 testlogdir:,\
+resetdefaults,\
 verbose,\
 dryrun,\
 alwaysok,\
@@ -268,6 +248,9 @@ while [ $# -ge 1 ]; do
 	    testlogdir=$2
 	    shift
 	    ;;
+	--resetdefaults)
+	    resetdefaults=y
+	    ;;
 	--verbose)
 	    verbose=y
 	    ;;
@@ -278,8 +261,7 @@ while [ $# -ge 1 ]; do
 	    alwaysok=y
 	    ;;
 	-h|--help)
-	    usage
-	    exit 0
+	    showusage=y
 	    ;;
 	# using getopt should avoid needing this catchall but just in case...
 	*)
@@ -290,6 +272,43 @@ while [ $# -ge 1 ]; do
     esac
     shift
 done
+
+if [ ! -z "$resetdefaults" ]; then
+    reset_test_default builddir
+    reset_test_default buildrootversion
+    reset_test_default toolchainversion
+    reset_test_default gotag
+    reset_test_default testlibdir
+    reset_test_default testbeddir
+    reset_test_default testbed
+    reset_test_default testdistrodir
+    reset_test_default testdistro
+    reset_test_default testsuitedir
+    reset_test_default testsuite
+    reset_test_default testlogdir
+fi
+
+builddirdefault=$(get_test_default builddir \
+			$(get_build_default variantbuilddir build/base))
+buildrootversiondefault=$(get_test_default buildrootversion \
+			$(get_build_default buildrootversion master))
+toolchainversiondefault=$(get_test_default toolchainversion \
+			$(get_build_default toolchainversion master))
+gotagdefault=$(get_test_default gotag \
+			$(get_build_default gotag master))
+
+testlibdirdefault=$(get_test_default testlibdir test)
+
+testbeddirdefault=$(get_test_default testbeddir $testlibdirdefault/testbeds)
+testbeddefault=$(get_test_default testbed labrat.robot)
+
+testdistrodirdefault=$(get_test_default testdistrodir $testlibdirdefault/distros)
+testdistrodefault=$(get_test_default testdistro ubuntu-trusty-amd64.robot)
+
+testsuitedirdefault=$(get_test_default testsuitedir $testlibdirdefault/testsuites)
+testsuitedefault=$(get_test_default testsuite defaulttests)
+
+testlogdirdefault=$(get_test_default testlogdir $builddirdefault/testlogs)
 
 #####
 #+
@@ -435,6 +454,13 @@ fi
 
 if [ -z "$testlogdir" ]; then
     testlogdir=$testlogdirdefault
+fi
+
+#####
+
+if [ ! -z "$showusage" ]; then
+    usage
+    exit 0
 fi
 
 verbose "Creating the testlog directory if it doesn't exist."

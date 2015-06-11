@@ -121,6 +121,8 @@ Usage: ./buildmistify [options] [target]
         name is saved in the file $statedir/tcconfig.
         [tcconfig=`cat $statedir/tcconfig 2>/dev/null || echo \\`]
     ==== other ====
+    --resetdefaults
+        Reset options back to their default values.
     --verbose
         Enble verbose output from this script.
     -l|--logfile
@@ -187,6 +189,7 @@ tcconfig:,\
 dryrun,\
 downloaddir:,\
 resetmasters,\
+resetdefaults,\
 verbose,\
 logfile:,\
 viewlog,\
@@ -287,6 +290,9 @@ while [ $# -ge 1 ]; do
 	    tcconfig=$2
 	    shift
 	    ;;
+	--resetdefalts)
+	    resetdefaults=y
+	    ;;
 	--verbose)
 	    verbose=y
 	    ;;
@@ -301,8 +307,7 @@ while [ $# -ge 1 ]; do
 	    dryrun=y
 	    ;;
 	-h|--help)
-	    usage
-	    exit 0
+	    showusage=y
 	    ;;
 	# using getopt should avoid needing this catchall but just in case...
 	*)
@@ -313,6 +318,17 @@ while [ $# -ge 1 ]; do
     esac
     shift
 done
+
+if [ ! -z "$resetdefaults" ]; then
+    reset_build_default bruri
+    reset_build_default buildrootdir
+    reset_build_default buildrootversion
+    reset_build_default builddir
+    reset_build_default downloaddir
+    reset_build_default mistifycfg
+    reset_build_default kernelcfg
+    reset_build_default busyboxcfg
+fi
 
 #+
 # TODO: buildroottag needs to be updated at release time to use the tag corresponding
@@ -406,6 +422,31 @@ if [ -z "$buildrootversion" ]; then
 fi
 message "The Buildroot version is: $buildrootversion"
 
+if [ -z "$mistifycfg" ]; then
+  mistifycfg=$mistifycfgdefault
+fi
+
+if [ -z "$kernelcfg" ]; then
+    kernelcfg=$kernelcfgdefault
+fi
+
+if [ -z "$downloaddir" ]; then
+  downloaddir=$downloaddirdefault
+fi
+
+if [ -z "$busyboxcfg" ]; then
+  busyboxcfg=$busyboxcfgdefault
+fi
+
+if [ -z "$logfilename" ]; then
+  logfilename=buildroot-`date +%y%m%d%H%M%S`.log
+fi
+
+if [ ! -z "$showusage" ]; then
+    usage
+    exit 0
+fi
+
 if [ ! -f $buildrootdir/README ]; then
   message "Cloning Buildroot from the Buildroot project repository."
   git clone $bruri $buildrootdir
@@ -445,13 +486,6 @@ set_build_default buildrootversion $buildrootversion
 
 cd $projectdir
 
-#+
-# Setup the correct project config file.
-#-
-if [ -z "$mistifycfg" ]; then
-  mistifycfg=$mistifycfgdefault
-fi
-
 buildrootkernelheaders=`grep BR2_LINUX_KERNEL_VERSION $mistifycfg | cut -d \" -f 2`
 
 message "The Buildroot config file is: $mistifycfg"
@@ -482,9 +516,6 @@ fi
 # Setup the correct kernel config file.
 # TODO: Add a check to verify the kernel config file exists.
 #
-if [ -z "$kernelcfg" ]; then
-    kernelcfg=$kernelcfgdefault
-fi
 message "The Buildroot kernel config file is: $kernelcfg"
 
 brkc=$variantbuilddir/build/linux-`grep BR2_LINUX_KERNEL_VERSION $brc | cut -d "\"" -f 2`/.config
@@ -507,9 +538,6 @@ fi
 #+
 # Setup the correct busybox config file.
 #
-if [ -z "$busyboxcfg" ]; then
-  busyboxcfg=$busyboxcfgdefault
-fi
 message "The Buildroot BusyBox config file is: $busyboxcfg"
 
 bbc=`ls -d $variantbuilddir/build/busybox-*`/.config
@@ -532,12 +560,6 @@ if [ -f $bbc ]; then
   fi
 fi
 
-#+
-# Setup the downloads directory.
-#-
-if [ -z "$downloaddir" ]; then
-  downloaddir=$downloaddirdefault
-fi
 set_build_default downloaddir $downloaddir
 
 message "The Buildroot download directory is: $downloaddir"
@@ -674,9 +696,6 @@ esac
 #+
 # Setup the build log file.
 #-
-if [ -z "$logfilename" ]; then
-  logfilename=buildroot-`date +%y%m%d%H%M%S`.log
-fi
 logfile=$logdir/$logfilename
 
 message "Logging the build output to: $logfile"
