@@ -173,7 +173,7 @@ for i in $(seq 0 $stop)
 do
 	path="/lochness/hypervisors/${uuids[$i]}/config"
 	echo "$path"
-	etcdctl set $path/KAPPA_ETCD_ADDRESS http://$ip:4001
+	etcdctl set $path/NCONFIGD_ETCD_ADDRESS http://$ip:4001
 	etcdctl set $path/ETCD_ADVERTISE_CLIENT_URLS "http://${uuids[$i]}.nodes.lochness.local:2379,http://${uuids[$i]}.nodes.lochness.local:4001"
 	etcdctl set $path/ETCD_INITIAL_ADVERTISE_PEER_URLS "http://${uuids[$i]}.nodes.lochness.local:2380"
 	etcdctl set $path/ETCD_LISTEN_CLIENT_URLS "http://${uuids[$i]}.nodes.lochness.local:2379,http://${uuids[$i]}.nodes.lochness.local:4001,http://localhost:2379,http://localhost:4001"
