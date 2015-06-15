@@ -1,0 +1,6 @@
+config BR2_PACKAGE_MISTIFY_IMAGE_SERVICE
+        bool "mistify-image-service"
+        help
+          The Mistify Image Service
+
+          https://github.com/mistifyio/mistify-image-service
