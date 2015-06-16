@@ -336,7 +336,7 @@ fi
 #-
 bruridefault=$(get_build_default bruri git@github.com:mistifyio/buildroot.git)
 buildrootdirdefault=$(get_build_default buildrootdir $PWD/build/buildroot)
-buildrootversiondefault=$(get_build_default buildrootversion 20150424)
+buildrootversiondefault=$(get_build_default buildrootversion master)
 
 builddirdefault=$(get_build_default builddir $PWD/build/mistify)
 downloaddirdefault=$(get_build_default downloaddir $PWD/downloads)
