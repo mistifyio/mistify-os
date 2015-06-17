@@ -1,0 +1,7 @@
+config BR2_PACKAGE_IPXE
+	bool "ipxe"
+	help
+		iPXE is the leading open source network boot firmware. It provides
+		a full PXE implementation enhanced with additional features.
+
+		http://ipxe.org/
