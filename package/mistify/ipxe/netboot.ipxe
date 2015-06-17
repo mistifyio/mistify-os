@@ -1,0 +1,20 @@
+#!ipxe
+
+prompt --key 0x02 --timeout 3000 Press Ctrl-B for the iPXE command line... && shell ||
+
+echo
+echo Interfaces:
+ifstat
+
+echo
+echo Acquiring DHCP information...
+dhcp
+
+echo
+echo Routes:
+route
+
+echo
+echo Fetching boot script from ${filename}
+chain ${filename}
+
