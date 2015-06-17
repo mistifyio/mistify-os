@@ -252,10 +252,6 @@ while [ $# -ge 1 ]; do
 	    buildrootversion=$2
 	    shift
 	    ;;
-	-t|--buildroottag)
-	    buildroottag=$2
-	    shift
-	    ;;
 	-b|--builddir)
 	    builddir=$2
 	    shift
