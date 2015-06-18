@@ -72,7 +72,7 @@ Usage: ./buildmistify [options] [target]
         [buildroot=`cat $statedir/buildroot`]
     --buildrootversion <version>
         Checkout Buildroot using a specified version. This can be a branch
-        or tag name or even a commit ID. The branch name is saved in the
+        or tag name or even a commit ID. The version information is saved in the
         file $statedir/buildrootversion.
         [buildrootversion=`cat $statedir/buildrootversion`]
     ==== build ====
