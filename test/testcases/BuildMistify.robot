@@ -69,6 +69,7 @@ ${downloaddir}=	${mistifybuilddir}/downloads
 ...	chypervisord
 ...	cplacerd
 ...	cworkerd
+...	mistify-image-service
 ...	nconfigd
 ...	nheartbeatd
 ...	queensland

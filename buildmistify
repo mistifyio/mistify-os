@@ -39,7 +39,7 @@ Usage: ./buildmistify [options] [target]
         [toolchainprefix=`cat $statedir/toolchainprefix`]
     --toolchainversion <version>
         Checkout the toolchain using a specified version. This can be a branch
-        or tag name or even a commit ID. The branch name is saved in the
+        or tag name or even a commit ID. The version information is saved in the
         file $statedir/toolchainversion.
         [toolchainversion=`cat $statedir/toolchainversion`]
     --toolchainreset
@@ -60,10 +60,10 @@ Usage: ./buildmistify [options] [target]
         This is saved in the file $statedir/gotag.
         [gotag=`cat $statedir/gotag`]
     ==== buildroot ====
-    --bruri <uri>
+    --buildrooturi <uri>
         The repository from which to clone Buildroot. This is saved in the file
-        $statedir/bruri.
-        [bruri=`cat $statedir/bruri`]
+        $statedir/buildrooturi.
+        [buildrooturi=`cat $statedir/buildrooturi`]
     --buildroot <dir>
         Where Buildroot is to be installed. Using this option simplifies using a
         single Buildroot install for multiple projects OR using different
@@ -177,7 +177,7 @@ toolchainreset,\
 gouri:,\
 godir:,\
 gotag:,\
-bruri:,\
+buildrooturi:,\
 buildroot:,\
 buildrootversion:,\
 builddir:,\
@@ -240,8 +240,8 @@ while [ $# -ge 1 ]; do
 	    gotag=$2
 	    shift
 	    ;;
-	--bruri)
-	    bruri=$2
+	--buildrooturi)
+	    buildrooturi=$2
 	    shift
 	    ;;
 	--buildroot)
@@ -316,7 +316,7 @@ while [ $# -ge 1 ]; do
 done
 
 if [ ! -z "$resetdefaults" ]; then
-    reset_build_default bruri
+    reset_build_default buildrooturi
     reset_build_default buildrootdir
     reset_build_default buildrootversion
     reset_build_default builddir
@@ -327,10 +327,10 @@ if [ ! -z "$resetdefaults" ]; then
 fi
 
 #+
-# TODO: buildroottag needs to be updated at release time to use the tag corresponding
+# TODO: builtrootversion needs to be updated at release time to use the tag corresponding
 # to the release.
 #-
-bruridefault=$(get_build_default bruri git@github.com:mistifyio/buildroot.git)
+buildrooturidefault=$(get_build_default buildrooturi git@github.com:mistifyio/buildroot.git)
 buildrootdirdefault=$(get_build_default buildrootdir $PWD/build/buildroot)
 buildrootversiondefault=$(get_build_default buildrootversion master)
 
@@ -407,11 +407,11 @@ mkdir -p $logdir
 #+
 # Determine the uri to use to fetch the Buildroot tool.
 #-
-if [ -z "$bruri" ]; then
-  bruri=$bruridefault
+if [ -z "$buildrooturi" ]; then
+  buildrooturi=$buildrooturidefault
 fi
-message "The Buildroot repository is: $bruri"
-set_build_default bruri $bruri
+message "The Buildroot repository is: $buildrooturi"
+set_build_default buildrooturi $buildrooturi
 
 if [ -z "$buildrootversion" ]; then
   buildrootversion=$buildrootversiondefault
@@ -445,7 +445,7 @@ fi
 
 if [ ! -f $buildrootdir/README ]; then
   message "Cloning Buildroot from the Buildroot project repository."
-  git clone $bruri $buildrootdir
+  git clone $buildrooturi $buildrootdir
   #+
   # TODO: It is possible that the previous clone failed. Might want to use
   # git again to update just in case.
