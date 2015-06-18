@@ -5,10 +5,6 @@
 
 source scripts/mistify-functions.sh
 
-jenkinsdefault=$(get_build_default jenkins http://mistify-dev-2.office.omniti.com:8081)
-jenkinsjobdefault=$(get_build_default jenkinsjob MistifyOS-remote)
-jenkinsmistifybranchdefault=$(get_build_default jenkinsmistifybranch $mistifybranch)
-
 usage () {
     cat << EOF
 Usage: $0 [options] [-- joboptions]
@@ -36,8 +32,11 @@ Usage: $0 [options] [-- joboptions]
         job needs to be configured to accept a parameter named "mistify_job_options".
 
     Parameters passed to the Jenkins server:
-        [branch=$mistifybranch]
+        [mistify_branch=$mistifybranch]
+        [mistify_job_options=<joboptions>]
     ==== other ====
+    --resetdefaults
+        Reset options back to their default values.
     --dryrun
         Just testing what will happen with this script. Don't send anything to
         the Jenkins server and instead display the command.
@@ -54,6 +53,7 @@ EOF
 a=`getopt -l "\
 jenkins:,\
 job:,\
+resetdefaults,\
 dryrun,\
 help" \
    -o "h" -- "$@"`
@@ -84,12 +84,14 @@ while [ $# -ge 1 ]; do
 	    jenkinsmistifybranch=$2
 	    shift
 	    ;;
+	--resetdefaults)
+	    resetdefaults=y
+	    ;;
 	--dryrun)
 	    dryrun=echo
 	    ;;
 	-h|--help)
-	    usage
-	    exit 0
+	    showusage=y
 	    ;;
 	# using getopt should avoid needing this catchall but just in case...
 	*)
@@ -101,6 +103,16 @@ while [ $# -ge 1 ]; do
     shift
 done
 
+if [ ! -z "$resetdefaults" ]; then
+    reset_build_default jenkins
+    reset_build_default jenkinsjob
+    reset_build_default jenkinsmistifybranch
+fi
+
+jenkinsdefault=$(get_build_default jenkins http://mistify-dev-2.office.omniti.com:8081)
+jenkinsjobdefault=$(get_build_default jenkinsjob MistifyOS-remote)
+jenkinsmistifybranchdefault=$(get_build_default jenkinsmistifybranch $mistifybranch)
+
 if [ -z "$jenkins" ]; then
     jenkins=$jenkinsdefault
 fi
@@ -111,6 +123,11 @@ fi
 
 if [ -z "$jenkinsmistifybranch" ]; then
     jenkinsmistifybranch=$jenkinsmistifybranchdefault
+fi
+
+if [ ! -z "$showusage" ]; then
+    usage
+    exit 0
 fi
 
 if [ -n "$mistify_job_options" ]; then

@@ -31,5 +31,4 @@ ${MISTIFY_LOGIN_PROMPT}	login:
 # To clone the Mistify-OS repo for building.
 ${MISTIFY_OS_REPO}	mistify-os
 ${MISTIFY_GIT_URL}	git@github.com:mistifyio/${MISTIFY_OS_REPO}.git
-${MISTIFY_CLONE_DIR}	${MISTIFY_OS_REPO} # Relative to current directory.
-
+${MISTIFY_CLONE_DIR}	${MISTIFY_OS_REPO}

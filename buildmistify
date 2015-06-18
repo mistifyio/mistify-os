@@ -7,21 +7,6 @@
 #-
 
 
-#+
-# TODO: buildroottag needs to be updated at release time to use the tag corresponding
-# to the release.
-#-
-bruridefault=git@github.com:mistifyio/buildroot.git
-buildrootdirdefault=$PWD/build/buildroot
-buildrootbranchdefault="master"
-buildroottagdefault="20150424"
-
-builddirdefault=$PWD/build/mistify
-variantdirdefault=base
-downloaddirdefault=$PWD/downloads
-mistifycfgdefault=$PWD/configs/mistify_defconfig
-kernelcfgdefault=$PWD/configs/mistify-kernel.config
-busyboxcfgdefault=$PWD/configs/mistify-busybox.config
 
 timestampfile=/tmp/buildmistify-ts
 
@@ -54,7 +39,7 @@ Usage: ./buildmistify [options] [target]
         [toolchainprefix=`cat $statedir/toolchainprefix`]
     --toolchainversion <version>
         Checkout the toolchain using a specified version. This can be a branch
-        or tag name or even a commit ID. The branch name is saved in the
+        or tag name or even a commit ID. The version information is saved in the
         file $statedir/toolchainversion.
         [toolchainversion=`cat $statedir/toolchainversion`]
     --toolchainreset
@@ -75,26 +60,21 @@ Usage: ./buildmistify [options] [target]
         This is saved in the file $statedir/gotag.
         [gotag=`cat $statedir/gotag`]
     ==== buildroot ====
-    --bruri <uri>
+    --buildrooturi <uri>
         The repository from which to clone Buildroot. This is saved in the file
-        $statedir/bruri.
-        [bruri=`cat $statedir/bruri`]
+        $statedir/buildrooturi.
+        [buildrooturi=`cat $statedir/buildrooturi`]
     --buildroot <dir>
         Where Buildroot is to be installed. Using this option simplifies using a
         single Buildroot install for multiple projects OR using different
         versions of Buildroot for different projects. This is saved in the file
         $statedir/buildroot.
         [buildroot=`cat $statedir/buildroot`]
-    --buildrootbranch <label>
-        Checkout Buildroot using a specified branch. NOTE: This option
-        supercedes the --buildroottag option. The branch name is saved in the
-        file $statedir/buildrootbranch.
-        [buildrootbranch=`cat $statedir/buildrootbranch`]
-    -t|--buildroottag <tag>
-        Checkout Buildroot using a specific tag. To reset to the master branch
-        use the --buildrootbranch option. The tag is saved in the file
-        $statedir/buildroottag.
-        [buildroottag=`cat $statedir/buildroottag`]
+    --buildrootversion <version>
+        Checkout Buildroot using a specified version. This can be a branch
+        or tag name or even a commit ID. The version information is saved in the
+        file $statedir/buildrootversion.
+        [buildrootversion=`cat $statedir/buildrootversion`]
     ==== build ====
     -b|--builddir <dir>
         Where to put the build targets and output. This location is saved in the
@@ -119,16 +99,16 @@ Usage: ./buildmistify [options] [target]
         The active variant name is saved in the file
         $statedir/variant.
         [variant=`cat $statedir/variant`]
-    -c|--config <configfile>
+    -c|--mconfig <configfile>
         Use this config file. The config file is copied to the build directory
         before running the buildroot make. The file name is saved in the file
-        $statedir/config.
-        [config=`cat $statedir/config`]
+        $statedir/mconfig.
+        [mconfig=`cat $statedir/mconfig`]
     -k|--kconfig <configfile>
         Use this kernel config file. The config file is copied to the build
         directory before running the buildroot make.  The file name is saved in
         the file
-        $statedir/config.
+        $statedir/kconfig.
         [kconfig=`cat $statedir/kconfig`]
     --bbconfig <configfile>
         Use this Busybox config file. The config file is copied to the build
@@ -141,6 +121,8 @@ Usage: ./buildmistify [options] [target]
         name is saved in the file $statedir/tcconfig.
         [tcconfig=`cat $statedir/tcconfig 2>/dev/null || echo \\`]
     ==== other ====
+    --resetdefaults
+        Reset options back to their default values.
     --verbose
         Enble verbose output from this script.
     -l|--logfile
@@ -178,6 +160,7 @@ source scripts/install-toolchain.sh
 source scripts/install-go.sh
 source scripts/variants.sh
 
+
 #+
 # TODO: Add some quick checks to verify required tools are installed.
 #-
@@ -194,19 +177,19 @@ toolchainreset,\
 gouri:,\
 godir:,\
 gotag:,\
-bruri:,\
+buildrooturi:,\
 buildroot:,\
-buildrootbranch:,\
-buildroottag:,\
+buildrootversion:,\
 builddir:,\
 variant:,\
-config:,\
+mconfig:,\
 kconfig:,\
 bbconfig:,\
 tcconfig:,\
 dryrun,\
 downloaddir:,\
 resetmasters,\
+resetdefaults,\
 verbose,\
 logfile:,\
 viewlog,\
@@ -257,20 +240,16 @@ while [ $# -ge 1 ]; do
 	    gotag=$2
 	    shift
 	    ;;
-	--bruri)
-	    bruri=$2
+	--buildrooturi)
+	    buildrooturi=$2
 	    shift
 	    ;;
 	--buildroot)
 	    buildrootdir=$2
 	    shift
 	    ;;
-	--buildrootbranch)
-	    buildrootbranch=$2
-	    shift
-	    ;;
-	-t|--buildroottag)
-	    buildroottag=$2
+	--buildrootversion)
+	    buildrootversion=$2
 	    shift
 	    ;;
 	-b|--builddir)
@@ -291,21 +270,24 @@ while [ $# -ge 1 ]; do
 	    variantset=y
 	    shift
 	    ;;
-	-c|--config)
-	    mistifycfg=$2
+	-c|--mconfig)
+	    mconfig=$2
 	    shift
 	    ;;
 	-k|--kconfig)
-	    kernelcfg=$2
+	    kconfig=$2
 	    shift
 	    ;;
 	--bbconfig)
-	    busyboxcfg=$2
+	    bbconfig=$2
 	    shift
 	    ;;
 	--tcconfig)
 	    tcconfig=$2
 	    shift
+	    ;;
+	--resetdefalts)
+	    resetdefaults=y
 	    ;;
 	--verbose)
 	    verbose=y
@@ -321,8 +303,7 @@ while [ $# -ge 1 ]; do
 	    dryrun=y
 	    ;;
 	-h|--help)
-	    usage
-	    exit 0
+	    showusage=y
 	    ;;
 	# using getopt should avoid needing this catchall but just in case...
 	*)
@@ -333,6 +314,32 @@ while [ $# -ge 1 ]; do
     esac
     shift
 done
+
+if [ ! -z "$resetdefaults" ]; then
+    reset_build_default buildrooturi
+    reset_build_default buildrootdir
+    reset_build_default buildrootversion
+    reset_build_default builddir
+    reset_build_default downloaddir
+    reset_build_default mconfig
+    reset_build_default kconfig
+    reset_build_default bbconfig
+fi
+
+#+
+# TODO: builtrootversion needs to be updated at release time to use the tag corresponding
+# to the release.
+#-
+buildrooturidefault=$(get_build_default buildrooturi git@github.com:mistifyio/buildroot.git)
+buildrootdirdefault=$(get_build_default buildrootdir $PWD/build/buildroot)
+buildrootversiondefault=$(get_build_default buildrootversion master)
+
+builddirdefault=$(get_build_default builddir $PWD/build/mistify)
+downloaddirdefault=$(get_build_default downloaddir $PWD/downloads)
+mconfigdefault=$(get_build_default mconfig $PWD/configs/mistify_defconfig)
+kconfigdefault=$(get_build_default kconfig $PWD/configs/mistify-kernel.config)
+bbconfigdefault=$(get_build_default bbconfig $PWD/configs/mistify-busybox.config)
+
 
 if [[ $# -ge 1 ]]; then
   target="$@"
@@ -352,14 +359,10 @@ fi
 # create it if necessary.
 #-
 if [ -z "$buildrootdir" ]; then
-  if [ -f $statedir/buildroot ]; then
-    buildrootdir=`cat $statedir/buildroot`
-  else
-    buildrootdir=$buildrootdirdefault
-  fi
-  message "Using Buildroot located at: $buildrootdir"
+  buildrootdir=$buildrootdirdefault
 fi
-echo $buildrootdir >$statedir/buildroot
+message "Using Buildroot located at: $buildrootdir"
+set_build_default buildrootdir $buildrootdir
 
 #+
 # Determine the configuration variant to use.
@@ -367,21 +370,15 @@ echo $buildrootdir >$statedir/buildroot
 #-
 if [ -z "$variant" ]; then
   if [ "$variantset" == "y" ]; then
-     rm $statedir/variant
+     reset_build_default variant
   fi
-  if [ -f $statedir/variant ]; then
-    variant=`cat $statedir/variant`
-  fi
-fi
-if [ -z "$variant" ]; then
-  message "Using base configuration."
-  variantdir=$variantdirdefault
-  variant=$variantdirdefault
+  variantdefault=$(get_build_default variant base)
+  variant=$variantdefault
 else
-  message "The configuration variant is: $variant"
-  variantdir=$variant
-  echo $variant >$statedir/variant
+  set_build_default variant $variant
 fi
+variantdir=$variant
+message "Using $variant configuration."
 
 export MISTIFY_VARIANT="$variant"
 
@@ -391,22 +388,18 @@ export MISTIFY_VARIANT="$variant"
 # create it if necessary.
 #-
 if [ -z "$builddir" ]; then
-  if [ -f $statedir/builddir ]; then
-    builddir=`cat $statedir/builddir`
-  else
-    builddir=$builddirdefault
-  fi
+  builddir=$builddirdefault
 fi
 if [ ! -d "$builddir" ]; then
     mkdir -p $builddir
 fi
 message "Build output directory is: $builddir"
-echo $builddir >$statedir/builddir
+set_build_default builddir $builddir
 
 variantbuilddir=$builddir/$variantdir
 message "The variant build directory is: $variantbuilddir"
 # Save the variant builddir so testmistify can know which build to test.
-echo $variantbuilddir >$statedir/variantbuilddir
+set_build_default variantbuilddir $variantbuilddir
 
 logdir=$variantbuilddir/logs
 mkdir -p $logdir
@@ -414,161 +407,103 @@ mkdir -p $logdir
 #+
 # Determine the uri to use to fetch the Buildroot tool.
 #-
-if [ -z "$bruri" ]; then
-  if [ -f $statedir/bruri ]; then
-    bruri=`cat $statedir/bruri`
-  else
-    bruri=$bruridefault
-  fi
+if [ -z "$buildrooturi" ]; then
+  buildrooturi=$buildrooturidefault
 fi
-message "The Buildroot repository is: $bruri"
-echo $bruri >$statedir/bruri
+message "The Buildroot repository is: $buildrooturi"
+set_build_default buildrooturi $buildrooturi
 
-#+
-# Check the buildroot tag. If this is the first time, meaning not saved in the
-# the statedir then use the default.
-#-
-if [ -z "$buildroottag" ]; then
-  if [ -f $statedir/buildroottag ]; then
-    buildroottag=`cat $statedir/buildroottag`
-  else
-    buildroottag=$buildroottagdefault
-  fi
-else
-  #+
-  # Using the tag on the command line overrides the branch.
-  #-
-  warning "Ignoring the buildroot branch because a new tag is being used."
-  rm -f $statedir/buildrootbranch
+if [ -z "$buildrootversion" ]; then
+  buildrootversion=$buildrootversiondefault
+fi
+message "The Buildroot version is: $buildrootversion"
+
+if [ -z "$mconfig" ]; then
+  mconfig=$mconfigdefault
 fi
 
-#+
-# If the buildrootbranch option is used then ignore the buildroottag.
-# NOTE: Specifying a branch overrides using a tag.
-#-
-if [ ! -z "$buildrootbranch" ]; then
-  message "Switching to branch: $buildrootbranch"
-  if [ ! -z "$buildroottag" ]; then
-    warning "Ignoring --buildroottag"
-    buildroottag=
-  fi
-  rm -f $statedir/buildroottag
-else
-  if [ -f $statedir/buildrootbranch ]; then
-    buildrootbranch=`cat $statedir/buildrootbranch`
-    buildroottag=
-  else
-    buildrootbranch=$buildrootbranchdefault
-  fi
+if [ -z "$kconfig" ]; then
+    kconfig=$kconfigdefault
 fi
-echo $buildrootbranch >$statedir/buildrootbranch
+
+if [ -z "$downloaddir" ]; then
+  downloaddir=$downloaddirdefault
+fi
+
+if [ -z "$bbconfig" ]; then
+  bbconfig=$bbconfigdefault
+fi
+
+if [ -z "$logfilename" ]; then
+  logfilename=buildroot-`date +%y%m%d%H%M%S`.log
+fi
+
+if [ ! -z "$showusage" ]; then
+    usage
+    exit 0
+fi
 
 if [ ! -f $buildrootdir/README ]; then
-  message 'Fetching Buildroot branch "master" from the Buildroot project repository.'
-  git clone $bruri $buildrootdir
+  message "Cloning Buildroot from the Buildroot project repository."
+  git clone $buildrooturi $buildrootdir
   #+
   # TODO: It is possible that the previous clone failed. Might want to use
   # git again to update just in case.
   #-
   if [ $? -gt 0 ]; then
-    error "Fetching Buildroot encountered an error."
-    exit 1
+    die "Cloning Buildroot encountered an error."
   fi
 fi
+
 cd $buildrootdir
 
-#+
-# Determine the tag to use to sync Buildroot to.
-# NOTE: Having branch and tag separate helps avoid an ambiguity which could
-# result in accidentally creating a branch when a tag was intended.
-# NOTE: If buildroottag is set at this point then it wasn't overridden by
-# specifying a branch.
-#-
-if [ ! -z "$buildroottag" ]; then
-  buildrootbranch=
-  message "Switching to buildroot tag: $buildroottag"
-  echo $buildroottag >$statedir/buildroottag
-else
-  if [ -f $statedir/buildroottag ]; then
-    buildrootbranch=
-    buildroottag=`cat $statedir/buildroottag`
-  fi
-fi
+message "Fetching Buildroot update from the remote repository."
+git fetch
 
-#+
-# Verify using the desired Buildroot version. If the branch or tag doesn't exist
-# locally then fetch an update from the repo.
-#-
-if [ ! -z "$buildroottag" ]; then
-  message "Using Buildroot tag: $buildroottag"
-  git tag | grep $buildroottag
-  if [ $? -ne 0 ]; then
-    message "Local tag $buildroottag doesn't exist."
-    message "Fetching update from remote repository."
-    run git fetch
-  fi
-  buildrootlabel="tags/$buildroottag"
-else
-  message "Using Buildroot branch: $buildrootbranch"
-  run git branch | grep $buildrootbranch
-  if [ $? -ne 0 ]; then
-    message "Local branch $buildrootbranch doesn't exist."
-    message "Fetching update from remote repository."
-    run git fetch
-  fi
-  buildrootlabel=$buildrootbranch
-fi
 
-run git checkout $buildrootlabel
+run git checkout $buildrootversion
+
 if [ $? -ne 0 ]; then
-  error "Attempted to checkout Buildroot using an invalid tag or branch: $buildrootlabel"
-  exit 1
+  die "Attempted to checkout Buildroot using an invalid ID: $buildrootversion"
 fi
 #+
-# Using a tag causes a "detached HEAD" state. Can't use a pull in that case.
+# If on a branch then pull the latest changes.
 #-
-if [ -z "$buildroottag" ]; then
-  message Updating buildroot for branch: $buildrootbranch
-  run git pull
+run_ignore git symbolic-ref --short HEAD
+if [ $? -eq 0 ]; then
+    message Updating from branch: $buildrootversion
+    run git pull
+else
+    message Buildroot version $buildrootversion is not a branch. Not updating.
 fi
-message "Buildroot synced to: $buildrootlabel"
+
+message "Buildroot synced to: $buildrootversion"
+set_build_default buildrootversion $buildrootversion
+
 cd $projectdir
 
-#+
-# Setup the correct project config file.
-#-
-if [ -z "$mistifycfg" ]; then
-  if [ -f $statedir\$mistifycfg ]; then
-    mistifycfg=`cat $statedir/config`
-  else
-    mistifycfg=$mistifycfgdefault
-  fi
-fi
+buildrootkernelheaders=`grep BR2_LINUX_KERNEL_VERSION $mconfig | cut -d \" -f 2`
 
-buildrootkernelheaders=`grep BR2_LINUX_KERNEL_VERSION $mistifycfg | cut -d \" -f 2`
-
-message "The Buildroot config file is: $mistifycfg"
+message "The Buildroot config file is: $mconfig"
 message "The kernel headers version is: $buildrootkernelheaders"
 
 brc=$variantbuilddir/.config
-if [ -f $mistifycfg ]; then
-  verbose "Base config: $mistifycfg"
+if [ -f $mconfig ]; then
+  verbose "Base config: $mconfig"
   verbose "Target file: $brc"
   verbose "Variant: $variant"
-  use_variant $mistifycfg $brc $variant
+  use_variant $mconfig $brc $variant
   if [ $? -gt 0 ]; then
-    error "Could not copy the Buildroot config file."
-    exit 1
+    die "Could not copy the Buildroot config file."
   fi
-  message "Config file $mistifycfg copied to $brc"
-  echo $mistifycfg >$statedir/config
+  message "Config file $mconfig copied to $brc"
+  set_build_default mconfig $mconfig
 else
   case "$target" in
     "menuconfig" | "nconfig")
       ;;
     *)
-      error "The config file doesn't exist. Run $0 menuconfig."
-      exit 1
+      die "The config file doesn't exist. Run $0 menuconfig."
       ;;
   esac
 fi
@@ -577,30 +512,21 @@ fi
 # Setup the correct kernel config file.
 # TODO: Add a check to verify the kernel config file exists.
 #
-if [ -z "$kernelcfg" ]; then
-  if [ -f $statedir/kconfig ]; then
-    kernelcfg=`cat $statedir/kconfig`
-  else
-    kernelcfg=$kernelcfgdefault
-  fi
-fi
-message "The Buildroot kernel config file is: $kernelcfg"
+message "The Buildroot kernel config file is: $kconfig"
 
 brkc=$variantbuilddir/build/linux-`grep BR2_LINUX_KERNEL_VERSION $brc | cut -d "\"" -f 2`/.config
 verbose "Kernel configuration file: $brkc"
 if [ -f $brkc ]; then
-  if [ -f $kernelcfg ]; then
-    use_variant $kernelcfg $brkc $variant
+  if [ -f $kconfig ]; then
+    use_variant $kconfig $brkc $variant
     if [ $? -gt 0 ]; then
-      error "Could not copy the kernel config file."
-      exit 1
+      die "Could not copy the kernel config file."
     fi
-    message "Config file $kernelcfg copied to $brkc"
-    echo $kernelcfg >$statedir/kconfig
+    message "Config file $kconfig copied to $brkc"
+    set_build_default kconfig $kconfig
   else
     if [[ "$target" != "linux-menuconfig" ]]; then
-      error "The kernel config file doesn't exist. Run ./buildmistify linux-menuconfig."
-      exit 1
+      die "The kernel config file doesn't exist. Run ./buildmistify linux-menuconfig."
     fi
   fi
 fi
@@ -608,47 +534,29 @@ fi
 #+
 # Setup the correct busybox config file.
 #
-if [ -z "$busyboxcfg" ]; then
-  if [ -f $statedir/bbconfig ]; then
-    busyboxcfg=`cat $statedir/bbconfig`
-  else
-    busyboxcfg=$busyboxcfgdefault
-  fi
-fi
-message "The Buildroot BusyBox config file is: $busyboxcfg"
+message "The Buildroot BusyBox config file is: $bbconfig"
 
 bbc=`ls -d $variantbuilddir/build/busybox-*`/.config
 
 if [ -f $bbc ]; then
-  if [ -f $busyboxcfg ]; then
-    if [[ $busyboxcfg -nt $bbc ]]; then
-      use_variant $busyboxcfg $bbc $variant
+  if [ -f $bbconfig ]; then
+    if [[ $bbconfig -nt $bbc ]]; then
+      use_variant $bbconfig $bbc $variant
       if [ $? -gt 0 ]; then
         warning "Busybox hasn't been built yet."
       fi
-      message "Config file $busyboxcfg copied to $bbc"
-      echo $busyboxcfg >$statedir/bbconfig
+      message "Config file $bbconfig copied to $bbc"
+      set_build_default bbconfig $bbconfig
     fi
   else
     if [[ "$target" != "busybox-menuconfig" ]]; then
       error "The BusyBox config file doesn't exist."
-      message "Run ./buildmistify busybox-menuconfig."
-      exit 1
+      die "Run ./buildmistify busybox-menuconfig."
     fi
   fi
 fi
 
-#+
-# Setup the downloads directory.
-#-
-if [ -z "$downloaddir" ]; then
-  if [ -f $statedir/downloaddir ]; then
-    downloaddir=`cat $statedir/downloaddir`
-  else
-    downloaddir=$downloaddirdefault
-  fi
-fi
-echo $downloaddir >$statedir/downloaddir
+set_build_default downloaddir $downloaddir
 
 message "The Buildroot download directory is: $downloaddir"
 
@@ -703,20 +611,20 @@ case "$target" in
 	touch $timestampfile
 	verbose "Current directory is: $PWD"
 	$makecommand
-	if [[ ! -f $mistifycfg || $brc -nt $timestampfile ]]; then
+	if [[ ! -f $mconfig || $brc -nt $timestampfile ]]; then
 	    #+
 	    # NOTE: The buildroot config option BR2_DEFCONFIG
 	    # needs to point to the config file so that buildroot will copy the correct
 	    # file on the first build.
 	    #-
-	   update_variant $brc $mistifycfg $variant
+	   update_variant $brc $mconfig $variant
 	    if [ $? -gt 0 ]; then
-		error "Failed to save $mistifycfg"
+		error "Failed to save $mconfig"
 		exit 1
 	    fi
 	    tip "Use $0 to build Mistify using the new configuration."
 	    if [ -z "$variant" ]; then
-		message "New config file at $brc saved to $mistifycfg"
+		message "New config file at $brc saved to $mconfig"
 	    else
 		message "The configuration variant saved to $variant"
 	    fi
@@ -736,15 +644,15 @@ case "$target" in
 	#-
 	touch $timestampfile
 	$makecommand
-	if [[ ! -f $kernelcfg || $brkc -nt $timestampfile ]]; then
-	    update_variant $brkc $kernelcfg $variant
+	if [[ ! -f $kconfig || $brkc -nt $timestampfile ]]; then
+	    update_variant $brkc $kconfig $variant
 	    if [ $? -gt 0 ]; then
-		error "Failed to save $kernelcfg"
+		error "Failed to save $kconfig"
 		exit 1
 	    fi
 	    tip "Use $0 to build Mistify using the new configuration."
 	    if [ -z "$variant" ]; then
-		message "New kernel config file at $brkc saved to $kernelcfg"
+		message "New kernel config file at $brkc saved to $kconfig"
 	    else
 		message "The kernel configuration variant saved to $variant"
 	    fi
@@ -761,15 +669,15 @@ case "$target" in
 	touch $timestampfile
 	$makecommand
 	# NOTE: May want to use grep instead of a timestamp compare.
-	if [[ ! -f $busyboxcfg || $bbc -nt $timestampfile ]]; then
-	    update_variant $bbc $busyboxcfg $variant
+	if [[ ! -f $bbconfig || $bbc -nt $timestampfile ]]; then
+	    update_variant $bbc $bbconfig $variant
 	    if [ $? -gt 0 ]; then
-		error "Failed to save $busyboxcfg"
+		error "Failed to save $bbconfig"
 		exit 1
 	    fi
 	    tip "Use $0 to build Mistify using the new configuration."
 	    if [ -z "$variant" ]; then
-		message "New BusyBox config file $bbc saved to $busyboxcfg"
+		message "New BusyBox config file $bbc saved to $bbconfig"
 	    else
 		message "The BusyBox configuration variant saved to $variant"
 	    fi
@@ -784,9 +692,6 @@ esac
 #+
 # Setup the build log file.
 #-
-if [ -z "$logfilename" ]; then
-  logfilename=buildroot-`date +%y%m%d%H%M%S`.log
-fi
 logfile=$logdir/$logfilename
 
 message "Logging the build output to: $logfile"
@@ -817,7 +722,7 @@ fi
 #+
 # Prepare the "official" images and generate corresponding sha1s.
 # WARNING: This requires the corresponding images be enabled in the Buildroot
-# configuration file ($mistifycfg).
+# configuration file ($mconfig).
 #-
 imagedir=$variantbuilddir/images
 cd $imagedir

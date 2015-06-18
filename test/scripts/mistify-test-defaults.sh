@@ -25,7 +25,7 @@ function get_test_default() {
     else
       r=$2
     fi
-    verbose The default for $1 is $2
+    verbose The test default for $1 is $2
     echo $r
 }
 
@@ -34,7 +34,18 @@ function set_test_default() {
     #   1: option name
     #   2: value
     echo "$2">$testmistifystatedir/$1
-    verbose The default $1 has been set to $2
+    verbose The test default $1 has been set to $2
+}
+
+function reset_test_default() {
+    # Parameters:
+    #   1: option name
+    if [ -e $testmistifystatedir/$1 ]; then
+      rm $testmistifystatedir/$1
+      verbose Option $1 test default has been reset.
+    else
+      verbose Option $1 test default has not been set.
+    fi
 }
 
 # Network configuration
