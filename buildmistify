@@ -706,6 +706,7 @@ else
   #+
   # Run the buildroot make.
   #-
+  ln -sf $logfilename $logdir/buildroot.log
   time $makecommand 2>&1 | tee $logfile
   rc=${PIPESTATUS[0]}
   message "The Mistify-OS build is complete."
@@ -745,8 +746,6 @@ else
   warning "The ISO image doesn't exist."
 fi
 cd -
-
-ln -sf $logfilename $logdir/buildroot.Log
 
 message "Images are in $imagedir and can be uploaded to the server."
 message "bzImage.buildroot: The kernel image."
