@@ -11,16 +11,19 @@ IPXE_LICENSE       = GPLv2
 IPXE_LICENSE_FILES = COPYING COPYING.GPLv2
 
 define IPXE_BUILD_CMDS
-	export CPATH=$(TARGET_DIR)/usr/include && \
-	export LIBRARY_PATH=$(TARGET_DIR)/usr/lib && \
 	cp $(BR2_EXTERNAL)/package/mistify/ipxe/netboot.ipxe \
-		$(IPXE_DIR)/src && \
-	cd $(IPXE_DIR)/src && \
-	$(MAKE) EMBED=netboot.ipxe
+		$(@D)/src
+	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D)/src				\
+		CROSS_COMPILE="$(TARGET_CROSS)"				\
+		HOST_CC="$(HOSTCC)"					\
+		HOST_CFLAGS="$(HOST_CFLAGS) $(HOST_LDFLAGS)"		\
+		ISOLINUX_BIN="$(BINARIES_DIR)/syslinux/isolinux.bin"	\
+		EMBED=netboot.ipxe V=1					\
+		bin/undionly.kpxe
 endef
 
 define IPXE_INSTALL_TARGET_CMDS
-	$(INSTALL) -m 644 -D $(IPXE_DIR)/src/bin/undionly.kpxe \
+	$(INSTALL) -m 644 -D $(@D)/src/bin/undionly.kpxe \
 		$(TARGET_DIR)/var/lib/tftpd/undionly.kpxe
 endef
 
