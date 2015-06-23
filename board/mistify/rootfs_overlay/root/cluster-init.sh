@@ -241,3 +241,11 @@ echo "$LINENO: done"
 echo "$LINENO: restarting nconfigd so it can do its thing"
 systemctl restart nconfigd
 echo "$LINENO: done"
+
+echo "$LINENO: updating resolv.conf nameserver order"
+cat > /etc/resolv.conf <<EOF
+nameserver ${ips[0]}
+nameserver ${ips[1]}
+nameserver ${ips[2]}
+EOF
+echo "$LINENO: done"
