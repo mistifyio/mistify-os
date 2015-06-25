@@ -35,7 +35,7 @@ define GOPACKAGE_BUILD_CMDS
 		<$(BR2_EXTERNAL)/package/mistify/gopackage/Makefile.template \
 		>$(@D)/Makefile; \
 	fi
-	rsync -av --delete-after --exclude=.git  \
+	rsync -av --delete-after --exclude=.git --exclude-from=$(@D)/.gitignore \
 		$(@D)/ $(GOPATH)/src/github.com/mistifyio/$(GOPACKAGENAME)/
 	GOROOT=$(GOROOT) \
 		PATH=$(GOROOT)/bin:$(PATH) \
