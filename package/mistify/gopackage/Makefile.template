@@ -1,0 +1,31 @@
+###################################################
+# Sample GO package make file.
+# This is a template make file which can be used to compile GO components.
+# The pattern "_PACKAGE_" is replaced with the target name (GOPACKAGENAME).
+###################################################
+
+#+
+# Useful environment variables which are passed from the buildgopackage script.
+#
+# GOPACKAGEDIR	Where the package source code and makefile is located.
+# GOPACKAGENAME	The name to associate with the package. This is used to name
+#		the build directory among other things. This also allows
+#		different agents to be built using this one package.
+# DRYRUN	Most often used to echo commands rather than actually execute
+#		them.
+# DESTDIR	Is ignored since this generic template can be used to build a
+#		GO package for variety of purposes.
+#-
+
+PREFIX := /opt/mistify
+SBIN_DIR=$(PREFIX)/sbin
+
+_PACKAGE_: main.go
+	$(DRYRUN) go get && \
+	$(DRYRUN) go build
+
+clean:
+	$(DRYRUN) go clean
+
+install: _PACKAGE_
+	@echo The actual install must be done manually.

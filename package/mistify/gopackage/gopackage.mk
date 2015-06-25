@@ -30,6 +30,11 @@ define GOPACKAGE_BUILD_CMDS
 	# GO apparently wants the install path to be independent of the
 	# build path. Use a temporary directory to do the build.
 	mkdir -p $(GOPATH)/src/github.com/mistifyio/$(GOPACKAGENAME)
+	if [ ! -f $(@D)/Makefile ]; then \
+		sed s/_PACKAGE_/$(GOPACKAGENAME)/g \
+		<$(BR2_EXTERNAL)/package/mistify/gopackage/Makefile.template \
+		>$(@D)/Makefile; \
+	fi
 	rsync -av --delete-after --exclude=.git --exclude-from=$(@D)/.gitignore \
 		$(@D)/ $(GOPATH)/src/github.com/mistifyio/$(GOPACKAGENAME)/
 	GOROOT=$(GOROOT) \
