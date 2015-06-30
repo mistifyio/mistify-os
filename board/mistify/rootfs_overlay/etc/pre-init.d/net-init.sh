@@ -104,16 +104,14 @@ function get_mistify_config() {
 
     local resp=''
     for dns in ${DNS[*]}; do
-        resp=$(dig +noall +answer +additional SRV ipxe.services.lochness.local @$dns)
-	if [[ $! -ne 0 ]];then
-            resp=''
-            continue
-        fi
+        srv=$(dig +noall +answer +additional SRV ipxe.services.lochness.local @$dns) || continue
+        resp="$srv"
+        break
     done
 
     if [[ -z $resp ]]; then
         echo "could not resolv ipxe service"
-	return 1
+        return 1
     fi
 
     local addr=$(echo $resp | awk '/\sA\s/ {print $NF}')
