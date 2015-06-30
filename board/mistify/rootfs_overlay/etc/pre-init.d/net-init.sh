@@ -57,7 +57,7 @@ function configure_net_manual() {
 function configure_net_dhcp() {
     for iface in "$ETHER_DEVS"; do
         echo "Probing $iface for DHCP"
-        /sbin/dhclient -1 -v $iface
+        /sbin/dhclient -1 -v $iface -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE
 
         if [ $? -eq 0 ]; then
             echo "IFTYPE=DHCP" >> $MISTIFY_IFSTATE
@@ -84,7 +84,7 @@ function unconfigure_net_iface() {
 
     if [ "$IFTYPE" == "DHCP" ]; then
         echo "Releasing DHCP lease on $IFACE..."
-        /sbin/dhclient -r -v $IFACE
+        /sbin/dhclient -r -v $IFACE -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE
         /sbin/ip addr del $IP dev $IFACE
         /sbin/ip link set $IFACE down
     fi
@@ -130,27 +130,26 @@ function get_mistify_config() {
 ## Network initialization main. Under 'start' we either manually configure a IP address
 ## on the first interface if we are given one in the kernel boot arguments.
 ## Otherwise we probe each interface for a DHCP response until we fine one that does.
-if [[ ${BASH_SOURCE[0]} == $0 ]]; then
-    # being executed, not sourced
-    case "$1" in
-        'start')
-            # Initialize our own interface state file
-            cp /dev/null $MISTIFY_IFSTATE
+case "$1" in
+    'start')
+        # Initialize our own interface state file
+        cp /dev/null $MISTIFY_IFSTATE
 
-            parse_boot_args
+        parse_boot_args
 
-            if [ -n "$MISTIFY_KOPT_IP" ]; then
-                configure_net_manual
-            else
-                configure_net_dhcp
-                get_mistify_config
-            fi
-            ;;
-        'stop')
-            unconfigure_net_iface
-            ;;
-        *)
-            echo "Usage: $0 {start|stop}"
-            ;;
-    esac
-fi
+        if [ -n "$MISTIFY_KOPT_IP" ]; then
+            configure_net_manual
+        else
+            configure_net_dhcp
+            get_mistify_config
+        fi
+        ;;
+    'stop')
+        unconfigure_net_iface
+        ;;
+    *)
+        echo "Usage: $0 {start|stop}"
+        ;;
+esac
+
+# vim:set ts=4 sw=4 et:

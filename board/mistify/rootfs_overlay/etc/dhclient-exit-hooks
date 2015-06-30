@@ -1,6 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 
-source /etc/pre-init.d/net-init.sh
+
+if [[ -z $MISTIFY_IFSTATE ]]; then
+  echo "MISTIFY_IFSATE is not set"
+  return
+fi
 
 if [ x$new_domain_name_servers != x ]
 then
