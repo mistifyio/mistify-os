@@ -6,12 +6,14 @@ if [[ -z $MISTIFY_IFSTATE ]]; then
   return
 fi
 
-if [ x$new_domain_name_servers != x ]
+if [ ${#new_domain_name_servers[*]} -gt 0 ]
 then
-  echo "DNS=($new_domain_name_servers)" >> $MISTIFY_IFSTATE
+  echo "DNS=(${new_domain_name_servers[*]})" >> $MISTIFY_IFSTATE
 fi
 
 if [ x$new_dhcp_server_identifier != x ]
 then
   echo SERVER=$new_dhcp_server_identifier >> $MISTIFY_IFSTATE
 fi
+
+# vim:set ts=2 sw=2 et:
