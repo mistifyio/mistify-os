@@ -12,20 +12,23 @@ MISTIFY_KOPT_IFACE=""
 # Parse the kernel boot arguments and look for any mistify.* arguments and
 # pick out their values.
 function parse_boot_args() {
+    local cmdline=$(cat $PROC_CMDLINE)
+    grep -q 'mistify.debug/test/not-for-prod' <<<$cmdline || return
 
-    for kopt in `cat $PROC_CMDLINE`; do
+    for kopt in $cmdline; do
         k=`echo $kopt | awk -F= '{print $1}'`
         v=`echo $kopt | awk -F= '{print $2}'`
-
-        if [ "$k" == "mistify.debug/test/not-for-prod.ip" ]; then
-            MISTIFY_KOPT_IP="$v"
-        fi
-        if [ "$k" == "mistify.debug/test/not-for-prod.gw" ]; then
-            MISTIFY_KOPT_GW="$v"
-        fi
-        if [ "$k" == "mistify.debug/test/not-for-prod.iface" ]; then
-            MISTIFY_KOPT_IFACE="$v"
-        fi
+        case $k in
+            'mistify.debug/test/not-for-prod.ip')
+                MISTIFY_KOPT_IP="$v"
+                ;;
+            'mistify.debug/test/not-for-prod.gw')
+                MISTIFY_KOPT_GW="$v"
+                ;;
+            'mistify.debug/test/not-for-prod.iface')
+                MISTIFY_KOPT_IFACE="$v"
+                ;;
+        esac
     done
 }
 
