@@ -55,7 +55,7 @@ function configure_net_manual() {
 # Cycle through all known ethernet interfaces until we find one which
 # responds to DHCP requests.
 function configure_net_dhcp() {
-    for iface in "$ETHER_DEVS"; do
+    for iface in ${ETHER_DEVS[*]}; do
         echo "Probing $iface for DHCP"
         /sbin/dhclient -1 -v $iface -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE
 
