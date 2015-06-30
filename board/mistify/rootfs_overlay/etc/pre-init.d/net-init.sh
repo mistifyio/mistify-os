@@ -93,6 +93,11 @@ function unconfigure_net_iface() {
     /sbin/dhclient -v -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE -r ${ETHER_DEVS[*]}
     /sbin/ip addr del $IP dev $IFACE
     /sbin/ip link set $IFACE down
+
+    local mac=$(cat /sys/class/net/$IFACE/address)
+    ! grep -q MACAddress /etc/systemd/network/br0.netdev &&
+	echo "MACAddress=$mac" >> /etc/systemd/network/br0.netdev &&
+        echo "Setting br0 MAC address to $mac"
 }
 
 function get_mistify_config() {
