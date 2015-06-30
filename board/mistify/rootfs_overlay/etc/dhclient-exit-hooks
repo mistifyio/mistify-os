@@ -16,4 +16,21 @@ then
   echo SERVER=$new_dhcp_server_identifier >> $MISTIFY_IFSTATE
 fi
 
+if [ x$new_ip_address == x ]
+then
+  return
+else
+  echo IP=$new_ip_address >> $MISTIFY_IFSTATE
+fi
+
+if [ x$interface != x ]
+then
+  echo IFACE=$interface >> $MISTIFY_IFSTATE
+fi
+
+if [ ${#new_routers[*]} -gt 0 ]
+then
+  echo "GW=${new_routers[0]}" >> $MISTIFY_IFSTATE
+fi
+
 # vim:set ts=2 sw=2 et:
