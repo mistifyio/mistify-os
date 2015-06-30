@@ -2,14 +2,14 @@
 
 set -e
 
-function msg() {
+function out() {
 	logger -st cluster-init-out "$@"
 }
 function err() {
 	logger -st cluster-init-err "$@"
 }
 
-exec 1> >(msg)
+exec 1> >(out)
 exec 2> >(err)
 
 function init() {
@@ -55,7 +55,7 @@ function do_until() {
 	local i=0
 	until $cmd "$@"; do
 		sleep $t
-		msg "$((++i * $t))s elapsed"
+		echo "$((++i * $t))s elapsed"
 	done
 }
 
