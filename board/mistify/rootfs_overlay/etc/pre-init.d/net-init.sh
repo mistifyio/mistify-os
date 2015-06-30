@@ -85,12 +85,14 @@ function unconfigure_net_iface() {
         return 1
     fi
 
-    if [ "$IFTYPE" == "DHCP" ]; then
-        echo "Releasing DHCP lease on $IFACE..."
-        /sbin/dhclient -r -v $IFACE -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE
-        /sbin/ip addr del $IP dev $IFACE
-        /sbin/ip link set $IFACE down
+    if [ "$IFTYPE" != "DHCP" ]; then
+        return
     fi
+
+    echo "Releasing DHCP lease on $IFACE..."
+    /sbin/dhclient -v -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE -r ${ETHER_DEVS[*]}
+    /sbin/ip addr del $IP dev $IFACE
+    /sbin/ip link set $IFACE down
 }
 
 function get_mistify_config() {
