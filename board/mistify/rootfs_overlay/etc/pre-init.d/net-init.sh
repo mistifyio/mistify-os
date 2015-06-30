@@ -58,23 +58,10 @@ function configure_net_manual() {
 # Cycle through all known ethernet interfaces until we find one which
 # responds to DHCP requests.
 function configure_net_dhcp() {
-    for iface in ${ETHER_DEVS[*]}; do
-        echo "Probing $iface for DHCP"
-        /sbin/dhclient -1 -v $iface -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE
-
-        if [ $? -eq 0 ]; then
-            echo "IFTYPE=DHCP" >> $MISTIFY_IFSTATE
-            echo "IFACE=$iface" >> $MISTIFY_IFSTATE
-
-            local dhc_ip=`/sbin/ip addr show $iface | awk '/inet / {print $2}'`
-            echo "IP=$dhc_ip" >> $MISTIFY_IFSTATE
-
-            local gw=`/sbin/ip route | awk '/default via/ {print $3}'`
-            echo "GW=$gw" >> $MISTIFY_IFSTATE
-
-            return 0
-        fi
-    done
+    set -x
+    echo "Probing for DHCP"
+    /sbin/dhclient -v -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE -1 ${ETHER_DEVS[*]} &&
+        echo "IFTYPE=DHCP" >> $MISTIFY_IFSTATE
 }
 
 # Unconfigure and otherwise clean up any interfaces we may have configured
