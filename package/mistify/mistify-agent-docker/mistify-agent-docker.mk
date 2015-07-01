@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-MISTIFY_AGENT_DOCKER_VERSION = 1763c3a8079729e725aa56224a3b00c4c2961fac
+MISTIFY_AGENT_DOCKER_VERSION = 2893c18c6d2d6dfa4ff513ef0ec11b3aef4e9073
 MISTIFY_AGENT_DOCKER_SITE    = git@github.com:mistifyio/mistify-agent-docker.git
 MISTIFY_AGENT_DOCKER_SITE_METHOD = git
 MISTIFY_AGENT_DOCKER_LICENSE = Apache
