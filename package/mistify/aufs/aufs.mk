@@ -4,15 +4,21 @@
 #
 ################################################################################
 
-AUFS_VERSION = aufs3.18.1+
-AUFS_SITE = git://git.code.sf.net/p/aufs/aufs3-standalone
+AUFS_VERSION = aufs4.1
+AUFS_SITE = https://github.com/sfjro/aufs4-standalone.git
+AUFS_SITE_METHOD = git
 AUFS_LICENSE = GPLv2
 AUFS_LICENSE_FILES = COPYING
 AUFS_DEPENDENCIES += linux-headers
 
 define AUFS_CREATE_SERIES
-	printf "aufs3-kbuild.patch\naufs3-base.patch\naufs3-mmap.patch\n" \
-		> $(AUFS_DIR)/series
+	echo > $(AUFS_DIR)/series
+	echo aufs4-kbuild.patch >> $(AUFS_DIR)/series
+	echo aufs4-base.patch >> $(AUFS_DIR)/series
+	echo aufs4-mmap.patch >> $(AUFS_DIR)/series
+	echo aufs4-loopback.patch >> $(AUFS_DIR)/series
+	echo vfs-ino.patch >> $(AUFS_DIR)/series
+	echo tmpfs-idr.patch >> $(AUFS_DIR)/series
 endef
 
 define AUFS_INSTALL_HEADERS
