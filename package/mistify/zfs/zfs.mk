@@ -41,7 +41,14 @@ define ZFS_INSTALL_INIT_SYSTEMD
 		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/zfs.target
 endef
 
+define ZFS_INSTALL_UDEV_RULES
+	$(INSTALL) -m 644 -D \
+		$(BR2_EXTERNAL)/package/mistify/zfs/91-zfs-permissions.rules \
+		$(TARGET_DIR)/lib/udev/rules.d/91-zfs-permissions.rules
+endef
+
 ZFS_POST_INSTALL_TARGET_HOOKS += ZFS_REMOVE_INIT_SCRIPT
+ZFS_POST_INSTALL_TARGET_HOOKS += ZFS_INSTALL_UDEV_RULES
 
 ZFS_CONF_OPTS = \
     --prefix=/usr \

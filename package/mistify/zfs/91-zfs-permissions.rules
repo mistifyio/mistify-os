@@ -1,0 +1,2 @@
+# Allow users to interact with ZFS (note zfsonlinux/zfs#362)
+ACTION=="add", KERNEL=="zfs", MODE="0666"
