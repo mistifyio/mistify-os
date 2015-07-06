@@ -3,12 +3,13 @@
 set -e
 
 function out() {
-	logger -st cluster-init-out "$@"
+	tee /proc/self/fd/3 | systemd-cat -t cluster-init-out
 }
 function err() {
-	logger -st cluster-init-err "$@"
+	tee /proc/self/fd/3 | systemd-cat -t cluster-init-err
 }
 
+exec 3>&2
 exec 1> >(out)
 exec 2> >(err)
 
