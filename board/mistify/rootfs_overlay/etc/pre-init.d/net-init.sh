@@ -12,20 +12,23 @@ MISTIFY_KOPT_IFACE=""
 # Parse the kernel boot arguments and look for any mistify.* arguments and
 # pick out their values.
 function parse_boot_args() {
+    local cmdline=$(cat $PROC_CMDLINE)
+    grep -q 'mistify.debug/test/not-for-prod' <<<$cmdline || return
 
-    for kopt in `cat $PROC_CMDLINE`; do
+    for kopt in $cmdline; do
         k=`echo $kopt | awk -F= '{print $1}'`
         v=`echo $kopt | awk -F= '{print $2}'`
-
-        if [ "$k" == "mistify.debug/test/not-for-prod.ip" ]; then
-            MISTIFY_KOPT_IP="$v"
-        fi
-        if [ "$k" == "mistify.debug/test/not-for-prod.gw" ]; then
-            MISTIFY_KOPT_GW="$v"
-        fi
-        if [ "$k" == "mistify.debug/test/not-for-prod.iface" ]; then
-            MISTIFY_KOPT_IFACE="$v"
-        fi
+        case $k in
+            'mistify.debug/test/not-for-prod.ip')
+                MISTIFY_KOPT_IP="$v"
+                ;;
+            'mistify.debug/test/not-for-prod.gw')
+                MISTIFY_KOPT_GW="$v"
+                ;;
+            'mistify.debug/test/not-for-prod.iface')
+                MISTIFY_KOPT_IFACE="$v"
+                ;;
+        esac
     done
 }
 
@@ -55,23 +58,10 @@ function configure_net_manual() {
 # Cycle through all known ethernet interfaces until we find one which
 # responds to DHCP requests.
 function configure_net_dhcp() {
-    for iface in "$ETHER_DEVS"; do
-        echo "Probing $iface for DHCP"
-        /sbin/dhclient -1 -v $iface
-
-        if [ $? -eq 0 ]; then
-            echo "IFTYPE=DHCP" >> $MISTIFY_IFSTATE
-            echo "IFACE=$iface" >> $MISTIFY_IFSTATE
-
-            local dhc_ip=`/sbin/ip addr show $iface | awk '/inet / {print $2}'`
-            echo "IP=$dhc_ip" >> $MISTIFY_IFSTATE
-
-            local gw=`/sbin/ip route | awk '/default via/ {print $3}'`
-            echo "GW=$gw" >> $MISTIFY_IFSTATE
-
-            return 0
-        fi
-    done
+    set -x
+    echo "Probing for DHCP"
+    /sbin/dhclient -v -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE -1 ${ETHER_DEVS[*]} &&
+        echo "IFTYPE=DHCP" >> $MISTIFY_IFSTATE
 }
 
 # Unconfigure and otherwise clean up any interfaces we may have configured
@@ -82,12 +72,19 @@ function unconfigure_net_iface() {
         return 1
     fi
 
-    if [ "$IFTYPE" == "DHCP" ]; then
-        echo "Releasing DHCP lease on $IFACE..."
-        /sbin/dhclient -r -v $IFACE
-        /sbin/ip addr del $IP dev $IFACE
-        /sbin/ip link set $IFACE down
+    if [ "$IFTYPE" != "DHCP" ]; then
+        return
     fi
+
+    echo "Releasing DHCP lease on $IFACE..."
+    /sbin/dhclient -v -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE -r ${ETHER_DEVS[*]}
+    /sbin/ip addr del $IP dev $IFACE
+    /sbin/ip link set $IFACE down
+
+    local mac=$(cat /sys/class/net/$IFACE/address)
+    ! grep -q MACAddress /etc/systemd/network/br0.netdev &&
+	echo "MACAddress=$mac" >> /etc/systemd/network/br0.netdev &&
+        echo "Setting br0 MAC address to $mac"
 }
 
 function get_mistify_config() {
@@ -104,16 +101,14 @@ function get_mistify_config() {
 
     local resp=''
     for dns in ${DNS[*]}; do
-        resp=$(dig +noall +answer +additional SRV ipxe.services.lochness.local @$dns)
-	if [[ $! -ne 0 ]];then
-            resp=''
-            continue
-        fi
+        srv=$(dig +noall +answer +additional SRV ipxe.services.lochness.local @$dns) || continue
+        resp="$srv"
+        break
     done
 
     if [[ -z $resp ]]; then
         echo "could not resolv ipxe service"
-	return 1
+        return 1
     fi
 
     local addr=$(echo $resp | awk '/\sA\s/ {print $NF}')
@@ -130,27 +125,26 @@ function get_mistify_config() {
 ## Network initialization main. Under 'start' we either manually configure a IP address
 ## on the first interface if we are given one in the kernel boot arguments.
 ## Otherwise we probe each interface for a DHCP response until we fine one that does.
-if [[ ${BASH_SOURCE[0]} == $0 ]]; then
-    # being executed, not sourced
-    case "$1" in
-        'start')
-            # Initialize our own interface state file
-            cp /dev/null $MISTIFY_IFSTATE
+case "$1" in
+    'start')
+        # Initialize our own interface state file
+        cp /dev/null $MISTIFY_IFSTATE
 
-            parse_boot_args
+        parse_boot_args
 
-            if [ -n "$MISTIFY_KOPT_IP" ]; then
-                configure_net_manual
-            else
-                configure_net_dhcp
-                get_mistify_config
-            fi
-            ;;
-        'stop')
-            unconfigure_net_iface
-            ;;
-        *)
-            echo "Usage: $0 {start|stop}"
-            ;;
-    esac
-fi
+        if [ -n "$MISTIFY_KOPT_IP" ]; then
+            configure_net_manual
+        else
+            configure_net_dhcp
+            get_mistify_config
+        fi
+        ;;
+    'stop')
+        unconfigure_net_iface
+        ;;
+    *)
+        echo "Usage: $0 {start|stop}"
+        ;;
+esac
+
+# vim:set ts=4 sw=4 et:

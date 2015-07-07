@@ -2,51 +2,16 @@
 
 set -e
 
-function msg() {
-	logger -st cluster-init-out "$@"
+function out() {
+	tee /proc/self/fd/3 | systemd-cat -t cluster-init-out
 }
 function err() {
-	logger -st cluster-init-err "$@"
+	tee /proc/self/fd/3 | systemd-cat -t cluster-init-err
 }
 
-exec 1> >(msg)
+exec 3>&2
+exec 1> >(out)
 exec 2> >(err)
-
-function init() {
-        ips=('192.168.200.200'
-             '192.168.200.201'
-             '192.168.200.202'
-        )
-        quuids=('e30aa502-e48b-2a4e-8116-d4b09c0b89b3'
-                '21c1c14f-ca81-2e4f-96cc-0ba6aa404a94'
-                '11e48c3f-b13a-5e4a-b20e-b5b3ae6fd060'
-        )
-
-        # handle uuid endiannes changes in qemu/smbios/dmidecode, see
-        # https://bugzilla.redhat.com/show_bug.cgi?id=1152922
-        # and the fix
-        # https://lists.gnu.org/archive/html/qemu-devel/2014-10/msg03640.html
-        #
-        # which also affects the systemd-networkd generated mac for br0
-        if [[ $(hostname) != ${quuids[0]} ]]; then
-                uuids=('02a50ae3-8be4-4e2a-8116-d4b09c0b89b3'
-                       '4fc1c121-81ca-4f2e-96cc-0ba6aa404a94'
-                       '3f8ce411-3ab1-4a5e-b20e-b5b3ae6fd060'
-                )
-                macs=('DE:AD:BE:EF:7F:20'
-                      'A6:59:45:B2:57:12'
-                      '6A:B1:9E:0F:F0:56'
-                )
-        else
-                echo "SMBIOS version is older than v2.6"
-                uuids=(${quuids[*]})
-                macs=('DE:AD:BE:EF:7F:20'
-                      'FA:86:83:AA:58:6B'
-                      'C6:85:44:7D:FA:88'
-                )
-        fi
-}
-init
 
 function do_until() {
 	local t=$1
@@ -55,13 +20,13 @@ function do_until() {
 	local i=0
 	until $cmd "$@"; do
 		sleep $t
-		msg "$((++i * $t))s elapsed"
+		echo "$((++i * $t))s elapsed"
 	done
 }
 
+source $(dirname $0)/cluster-init-config
+
 ip=${ips[0]}
-nm=24
-gw=192.168.200.1
 
 echo "$LINENO: stopping nconfigd to avoid races"
 systemctl stop nconfigd
@@ -190,8 +155,8 @@ echo "$LINENO: ok you can now boot node1 and node2"
 do_until 5 curl --silent http://${ips[1]}:4001/v2/keys
 echo "$LINENO: ok new etcd cluster seems to be up"
 
-echo "$LINENO: sleeping 10s to let new nodes settle"
-sleep 10
+echo "$LINENO: sleeping 2m to let new nodes settle"
+sleep 2m
 echo "$LINENO: done"
 
 echo "$LINENO: syncing queensland data from old cluster to new"
