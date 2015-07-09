@@ -180,7 +180,7 @@ do_until 5 dig +short dns.services.lochness.local @${ips[1]}
 echo "done"
 
 echo "$LINENO: restarting etcd so it can join the cluster"
-cat /dev/null > /etc/default/etcd
+cat /dev/null > /etc/sysconfig/etcd
 curl -s http://localhost:8888/config/$ip > /tmp/mistify-config
 cat > /etc/resolv.conf <<EOF
 nameserver ${ips[1]}
