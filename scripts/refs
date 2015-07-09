@@ -1,0 +1,104 @@
+#!/bin/bash
+
+userauth='mistify-readonly:ad17f1c675cd24dc401134b1928fbca676cf9449'
+url='https://api.github.com/repos/mistifyio'
+
+set -e
+set -o pipefail
+
+! which jq &>/dev/null && echo "jq: command not found, please install" && exit 1
+! which curl &>/dev/null && echo "curl: command not found, please install" && exit 1
+
+repos=(lochness
+       lochness-ansible
+       mistify-agent
+       mistify-agent-docker
+       mistify-agent-image
+       mistify-agent-libvirt
+       mistify-image-service
+       queensland
+)
+
+function fetch_ref() {
+	ref=$(curl -sSu "$userauth" "$url/$repo/branches/master" | jq -r '.commit.sha')
+	if ! [[ $ref =~ ^[0-9a-f]{40}$ ]]; then
+		echo "received invalid commit id: $ref" >&2
+		exit 1
+	fi
+	echo $ref
+}
+
+function for_each_ref() {
+local cmd=$1
+shift
+for repo in ${repos[*]}; do
+	local rev=$(awk '/_VERSION/ {print $3}' package/mistify/$repo/$repo.mk)
+	[[ -z $cmd ]] && return
+	cwd=$PWD
+	rev=$rev repo=$repo /bin/sh -c "$cmd $@"
+	cd $cwd
+done
+}
+
+function show_refs() {
+for_each_ref echo '$repo=$rev'
+}
+
+function show_remote() {
+for repo in ${repos[*]}; do
+	rev=$(fetch_ref $repo)
+	echo "$repo=$rev"
+done
+}
+
+function update_refs() {
+for repo in ${repos[*]}; do
+	rev=$(fetch_ref $repo)
+	sed -i.bak "/_VERSION/ s|= .*|= $rev|" package/mistify/$repo/$repo.mk
+	if ! diff -u package/mistify/$repo/$repo.mk{.bak,}; then
+		dirclean $repo-$rev
+	fi
+	rm -f package/mistify/$repo/$repo.mk.bak
+done
+}
+
+tag() {
+for_each_ref "[[ \$repo == queensland ]] && exit; cd ~/src/github.com/mistifyio/\$repo && echo [\$repo] && git tag -am $1 $1 \$rev"
+}
+
+function dirclean() {
+rm -rf build/mistify/base/build/$1
+}
+
+cmd=$1
+shift
+case $cmd in
+	'clean')
+		(( $# == 0 )) && set -- ${pkgs[*]}
+		for p in $@; do
+			echo "cleaning: $p"
+			dirclean $p
+		done
+		;;
+	'foreach')
+		for_each_ref "$@"
+		;;
+	'local')
+		show_refs
+		;;
+	'remote')
+		show_remote
+		;;
+	'tag')
+		shift
+		tag $2
+		;;
+	'update')
+		update_refs
+		;;
+	*)
+		echo "unknown action: $cmd"
+		echo "refs: {clean|foreach|local|remote|tag|update}"
+		exit 1
+		;;
+esac
