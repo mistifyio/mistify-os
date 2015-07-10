@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-AUFS_UTIL_VERSION = aufs3.9
+AUFS_UTIL_VERSION = aufs4.0
 AUFS_UTIL_SITE = git://git.code.sf.net/p/aufs/aufs-util
 AUFS_UTIL_LICENSE = GPLv2
 AUFS_UTIL_LICENSE_FILES = COPYING
