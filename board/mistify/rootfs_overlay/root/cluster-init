@@ -153,6 +153,7 @@ echo "$LINENO: done"
 
 echo "$LINENO: ok you can now boot node1 and node2"
 do_until 5 curl --silent http://${ips[1]}:4001/v2/keys
+do_until 5 curl --silent http://${ips[2]}:4001/v2/keys
 echo "$LINENO: ok new etcd cluster seems to be up"
 
 echo "$LINENO: sleeping 2m to let new nodes settle"
