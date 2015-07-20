@@ -75,7 +75,7 @@ cat > /etc/resolv.conf <<EOF
 nameserver 127.0.0.1
 EOF
 
-systemctl restart systemd-networkd && ip addr del $ip/$nm dev ens3 || :
+systemctl restart systemd-networkd
 echo "$LINENO: done"
 
 echo "$LINENO: ensuring nconfigd has started and getting its pid"
