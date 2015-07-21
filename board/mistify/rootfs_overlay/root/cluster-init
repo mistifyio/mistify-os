@@ -75,18 +75,12 @@ cat > /etc/resolv.conf <<EOF
 nameserver 127.0.0.1
 EOF
 
-systemctl restart systemd-networkd && ip addr del $ip/$nm dev ens3 || :
+systemctl restart systemd-networkd
 echo "$LINENO: done"
 
-echo "$LINENO: ensuring nconfigd has started and getting its pid"
-systemctl start nconfigd
-sleep 2
-nconfigdpid=$(pidof nconfigd)
-echo "$LINENO: nconfigd has a pid of:$nconfigdpid"
-echo "$LINENO: done"
 
 echo "$LINENO: waiting for nconfigd/ansible"
-do_until 1 test -d /proc/$nconfigdpid
+nconfigd --once && systemctl stop nconfigd
 dig +short dns.services.lochness.local @127.0.0.1 -p 15353 || echo "$LINENO: ok well that failed, but lets continue anyway"
 echo "$LINENO: done"
 
@@ -120,10 +114,7 @@ done
 echo "$LINENO: done"
 
 echo "$LINENO: waiting for nconfigd to process new nodes, then stopping nconfigd"
-journalctl -fu nconfigd.service | grep --line-buffered 'PLAY RECAP' | while read line; do
-	break
-done
-systemctl stop nconfigd
+nconfigd --once && systemctl stop nconfigd
 echo "$LINENO: done"
 
 echo "$LINENO: waiting for etcd to come back fully"
@@ -153,6 +144,7 @@ echo "$LINENO: done"
 
 echo "$LINENO: ok you can now boot node1 and node2"
 do_until 5 curl --silent http://${ips[1]}:4001/v2/keys
+do_until 5 curl --silent http://${ips[2]}:4001/v2/keys
 echo "$LINENO: ok new etcd cluster seems to be up"
 
 echo "$LINENO: sleeping 2m to let new nodes settle"
@@ -204,7 +196,7 @@ done < /tmp/etcd.dump
 echo "$LINENO: done"
 
 echo "$LINENO: restarting nconfigd so it can do its thing"
-systemctl restart nconfigd
+nconfigd --once
 echo "$LINENO: done"
 
 echo "$LINENO: updating resolv.conf nameserver order"
