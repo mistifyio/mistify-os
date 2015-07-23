@@ -25,3 +25,13 @@ source "$BR2_EXTERNAL/package/mistify/queensland/Config.in"
 source "$BR2_EXTERNAL/package/mistify/spl/Config.in"
 source "$BR2_EXTERNAL/package/mistify/statsd/Config.in"
 source "$BR2_EXTERNAL/package/mistify/zfs/Config.in"
+
+comment "-----------------------------------------------"
+comment "Select variant below. Default variant is \"base\""
+comment "-----------------------------------------------"
+config BR2_VARIANT_DEV
+	bool "Mistify Development image (variant = dev)"
+	default n
+	help
+		Generate a MistifyOS Development image which includes development
+		tools such as GCC, GoLang, header files, and supporting bits.
