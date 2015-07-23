@@ -1,4 +1,0 @@
-##
-## Configuration for mistify-agent-docker
-##
-OPTIONS="-p 40001"
