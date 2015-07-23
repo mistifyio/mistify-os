@@ -29,12 +29,4 @@ define MISTIFY_AGENT_OVS_INSTALL_TARGET_CMDS
 	# The install was done as part of the build.
 endef
 
-define MISTIFY_AGENT_OVS_INSTALL_INIT_SYSTEMD
-	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/mistify-agent-ovs/mistify-agent-ovs.service \
-		$(TARGET_DIR)/lib/systemd/system/mistify-agent-ovs.service
-
-	$(INSTALL) -m 644 -D $(BR2_EXTERNAL)/package/mistify/mistify-agent-ovs/mistify-agent-ovs.sysconfig \
-		$(TARGET_DIR)/etc/sysconfig/mistify-agent-ovs
-endef
-
 $(eval $(generic-package))
