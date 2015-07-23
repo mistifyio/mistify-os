@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-MISTIFY_AGENT_OVS_VERSION = 018c8b2165d40e75b7d93083eb26983a557e62a9
+MISTIFY_AGENT_OVS_VERSION = b557cc81ae2f4c020179878352d404dd8fb65e60
 MISTIFY_AGENT_OVS_SITE    = git@github.com:mistifyio/mistify-agent-ovs.git
 MISTIFY_AGENT_OVS_SITE_METHOD = git
 MISTIFY_AGENT_OVS_LICENSE = Apache
