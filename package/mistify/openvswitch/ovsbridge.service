@@ -1,0 +1,12 @@
+[Unit]
+Description=Configure Mistify OVS Bridge
+After=openvswitch.service
+Before=systemd-networkd.service
+Wants=openvswitch.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-br mistify0
+
+[Install]
+WantedBy=multi-user.target

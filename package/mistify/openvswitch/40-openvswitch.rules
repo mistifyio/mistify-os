@@ -1,0 +1,2 @@
+# Add en* devices to openvswitch bridge
+KERNEL=="en*", SUBSYSTEM=="net", PROGRAM="/usr/bin/ovs-vsctl --may-exist add-port mistify0 %k"

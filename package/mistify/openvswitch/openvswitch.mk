@@ -57,6 +57,14 @@ define OPENVSWITCH_INSTALL_STUFF
 	test -f $(TARGET_DIR)/etc/modules-load.d/openvswitch.conf || \
 		echo "openvswitch" > \
 			$(TARGET_DIR)/etc/modules-load.d/openvswitch.conf
+	$(INSTALL) -m 644 -D \
+		$(BR2_EXTERNAL)/package/mistify/openvswitch/40-openvswitch.rules \
+		$(TARGET_DIR)/etc/udev/rules.d/40-openvswitch.rules
+	$(INSTALL) -m 644 -D \
+		$(BR2_EXTERNAL)/package/mistify/openvswitch/ovsbridge.service \
+		$(TARGET_DIR)/lib/systemd/system/ovsbridge.service
+	ln -sf ../ovsbridge.service \
+		$(TARGET_DIR)/lib/systemd/system/multi-user.target.wants/ovsbridge.service
 endef
 
 OPENVSWITCH_POST_INSTALL_TARGET_HOOKS += OPENVSWITCH_INSTALL_KMOD

@@ -47,28 +47,15 @@ echo "$LINENO: done"
 
 echo "$LINENO: setting up network"
 rm -f /etc/systemd/network/*
-cat > /etc/systemd/network/br0.netdev <<EOF
-[NetDev]
-Name=br0
-Kind=bridge
-EOF
 
-cat > /etc/systemd/network/br0.network <<EOF
+cat > /etc/systemd/network/mistify0.network <<EOF
 [Match]
-Name=br0
+Name=mistify0
 
 [Network]
 DNS=127.0.0.1
 Address=$ip/$nm
 Gateway=$gw
-EOF
-
-cat > /etc/systemd/network/ethernet.network <<EOF
-[Match]
-Name=en*
-
-[Network]
-Bridge=br0
 EOF
 
 cat > /etc/resolv.conf <<EOF
