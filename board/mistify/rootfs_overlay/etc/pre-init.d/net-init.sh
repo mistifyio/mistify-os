@@ -53,6 +53,8 @@ function configure_net_manual() {
         /sbin/ip route add default via $MISTIFY_KOPT_GW
         echo "GW=$MISTIFY_KOPT_GW" >> $MISTIFY_IFSTATE
     fi
+
+    save_mac_for_bridge
 }
 
 # Cycle through all known ethernet interfaces until we find one which
@@ -79,12 +81,21 @@ function unconfigure_net_iface() {
     echo "Releasing DHCP lease on $IFACE..."
     /sbin/dhclient -v -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE -r ${ETHER_DEVS[*]}
     /sbin/ip addr del $IP dev $IFACE
-    /sbin/ip link set $IFACE down
+    /sbin/ip link set $IFACE up
+
+    save_mac_for_bridge
+}
+
+function save_mac_for_bridge() {
+    if [ -f $MISTIFY_IFSTATE ]; then
+        . $MISTIFY_IFSTATE
+    else
+        return 1
+    fi
 
     local mac=$(cat /sys/class/net/$IFACE/address)
-    ! grep -q MACAddress /etc/systemd/network/br0.netdev &&
-	echo "MACAddress=$mac" >> /etc/systemd/network/br0.netdev &&
-        echo "Setting br0 MAC address to $mac"
+    echo "MACAddress=$mac" >> $MISTIFY_IFSTATE &&
+        echo "Saving MAC address for bridge $mac"
 }
 
 function get_mistify_config() {

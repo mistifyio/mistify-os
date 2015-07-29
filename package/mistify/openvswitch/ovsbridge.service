@@ -1,12 +1,15 @@
 [Unit]
 Description=Configure Mistify OVS Bridge
 After=openvswitch.service
-Before=systemd-networkd.service
 Wants=openvswitch.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br mistify0
+EnvironmentFile=/tmp/.ifstate
+ExecStart=/usr/bin/ovs-vsctl init
+ExecStart=/usr/bin/ovs-vsctl --may-exist add-br mistify0 -- set bridge mistify0 other-config:hwaddr=${MACAddress}
+ExecStart=/bin/udevadm trigger
+ExecStart=/bin/systemctl restart systemd-networkd
 
 [Install]
 WantedBy=multi-user.target
