@@ -6,10 +6,7 @@ Wants=openvswitch.service
 [Service]
 Type=oneshot
 EnvironmentFile=/etc/sysconfig/ovsbridge
-ExecStart=/usr/bin/ovs-vsctl init
-ExecStart=/usr/bin/ovs-vsctl --may-exist add-br mistify0 -- set bridge mistify0 other-config:hwaddr=${MACAddress}
-ExecStart=/bin/udevadm trigger --subsystem-match=net
-ExecStart=/bin/systemctl restart systemd-networkd
+ExecStart=/usr/sbin/ovsbridge
 
 [Install]
 WantedBy=multi-user.target
