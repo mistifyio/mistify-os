@@ -2,6 +2,7 @@
 
 MISTIFY_IFSTATE=/tmp/.ifstate
 MISTIFY_CONFIG=/tmp/mistify-config
+MISTIFY_MAC=/etc/sysconfig/ovsbridge
 PROC_CMDLINE=/proc/cmdline
 ETHER_DEVS=(`ls /sys/class/net | egrep -v '^lo$'`)
 
@@ -54,7 +55,7 @@ function configure_net_manual() {
         echo "GW=$MISTIFY_KOPT_GW" >> $MISTIFY_IFSTATE
     fi
 
-    save_mac_for_bridge
+    save_mac_for_bridge $iface
 }
 
 # Cycle through all known ethernet interfaces until we find one which
@@ -83,18 +84,13 @@ function unconfigure_net_iface() {
     /sbin/ip addr del $IP dev $IFACE
     /sbin/ip link set $IFACE up
 
-    save_mac_for_bridge
+    save_mac_for_bridge $IFACE
 }
 
 function save_mac_for_bridge() {
-    if [ -f $MISTIFY_IFSTATE ]; then
-        . $MISTIFY_IFSTATE
-    else
-        return 1
-    fi
-
-    local mac=$(cat /sys/class/net/$IFACE/address)
-    echo "MACAddress=$mac" >> $MISTIFY_IFSTATE &&
+    local mac=$(cat /sys/class/net/$1/address)
+    ! grep -sq MACAddress $MISTIFY_MAC &&
+        echo "MACAddress=$mac" >> $MISTIFY_MAC &&
         echo "Saving MAC address for bridge $mac"
 }
 

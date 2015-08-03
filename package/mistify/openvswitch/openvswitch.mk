@@ -57,6 +57,9 @@ define OPENVSWITCH_INSTALL_STUFF
 	test -f $(TARGET_DIR)/etc/modules-load.d/openvswitch.conf || \
 		echo "openvswitch" > \
 			$(TARGET_DIR)/etc/modules-load.d/openvswitch.conf
+	$(INSTALL) -m 755 -D \
+		$(BR2_EXTERNAL)/package/mistify/openvswitch/ovsbridge \
+		$(TARGET_DIR)/usr/sbin/ovsbridge
 	$(INSTALL) -m 644 -D \
 		$(BR2_EXTERNAL)/package/mistify/openvswitch/40-openvswitch.rules \
 		$(TARGET_DIR)/etc/udev/rules.d/40-openvswitch.rules

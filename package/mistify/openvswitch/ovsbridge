@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Initialize the ovs database if it hasn't been done so already
+ovs-vsctl init
+
+# Add an ovs bridge. Optionally set the mac address in an atomic transaction
+# if one is availible
+if [ -z "$MACAddress" ]; then
+    ovs-vsctl --may-exist add-br mistify0
+else
+    ovs-vsctl --may-exist add-br mistify0 -- \
+        set bridge mistify0 other-config:hwaddr=$MACAddress
+fi
+
+# Trigger the rules that add the interfaces to the new bridge
+udevadm trigger --subsystem-match=net
+
+# Restart systemd to the new bridge can request an IP via DHCP
+systemctl restart systemd-networkd
