@@ -8,7 +8,7 @@ Type=oneshot
 EnvironmentFile=/tmp/.ifstate
 ExecStart=/usr/bin/ovs-vsctl init
 ExecStart=/usr/bin/ovs-vsctl --may-exist add-br mistify0 -- set bridge mistify0 other-config:hwaddr=${MACAddress}
-ExecStart=/bin/udevadm trigger
+ExecStart=/bin/udevadm trigger --subsystem-match=net
 ExecStart=/bin/systemctl restart systemd-networkd
 
 [Install]
