@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-ETCD_VERSION = v2.0.4
+ETCD_VERSION = 0650170a1b6aa79b4c048dfea2a7ba9ad827bfdf
 ETCD_SITE    = https://github.com/coreos/etcd/archive/
 ETCD_SOURCE = $(ETCD_VERSION).tar.gz
 ETCD_LICENSE = Apache
