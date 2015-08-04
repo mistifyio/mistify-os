@@ -1,5 +1,5 @@
 [Match]
-Name=br0
+Name=mistify0
 
 [Network]
 DHCP=v4

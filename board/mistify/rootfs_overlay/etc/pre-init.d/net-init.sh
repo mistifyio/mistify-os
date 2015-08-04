@@ -2,6 +2,7 @@
 
 MISTIFY_IFSTATE=/tmp/.ifstate
 MISTIFY_CONFIG=/tmp/mistify-config
+MISTIFY_MAC=/etc/sysconfig/ovsbridge
 PROC_CMDLINE=/proc/cmdline
 ETHER_DEVS=(`ls /sys/class/net | egrep -v '^lo$'`)
 
@@ -53,6 +54,8 @@ function configure_net_manual() {
         /sbin/ip route add default via $MISTIFY_KOPT_GW
         echo "GW=$MISTIFY_KOPT_GW" >> $MISTIFY_IFSTATE
     fi
+
+    save_mac_for_bridge $iface
 }
 
 # Cycle through all known ethernet interfaces until we find one which
@@ -79,12 +82,16 @@ function unconfigure_net_iface() {
     echo "Releasing DHCP lease on $IFACE..."
     /sbin/dhclient -v -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE -r ${ETHER_DEVS[*]}
     /sbin/ip addr del $IP dev $IFACE
-    /sbin/ip link set $IFACE down
+    /sbin/ip link set $IFACE up
 
-    local mac=$(cat /sys/class/net/$IFACE/address)
-    ! grep -q MACAddress /etc/systemd/network/br0.netdev &&
-	echo "MACAddress=$mac" >> /etc/systemd/network/br0.netdev &&
-        echo "Setting br0 MAC address to $mac"
+    save_mac_for_bridge $IFACE
+}
+
+function save_mac_for_bridge() {
+    local mac=$(cat /sys/class/net/$1/address)
+    ! grep -sq MACAddress $MISTIFY_MAC &&
+        echo "MACAddress=$mac" >> $MISTIFY_MAC &&
+        echo "Saving MAC address for bridge $mac"
 }
 
 function get_mistify_config() {

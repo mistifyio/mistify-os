@@ -1,0 +1,12 @@
+[Unit]
+Description=Configure Mistify OVS Bridge
+After=openvswitch.service
+Wants=openvswitch.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/sysconfig/ovsbridge
+ExecStart=/usr/sbin/ovsbridge
+
+[Install]
+WantedBy=multi-user.target
