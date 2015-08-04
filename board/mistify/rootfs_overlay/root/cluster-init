@@ -74,6 +74,7 @@ echo "$LINENO: done"
 echo "$LINENO: setting up etcd to listen on external interfaces"
 cat > /etc/sysconfig/etcd <<EOF
 ETCD_LISTEN_CLIENT_URLS=http://$ip:2379,http://$ip:4001,http://localhost:2379,http://localhost:4001
+ETCD_ADVERTISE_CLIENT_URLS=http://localhost:2379,http://localhost:4001
 EOF
 systemctl restart etcd
 sleep .100

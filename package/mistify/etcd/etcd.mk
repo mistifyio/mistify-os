@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-ETCD_VERSION = v2.0.4
+ETCD_VERSION = v2.1.1
 ETCD_SITE    = https://github.com/coreos/etcd/archive/
 ETCD_SOURCE = $(ETCD_VERSION).tar.gz
 ETCD_LICENSE = Apache
@@ -26,8 +26,6 @@ define ETCD_INSTALL_TARGET_CMDS
 		$(TARGET_DIR)/usr/sbin/etcd
 	$(INSTALL) -m 755 -D $(ETCD_DIR)/bin/etcdctl \
 		$(TARGET_DIR)/usr/bin/etcdctl
-	$(INSTALL) -m 755 -D $(ETCD_DIR)/bin/etcd-migrate \
-		$(TARGET_DIR)/usr/bin/etcd-migrate
 endef
 
 define ETCD_USERS
