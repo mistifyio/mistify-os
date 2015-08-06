@@ -1,0 +1,11 @@
+rootProject.name = 'mistify-os'
+
+def getPackages() {
+    new File("$rootDir/package/mistify").listFiles().findAll { it.isDirectory() }.collect { it.name }
+}
+getPackages().each {
+    if (new File("$rootDir/package/mistify/${it}/${it}.mk").exists()) {
+        include it
+        project(":${it}").projectDir = "$rootDir/package/mistify/${it}" as File
+    }
+}

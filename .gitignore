@@ -12,3 +12,5 @@
 /go/
 /toolchain/
 /variants/
+*.iml
+.gradle/

@@ -1,0 +1,50 @@
+buildscript {
+    repositories {
+        maven { url "https://plugins.gradle.org/m2/" }
+        dependencies {
+            classpath 'org.ysb33r.gradle:gnumake:1.0.2'
+        }
+    }
+}
+
+ext.buildRootDir = "$rootDir/build/buildroot" as File
+ext.goRootDir = "${rootDir}/go/go1.4.2-crosstool-ng-1.21.0/go" as File
+ext.buildOutputDir = "${rootDir}/build" as File
+ext.downloadDir = "${rootDir}/downloads" as File
+ext.configDir = "${rootDir}/configs" as File
+ext.defaultConfigFile = "${configDir}/mistify_defconfig" as File
+
+ext.defaultConfig = new Properties()
+defaultConfig.load(defaultConfigFile.newDataInputStream())
+
+
+import org.ysb33r.gradle.gnumake.GnuMakeBuild
+
+subprojects {
+    apply plugin: 'org.ysb33r.gnumake'
+
+    project.ext.makeFile = "${projectDir}/${project.name}.mk"
+
+    gnumake {
+        defaultFlags TOOLCHAIN_PATH: "${rootDir}/toolchain/variations/crosstool-ng-1.21.0",
+                TOOLCHAIN_PREFIX: "x86_64-unknown-linux-gnu",
+                O: "${buildOutputDir}/mistify/base",
+                BR2_CCACHE_DIR: "${buildOutputDir}/mistify/.buildroot_ccache",
+                BR2_DL_DIR: downloadDir,
+                BR2_EXTERNAL: rootDir,
+                GOROOT: goRootDir,
+                BR2_DEFAULT_KERNEL_HEADERS: getStrippedConfigValue(defaultConfig, 'BR2_LINUX_KERNEL_VERSION')
+    }
+
+    task makeDirClean(type: GnuMakeBuild) {
+        makeInputs { file makeFile }
+        makeOutputs { file makeFile }
+
+        chDir buildRootDir
+        targets "${project.name}-dirclean"
+    }
+}
+
+def getStrippedConfigValue(Properties props, String keyName) {
+    props.getProperty(keyName).replaceAll(/^"/, '').replaceAll(/"$/, '').trim()
+}
