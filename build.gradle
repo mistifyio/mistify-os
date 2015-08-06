@@ -36,13 +36,18 @@ subprojects {
                 BR2_DEFAULT_KERNEL_HEADERS: getStrippedConfigValue(defaultConfig, 'BR2_LINUX_KERNEL_VERSION')
     }
 
-    task makeDirClean(type: GnuMakeBuild) {
+    task makeDirClean(type: GnuMakeBuild, group: 'GNU Make tasks') {
+        description "Executes make <project>-dirclean"
         makeInputs { file makeFile }
         makeOutputs { file makeFile }
 
         chDir buildRootDir
         targets "${project.name}-dirclean"
     }
+}
+
+task wrapper(type: Wrapper){
+  gradleVersion = '2.4'
 }
 
 def getStrippedConfigValue(Properties props, String keyName) {
