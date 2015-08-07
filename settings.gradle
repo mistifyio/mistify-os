@@ -1,21 +1,26 @@
 rootProject.name = 'mistify-os'
 
 def getPackages() {
-    def packageList = []
-
-    new File("$rootDir/package/mistify").eachDirRecurse() { dir ->
-        dir.eachFileMatch(~/Config.*/) { file ->
-            def matcher = file.getText() =~ /BR2_PACKAGE_(.*)/
-            if (matcher) {
-                packageList.add(matcher[0][1].toString().replaceAll('_','-').toLowerCase())
-            }
+    def packages = []
+    new File("$rootDir/package/mistify").listFiles().findAll { it.isDirectory() }.collect { tmpPackageDir ->
+        if (tmpPackageDir.listFiles().find { it.name =~ /Config.*host/}){
+            packages.add([packageDir: tmpPackageDir, packageName: "host-${tmpPackageDir.name}"])
+            return
         }
-    }
+        packages.add([packageDir: tmpPackageDir, packageName: "${tmpPackageDir.name}"])
 
-    return packageList
+//        tmpPackageDir.eachFileMatch(~/Config.*/) { file ->
+//            def matcher = file.getText() =~ /BR2_PACKAGE_(.*)/
+//            if (matcher) {
+//                def tmpPackageName = matcher[0][1].replaceAll('_', '-').toLowerCase()
+//                packages.add([packageDir: tmpPackageDir, packageName: tmpPackageName])
+//            }
+//        }
+    }
+    return packages
 }
 
 getPackages().each {
-    include it
-    project(":${it}").projectDir = "$rootDir/package/mistify/${it}" as File
+    include it.packageName
+    project(":${it.packageName}").projectDir = it.packageDir
 }
