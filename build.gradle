@@ -8,11 +8,14 @@ buildscript {
 }
 
 ext.buildRootDir = "$rootDir/build/buildroot" as File
+ext.buildRootCacheDir = "${rootDir}/.buildroot_ccache" as File
 ext.goRootDir = "${rootDir}/go/go1.4.2-crosstool-ng-1.21.0/go" as File
 ext.buildOutputDir = "${rootDir}/build" as File
 ext.downloadDir = "${rootDir}/downloads" as File
 ext.configDir = "${rootDir}/configs" as File
 ext.defaultConfigFile = "${configDir}/mistify_defconfig" as File
+
+
 
 processFileInPlace(defaultConfigFile){ text ->
     text = text.replace('BR2_JLEVEL=0', "BR2_JLEVEL=${Runtime.runtime.availableProcessors() + 1}")
@@ -21,6 +24,17 @@ processFileInPlace(defaultConfigFile){ text ->
 
 ext.defaultConfig = new Properties()
 defaultConfig.load(defaultConfigFile.newDataInputStream())
+
+
+
+
+
+task deleteBuildRootCache(type: Delete, group: 'BuildRoot'){
+    description "Deletes buildroot cache dir"
+    delete buildRootCacheDir
+}
+
+
 
 import org.ysb33r.gradle.gnumake.GnuMakeBuild
 
@@ -33,7 +47,7 @@ subprojects {
         defaultFlags TOOLCHAIN_PATH: "${rootDir}/toolchain/variations/crosstool-ng-1.21.0",
                 TOOLCHAIN_PREFIX: "x86_64-unknown-linux-gnu",
                 O: "${buildOutputDir}/mistify/base",
-                BR2_CCACHE_DIR: "${buildOutputDir}/mistify/.buildroot_ccache",
+                BR2_CCACHE_DIR: buildRootCacheDir,
                 BR2_DL_DIR: downloadDir,
                 BR2_EXTERNAL: rootDir,
                 GOROOT: goRootDir,
