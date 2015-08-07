@@ -15,7 +15,7 @@ ext.configDir = "${rootDir}/configs" as File
 ext.defaultConfigFile = "${configDir}/mistify_defconfig" as File
 
 processFileInPlace(defaultConfigFile){ text ->
-    text = text.replace('BR2_JLEVEL=0', "BR2_JLEVEL=${Runtime.runtime.availableProcessors()}")
+    text = text.replace('BR2_JLEVEL=0', "BR2_JLEVEL=${Runtime.runtime.availableProcessors()} + 1")
     text.replace('BR2_CCACHE_INITIAL_SETUP=""','BR2_CCACHE_INITIAL_SETUP="-M 2G"')
 }
 

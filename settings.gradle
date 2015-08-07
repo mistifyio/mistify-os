@@ -1,11 +1,21 @@
 rootProject.name = 'mistify-os'
 
 def getPackages() {
-    new File("$rootDir/package/mistify").listFiles().findAll { it.isDirectory() }.collect { it.name }
-}
-getPackages().each {
-    if (new File("$rootDir/package/mistify/${it}/${it}.mk").exists()) {
-        include it
-        project(":${it}").projectDir = "$rootDir/package/mistify/${it}" as File
+    def packageList = []
+
+    new File("$rootDir/package/mistify").eachDirRecurse() { dir ->
+        dir.eachFileMatch(~/Config.*/) { file ->
+            def matcher = file.getText() =~ /BR2_PACKAGE_(.*)/
+            if (matcher) {
+                packageList.add(matcher[0][1].toString().replaceAll('_','-').toLowerCase())
+            }
+        }
     }
+
+    return packageList
+}
+
+getPackages().each {
+    include it
+    project(":${it}").projectDir = "$rootDir/package/mistify/${it}" as File
 }
