@@ -14,9 +14,13 @@ ext.downloadDir = "${rootDir}/downloads" as File
 ext.configDir = "${rootDir}/configs" as File
 ext.defaultConfigFile = "${configDir}/mistify_defconfig" as File
 
+processFileInPlace(defaultConfigFile){ text ->
+    text = text.replace('BR2_JLEVEL=0', "BR2_JLEVEL=${Runtime.runtime.availableProcessors()}")
+    text.replace('BR2_CCACHE_INITIAL_SETUP=""','BR2_CCACHE_INITIAL_SETUP="-M 2G"')
+}
+
 ext.defaultConfig = new Properties()
 defaultConfig.load(defaultConfigFile.newDataInputStream())
-
 
 import org.ysb33r.gradle.gnumake.GnuMakeBuild
 
@@ -33,11 +37,13 @@ subprojects {
                 BR2_DL_DIR: downloadDir,
                 BR2_EXTERNAL: rootDir,
                 GOROOT: goRootDir,
-                BR2_DEFAULT_KERNEL_HEADERS: getStrippedConfigValue(defaultConfig, 'BR2_LINUX_KERNEL_VERSION')
+                BR2_DEFAULT_KERNEL_HEADERS: getStrippedConfigValue(defaultConfig, 'BR2_LINUX_KERNEL_VERSION'),
+                BR2_JLEVEL: getStrippedConfigValue(defaultConfig, 'BR2_JLEVEL')
     }
 
     task makeDirClean(type: GnuMakeBuild, group: 'GNU Make tasks') {
         description "Executes make <project>-dirclean"
+
         makeInputs { file makeFile }
         makeOutputs { file makeFile }
 
@@ -46,8 +52,13 @@ subprojects {
     }
 }
 
-task wrapper(type: Wrapper){
-  gradleVersion = '2.4'
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.4'
+}
+
+def processFileInPlace(file, Closure processText) {
+    def text = file.text
+    file.write(processText(text))
 }
 
 def getStrippedConfigValue(Properties props, String keyName) {
