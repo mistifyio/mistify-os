@@ -179,6 +179,8 @@ function configure_hypervisor_etcd() {
     etcdctl set $config_path/ETCD_ADVERTISE_CLIENT_URLS "http://$ip:2379,http://$ip:4001"
     etcdctl set $config_path/ETCD_LISTEN_CLIENT_URLS "http://$ip:2379,http://$ip:4001,http://localhost:2379,http://localhost:4001"
     etcdctl set $config_path/ETCD_LISTEN_PEER_URLS "$peer_url"
+    etcdctl set $config_path/ETCD_HEARTBEAT_INTERVAL 1000
+    etcdctl set $config_path/ETCD_ELECTION_TIMEOUT 10000
     log "done"
 
     log "end"
