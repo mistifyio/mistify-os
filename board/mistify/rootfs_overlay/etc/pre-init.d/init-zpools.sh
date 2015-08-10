@@ -62,7 +62,7 @@ if [ $? -ne 0 ]; then
 	# Be sure the drives are starting fresh.
 	for D in $DISKS; do
 	    echo "Cleaning $D..."
-	    sgdisk -o $D > /dev/null 2>&1
+	    sgdisk -Z $D > /dev/null 2>&1
 	done
 
 	udevadm settle
