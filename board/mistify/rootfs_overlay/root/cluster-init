@@ -3,194 +3,252 @@
 set -e
 
 function out() {
-	tee /proc/self/fd/3 | systemd-cat -t cluster-init-out
+    tee /proc/self/fd/3 | systemd-cat -t cluster-init-out
 }
 function err() {
-	tee /proc/self/fd/3 | systemd-cat -t cluster-init-err
+    tee /proc/self/fd/3 | systemd-cat -t cluster-init-err
 }
 
 exec 3>&2
 exec 1> >(out)
 exec 2> >(err)
 
-function do_until() {
-	local t=$1
-	local cmd=$2
-	shift 2
-	local i=0
-	until $cmd "$@"; do
-		sleep $t
-		echo "$((++i * $t))s elapsed"
-	done
+source $(dirname $0)/cluster-init-config
+NODE_COUNT=${#uuids[*]}
+IP0=${ips[0]}
+UUID0=${uuids[0]}
+
+function main() {
+    log "begin"
+
+    configure_network
+
+    log "stopping nconfigd to avoid races"
+    systemctl stop nconfigd
+    log "done"
+
+    configure_hypervisor_services
+    configure_hypervisor_metadata
+
+    update_hypervisor0_etcd
+
+    log "starting nconfigd"
+    nconfigd --once
+    log "done"
+
+    log "checking for kernel/initrd file existence"
+    do_until 5 ls -l /var/lib/images/0.1.0/{vmlinuz,initrd}
+    log "done"
+
+    log "adding other hypervisors"
+    local i
+    for (( i=1; i < $NODE_COUNT; i++ )); do
+        add_hypervisor $i
+    done
+    log "done"
+
+    set_resolv
+
+    log "end"
 }
 
-source $(dirname $0)/cluster-init-config
+function log() {
+    local msg="$@"
+    local time=$(date +"%T")
+    local max_index=$((${#FUNCNAME[*]} - 3))
+    local stack=
+    local i
+    for (( i=1; i<=$max_index; i++)); do
+        stack="[ ${FUNCNAME[$i]}:${BASH_LINENO[$i]} ]$stack"
+    done
+    echo "[ $time ]$stack $msg"
+}
 
-ip=${ips[0]}
+function do_until() {
+    local t=$1
+    local cmd=$2
+    shift 2
+    local i=0
+    log "begin: Interval: ${t}s, Command: $cmd $@"
+    until $cmd "$@"; do
+        sleep $t
+        log "$((++i * $t))s elapsed"
+    done
+    log "end"
+}
 
-echo "$LINENO: stopping nconfigd to avoid races"
-systemctl stop nconfigd
-echo "$LINENO: done"
+function configure_network() {
+    log "begin"
+    rm -f /etc/systemd/network/*
 
-echo "$LINENO: setting up etcd keys"
-etcdctl set /lochness/hypervisors/${uuids[0]}/config/dhcpd true
-etcdctl set /lochness/hypervisors/${uuids[0]}/config/dns true
-etcdctl set /lochness/hypervisors/${uuids[0]}/config/cbootstrapd true
-etcdctl set /lochness/hypervisors/${uuids[0]}/config/etcd true
-etcdctl set /lochness/hypervisors/${uuids[0]}/config/tftpd true
+    cat > /etc/systemd/network/mistify0.network <<EOF
+    [Match]
+    Name=mistify0
 
-etcdctl set /lochness/hypervisors/${uuids[1]}/config/dns true
-etcdctl set /lochness/hypervisors/${uuids[1]}/config/etcd true
-etcdctl set /lochness/hypervisors/${uuids[2]}/config/dns true
-etcdctl set /lochness/hypervisors/${uuids[2]}/config/etcd true
-echo "$LINENO: done"
-
-echo "$LINENO: setting up network"
-rm -f /etc/systemd/network/*
-
-cat > /etc/systemd/network/mistify0.network <<EOF
-[Match]
-Name=mistify0
-
-[Network]
-DNS=127.0.0.1
-Address=$ip/$nm
-Gateway=$gw
+    [Network]
+    DNS=127.0.0.1
+    Address=$IP0/$nm
+    Gateway=$gw
 EOF
 
-cat > /etc/resolv.conf <<EOF
-nameserver 127.0.0.1
+    cat > /etc/resolv.conf <<EOF
+    nameserver 127.0.0.1
 EOF
 
-systemctl restart systemd-networkd
-echo "$LINENO: done"
+    systemctl restart systemd-networkd
+    log "end"
+}
 
+function configure_hypervisor_services() {
+    log "begin"
 
-echo "$LINENO: waiting for nconfigd/ansible"
-nconfigd --once && systemctl stop nconfigd
-dig +short dns.services.lochness.local @127.0.0.1 -p 15353 || echo "$LINENO: ok well that failed, but lets continue anyway"
-echo "$LINENO: done"
+    log "setting values in etcd"
+    etcdctl set /lochness/hypervisors/$UUID0/config/dhcpd true
+    etcdctl set /lochness/hypervisors/$UUID0/config/cbootstrapd true
+    etcdctl set /lochness/hypervisors/$UUID0/config/tftpd true
 
-echo "$LINENO: setting up etcd to listen on external interfaces"
-cat > /etc/sysconfig/etcd <<EOF
-ETCD_LISTEN_CLIENT_URLS=http://$ip:2379,http://$ip:4001,http://localhost:2379,http://localhost:4001
-ETCD_ADVERTISE_CLIENT_URLS=http://localhost:2379,http://localhost:4001
-EOF
-systemctl restart etcd
-sleep .100
-echo "$LINENO: done"
+    local i
+    for (( i=0; i < $NODE_COUNT; i++ )); do
+        local uuid=${uuids[$i]}
+        etcdctl set /lochness/hypervisors/$uuid/config/dns true
+        etcdctl set /lochness/hypervisors/$uuid/config/etcd true
+    done
+    log "done"
 
-echo "$LINENO: waiting for etcd to come back fully"
-do_until 1 etcdctl cluster-health
-echo "$LINENO: done"
+    log "running nconfigd once to process hypervisor service configs"
+    nconfigd --once && systemctl stop nconfigd
+    dig +short dns.services.lochness.local @127.0.0.1 -p 15353 || log "dns failed, continuing anyway"
+    log "done"
 
-echo "$LINENO: setting up other nodes in etcd"
-stop=$((${#uuids[*]} - 1))
-for i in $(seq 0 $stop); do
-	echo "${uuids[$i]}"
-	etcdctl set /lochness/hypervisors/${uuids[$i]}/config/etcd true
-	cat <<-EOF | tr -d '\n' | etcdctl set /lochness/hypervisors/${uuids[$i]}/metadata
-	{"id":"${uuids[$i]}","ip":"${ips[$i]}","netmask":"255.255.255.0","gateway":"$gw","mac":"${macs[$i]}"}
-	EOF
-	cat <<-EOF | tr -d '\n' | etcdctl set /queensland/nodes/${uuids[$i]}
-	{"ip":"${ips[$i]}"}
-	EOF
-	cat <<-EOF | tr -d '\n' | etcdctl set /queensland/services/etcd-server/${uuids[$i]}
-	{"priority":0,"weight":0,"port":2380,"target":"${uuids[$i]}"}
-	EOF
-done
-echo "$LINENO: done"
+    log "end"
+}
 
-echo "$LINENO: waiting for nconfigd to process new nodes, then stopping nconfigd"
-nconfigd --once && systemctl stop nconfigd
-echo "$LINENO: done"
+function configure_hypervisor_metadata() {
+    log "begin"
 
-echo "$LINENO: waiting for etcd to come back fully"
-do_until 1 etcdctl cluster-health
-echo "$LINENO: done"
+    log "setting values in etcd"
+    local i
+    for (( i=0; i < $NODE_COUNT; i++ )); do
+        local uuid=${uuids[$i]}
+        local ip=${ips[$i]}
+        local mac=${macs[$i]}
+        local metadata=$(printf \
+            '{"id":"%s","ip":"%s","netmask":"255.255.255.0","gateway":"%s","mac":"%s"}' \
+            $uuid $ip $gw $mac)
+        etcdctl set /lochness/hypervisors/$uuid/metadata "$metadata"
+    done
+    log "done"
 
-echo "$LINENO: setting up etcd cluster"
-etcdctl set /lochness/config/ETCD_DISCOVERY_SRV 'services.lochness.local'
-etcdctl set /lochness/config/ETCD_INITIAL_CLUSTER_STATE 'new'
-etcdctl set /lochness/config/ETCD_INITIAL_CLUSTER_TOKEN 'etcd-cluster-1'
-for i in $(seq 0 $stop)
-do
-	path="/lochness/hypervisors/${uuids[$i]}/config"
-	echo "$path"
-	etcdctl set $path/NCONFIGD_ETCD_ADDRESS http://$ip:4001
-	etcdctl set $path/ETCD_ADVERTISE_CLIENT_URLS "http://${uuids[$i]}.nodes.lochness.local:2379,http://${uuids[$i]}.nodes.lochness.local:4001"
-	etcdctl set $path/ETCD_INITIAL_ADVERTISE_PEER_URLS "http://${uuids[$i]}.nodes.lochness.local:2380"
-	etcdctl set $path/ETCD_LISTEN_CLIENT_URLS "http://${uuids[$i]}.nodes.lochness.local:2379,http://${uuids[$i]}.nodes.lochness.local:4001,http://localhost:2379,http://localhost:4001"
-	etcdctl set $path/ETCD_LISTEN_PEER_URLS "http://${uuids[$i]}.nodes.lochness.local:2380"
-	etcdctl set $path/ETCD_NAME "${uuids[$i]}"
-done
-echo "$LINENO: done"
+    log "running nconfigd once to process hypervisor configs"
+    nconfigd --once && systemctl stop nconfigd
+    log "done"
 
-echo "$LINENO: checking for kernel/initrd existence"
-do_until 5 ls -l /var/lib/images/0.1.0/{vmlinuz,initrd}
-echo "$LINENO: done"
+    log "end"
+}
 
-echo "$LINENO: ok you can now boot node1 and node2"
-do_until 5 curl --silent http://${ips[1]}:4001/v2/keys
-do_until 5 curl --silent http://${ips[2]}:4001/v2/keys
-echo "$LINENO: ok new etcd cluster seems to be up"
+function get_peer_url() {
+    echo "http://${ips[$1]}:2380"
+}
 
-echo "$LINENO: sleeping 2m to let new nodes settle"
-sleep 2m
-echo "$LINENO: done"
+function configure_hypervisor_etcd() {
+    log "begin"
 
-echo "$LINENO: syncing queensland data from old cluster to new"
-etcdctl ls --recursive --sort -p /queensland | sed '/\/$/ d' | while read key; do
-	etcdctl get $key | sed 's|^|value=|' | curl -s -XPUT http://${ips[1]}:4001/v2/keys$key -d@-
-done
-echo "$LINENO: done"
+    local index=$1
+    local uuid=${uuids[$index]}
+    local ip=${ips[$index]}
+    local peer_url=$(get_peer_url $index)
+    local initial_cluster=
+    local i
+    for i in $(seq 0 $index); do
+        local sep=
+        if [ $i -ne 0 ]; then
+            sep=","
+        fi
+        local pu=$(get_peer_url $i)
+        initial_cluster="$initial_cluster$sep${uuids[$i]}=$pu"
+    done
 
-echo "$LINENO: setting hv1 to be dns server (temporarily)"
-curl -s -XPUT http://${ips[1]}:4001/v2/keys/lochness/hypervisors/${uuids[1]}/config/dns -dvalue=true
-echo "$LINENO: done"
+    local config_path="/lochness/hypervisors/$uuid/config"
 
-echo "$LINENO: backing up etcd data"
-etcdctl ls --sort --recursive -p | sed '/\/$/ d' | while read key; do
-	printf "%s %s\n" "$(printf $key | base64 -w0)" "$(base64 -w0 <(etcdctl get $key))"
-done > /tmp/etcd.dump
-echo "$LINENO: done"
+    log "setting values in etcd"
+    etcdctl set $config_path/NCONFIGD_ETCD_ADDRESS "http://$IP0:4001"
+    etcdctl set $config_path/ETCD_NAME "$uuid"
+    etcdctl set $config_path/ETCD_INITIAL_CLUSTER_STATE "existing"
+    etcdctl set $config_path/ETCD_INITIAL_CLUSTER "$initial_cluster"
+    etcdctl set $config_path/ETCD_INITIAL_ADVERTISE_PEER_URLS "$peer_url"
+    etcdctl set $config_path/ETCD_ADVERTISE_CLIENT_URLS "http://$ip:2379,http://$ip:4001"
+    etcdctl set $config_path/ETCD_LISTEN_CLIENT_URLS "http://$ip:2379,http://$ip:4001,http://localhost:2379,http://localhost:4001"
+    etcdctl set $config_path/ETCD_LISTEN_PEER_URLS "$peer_url"
+    log "done"
 
-echo "$LINENO: waiting for other dns server to come up"
-do_until 5 dig +short dns.services.lochness.local @${ips[1]}
-echo "done"
+    log "end"
+}
 
-echo "$LINENO: restarting etcd so it can join the cluster"
-cat /dev/null > /etc/sysconfig/etcd
-curl -s http://localhost:8888/config/$ip > /tmp/mistify-config
-cat > /etc/resolv.conf <<EOF
-nameserver ${ips[1]}
-nameserver ${ips[2]}
-nameserver ${ips[0]}
-EOF
-systemctl stop etcd confd named dhcpd cbootstrapd tftpd
-rm -rf /mistify/data/etcd/*
-systemctl start etcd
-echo "$LINENO: done"
+function update_hypervisor0_etcd {
+    log "begin"
 
-echo "$LINENO: waiting for etcd cluster to be healthy"
-do_until 5 etcdctl cluster-health
-echo "$LINENO: done"
+    configure_hypervisor_etcd 0
 
-echo "$LINENO: restoring etcd data"
-while read key value; do
-	echo $value | base64 -d | sed 's|^|value=|' | \
-		curl -s -XPUT "http://localhost:4001/v2/keys$(echo $key | base64 -d)" -d@-
-done < /tmp/etcd.dump
-echo "$LINENO: done"
+    log "retrieving etcd configuration"
+    curl -s http://localhost:8888/config/$IP0 > /tmp/mistify-config
+    log "done"
 
-echo "$LINENO: restarting nconfigd so it can do its thing"
-nconfigd --once
-echo "$LINENO: done"
+    log "restarting etcd"
+    systemctl restart etcd
+    do_until 5 etcdctl cluster-health
+    log "done"
 
-echo "$LINENO: updating resolv.conf nameserver order"
-cat > /etc/resolv.conf <<EOF
-nameserver ${ips[0]}
-nameserver ${ips[1]}
-nameserver ${ips[2]}
-EOF
-echo "$LINENO: done"
+    # Update the peerURLS using the member API
+    # This is an existing member of the 1-node cluster, so it needs to be done
+    # this way. 
+    log "fixing peerURL"
+    local peer_url=$(get_peer_url 0)
+    local memberid=$(curl -s http://localhost:4001/v2/members | grep -Po '"id":"\K[^"]*')
+    if [ -z $memberid ]; then
+        exit 1
+    fi
+    log "member id: $memberid"
+    curl -s "http://localhost:2379/v2/members/$memberid" -XPUT \
+        -H "content-type: application/json" \
+        -d '{"peerURLS":["'$peer_url'"]}'
+    log "done"
+
+    log "end"
+}
+
+function add_hypervisor() {
+    log "begin"
+
+    local index=$1
+    local uuid=${uuids[$index]}
+    local ip=${ips[$index]}
+
+    configure_hypervisor_etcd $index
+
+    log "adding hypervisor via etcdctl"
+    etcdctl member add $uuid "http://$ip:2380"
+    log "done"
+    
+    log "waiting for hypervisor. please start node$index"
+    do_until 5 curl --silent http://${ips[$index]}:4001/v2/keys
+    do_until 5 etcdctl cluster-health
+    log "done"
+
+    log "end"
+}
+
+function set_resolv() {
+    log "begin"
+
+    local contents=
+    local i
+    for (( i=0; i < $NODE_COUNT; i++ )); do
+        contents="${contents}nameserver ${ips[$i]}\n"
+    done
+    echo -e $contents > /etc/resolv.conf
+
+    log "end"
+}
+
+# Run the script
+main
