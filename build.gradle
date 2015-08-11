@@ -3,11 +3,13 @@ buildscript {
         maven { url "https://plugins.gradle.org/m2/" }
         dependencies {
             classpath 'org.ysb33r.gradle:gnumake:1.0.2'
+            classpath 'org.ajoberstar:gradle-git:1.2.0'
         }
     }
 }
 
 defaultConfigFile = defaultConfigFile as File
+buildRootDir = buildRootDir as File
 
 validateFileExists(defaultConfigFile)
 
@@ -27,6 +29,21 @@ ext {
             getStrippedConfigValue(defaultConfig, buildRootPackageVarName)
         }
     }
+}
+
+apply plugin: 'org.ajoberstar.grgit'
+
+import org.ajoberstar.grgit.*
+
+task cloneBuildRoot(group: 'BuildRoot')<<{
+    if (!buildRootDir.exists()){
+        def grgit = Grgit.clone(dir: buildRootDir, uri: buildRootUri, refToCheckout: buildRootVersion)
+    }else{
+        def grgit = Grgit.open(dir: buildRootDir)
+        grgit.fetch()
+        grgit.checkout(branch: buildRootVersion)
+    }
+
 }
 
 task deleteStamps(type: Delete, group: 'BuildRoot') {
