@@ -5,13 +5,13 @@ timeout		10
 color 		cyan/blue white/blue
 
 # Gets enabled/disabled depending on Grub support for splashimage
-splashimage	/splash.xpm.gz
+splashimage	/boot/grub/splash.xpm.gz
 
 # Used when a splashimage is enabled
 foreground 	000000
 background 	cccccc
 
 title		MistifyOS
-kernel		/kernel init=/init ramdisk_size=300000 root=/dev/ram0 rw intel_idle.max_cstate=0 vga=794
-initrd		/initrd
+kernel		__KERNEL_PATH__ init=/init ramdisk_size=300000 root=/dev/ram0 rw intel_idle.max_cstate=0 vga=794
+initrd		__INITRD_PATH__
 
