@@ -8,14 +8,6 @@ def getPackages() {
             return
         }
         packages.add([packageDir: tmpPackageDir, packageName: "${tmpPackageDir.name}"])
-
-//        tmpPackageDir.eachFileMatch(~/Config.*/) { file ->
-//            def matcher = file.getText() =~ /BR2_PACKAGE_(.*)/
-//            if (matcher) {
-//                def tmpPackageName = matcher[0][1].replaceAll('_', '-').toLowerCase()
-//                packages.add([packageDir: tmpPackageDir, packageName: tmpPackageName])
-//            }
-//        }
     }
     return packages
 }

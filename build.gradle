@@ -7,33 +7,55 @@ buildscript {
     }
 }
 
-ext.buildRootDir = "$rootDir/build/buildroot" as File
-ext.buildRootCacheDir = "${rootDir}/.buildroot_ccache" as File
-ext.goRootDir = "${rootDir}/go/go1.4.2-crosstool-ng-1.21.0/go" as File
-ext.buildOutputDir = "${rootDir}/build" as File
-ext.downloadDir = "${rootDir}/downloads" as File
-ext.configDir = "${rootDir}/configs" as File
-ext.defaultConfigFile = "${configDir}/mistify_defconfig" as File
+defaultConfigFile = defaultConfigFile as File
 
+validateFileExists(defaultConfigFile)
 
-
-processFileInPlace(defaultConfigFile){ text ->
-    text = text.replace('BR2_JLEVEL=0', "BR2_JLEVEL=${Runtime.runtime.availableProcessors() + 1}")
-    text.replace('BR2_CCACHE_INITIAL_SETUP=""','BR2_CCACHE_INITIAL_SETUP="-M 2G"')
+processFileInPlace(defaultConfigFile) { text ->
+    text = text.replace('BR2_JLEVEL=0', "BR2_JLEVEL=${Runtime.runtime.availableProcessors() * 2 + 1}")
+    text.replace('BR2_CCACHE_INITIAL_SETUP=""', 'BR2_CCACHE_INITIAL_SETUP="-M 3G"')
 }
 
 ext.defaultConfig = new Properties()
 defaultConfig.load(defaultConfigFile.newDataInputStream())
 
+ext {
+    enabledProjects = subprojects.findAll { subProject ->
+        configInFile = subProject.projectDir.listFiles().find { it.name.contains('Config') }
+        if (configInFile) {
+            def buildRootPackageVarName = parsePackageVarNameFrom(configInFile)
+            getStrippedConfigValue(defaultConfig, buildRootPackageVarName)
+        }
+    }
+}
 
+task deleteStamps(type: Delete, group: 'BuildRoot') {
+    description "Deletes all .stamp_target_installed inside the '${mistifyBuildOutputDir}' directory"
+    delete "${mistifyBuildOutputDir}**/.stamp_target_installed"
+}
 
-
-
-task deleteBuildRootCache(type: Delete, group: 'BuildRoot'){
-    description "Deletes buildroot cache dir"
+task deleteBuildRootCache(type: Delete, group: 'BuildRoot') {
+    description "Deletes buildroot cache dir '${buildRootCacheDir}'"
     delete buildRootCacheDir
 }
 
+task clean(type: Delete, group: 'BuildRoot') {
+    description "Deletes build output directory '${buildOutputDir}'"
+    delete buildOutputDir
+}
+
+task createLogsDir() << {
+    new File(buildRootLogsDir).mkdirs()
+}
+
+task cloneToolchain() << {
+//    buildRootDir
+}
+
+task build(type: Exec, dependsOn: [createLogsDir]) {
+    description "Kicks of buildmistify shell script make"
+    commandLine './buildmistify'
+}
 
 
 import org.ysb33r.gradle.gnumake.GnuMakeBuild
@@ -46,13 +68,16 @@ subprojects {
     gnumake {
         defaultFlags TOOLCHAIN_PATH: "${rootDir}/toolchain/variations/crosstool-ng-1.21.0",
                 TOOLCHAIN_PREFIX: "x86_64-unknown-linux-gnu",
-                O: "${buildOutputDir}/mistify/base",
+                O: "${mistifyBuildOutputDir}/base",
                 BR2_CCACHE_DIR: buildRootCacheDir,
-                BR2_DL_DIR: downloadDir,
+                BR2_DL_DIR: buildRootDownloadDir,
                 BR2_EXTERNAL: rootDir,
                 GOROOT: goRootDir,
                 BR2_DEFAULT_KERNEL_HEADERS: getStrippedConfigValue(defaultConfig, 'BR2_LINUX_KERNEL_VERSION'),
                 BR2_JLEVEL: getStrippedConfigValue(defaultConfig, 'BR2_JLEVEL')
+    }
+    if (project in enabledProjects) {
+
     }
 
     task makeDirClean(type: GnuMakeBuild, group: 'GNU Make tasks') {
@@ -63,6 +88,10 @@ subprojects {
 
         chDir buildRootDir
         targets "${project.name}-dirclean"
+    }
+
+    task build(type: Exec) {
+        description "Kicks of buildmistify shell script make"
     }
 }
 
@@ -75,6 +104,17 @@ def processFileInPlace(file, Closure processText) {
     file.write(processText(text))
 }
 
+def parsePackageVarNameFrom(File buildRootConfigInFile) {
+    def matcher = buildRootConfigInFile.getText() =~ /(BR2_PACKAGE_.*)/
+    matcher ? matcher[0][1].trim() : null
+}
+
 def getStrippedConfigValue(Properties props, String keyName) {
     props.getProperty(keyName).replaceAll(/^"/, '').replaceAll(/"$/, '').trim()
+}
+
+def validateFileExists(File file) {
+    if (!file.exists()) {
+        throw new GradleException("Error: Required file ${file} does not exist")
+    }
 }
