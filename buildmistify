@@ -727,8 +727,8 @@ fi
 #-
 imagedir=$variantbuilddir/images
 cd $imagedir
-if [ -f rootfs.cpio.gz ]; then
-  ln -sf rootfs.cpio.gz initrd.mistify
+if [ -f rootfs.cpio.bz2 ]; then
+  ln -sf rootfs.cpio.bz2 initrd.mistify
   sha1sum initrd.mistify >initrd.mistify.sha1
 else
   warning "The initrd doesn't exist."
