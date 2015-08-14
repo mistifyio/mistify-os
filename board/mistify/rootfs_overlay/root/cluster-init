@@ -29,6 +29,8 @@ function main() {
 
     configure_hypervisor_services
     configure_hypervisor_metadata
+    
+    configure_global_etcd
 
     update_hypervisor0_etcd
 
@@ -150,6 +152,14 @@ function get_peer_url() {
     echo "http://${ips[$1]}:2380"
 }
 
+function configure_global_etcd() {
+    log "begin"
+    etcdctl set /lochness/config/ETCD_INITIAL_CLUSTER_STATE "existing"
+    etcdctl set /lochness/config/ETCD_HEARTBEAT_INTERVAL $ETCD_HEARTBEAT_INTERVAL
+    etcdctl set /lochness/config/ETCD_ELECTION_TIMEOUT $ETCD_ELECTION_TIMEOUT
+    log "end"
+}
+
 function configure_hypervisor_etcd() {
     log "begin"
 
@@ -173,14 +183,11 @@ function configure_hypervisor_etcd() {
     log "setting values in etcd"
     etcdctl set $config_path/NCONFIGD_ETCD_ADDRESS "http://$IP0:4001"
     etcdctl set $config_path/ETCD_NAME "$uuid"
-    etcdctl set $config_path/ETCD_INITIAL_CLUSTER_STATE "existing"
     etcdctl set $config_path/ETCD_INITIAL_CLUSTER "$initial_cluster"
     etcdctl set $config_path/ETCD_INITIAL_ADVERTISE_PEER_URLS "$peer_url"
     etcdctl set $config_path/ETCD_ADVERTISE_CLIENT_URLS "http://$ip:2379,http://$ip:4001"
     etcdctl set $config_path/ETCD_LISTEN_CLIENT_URLS "http://$ip:2379,http://$ip:4001,http://localhost:2379,http://localhost:4001"
     etcdctl set $config_path/ETCD_LISTEN_PEER_URLS "$peer_url"
-    etcdctl set $config_path/ETCD_HEARTBEAT_INTERVAL 1000
-    etcdctl set $config_path/ETCD_ELECTION_TIMEOUT 10000
     log "done"
 
     log "end"
