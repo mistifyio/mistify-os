@@ -242,12 +242,12 @@ function add_hypervisor() {
 function set_resolv() {
     log "begin"
 
-    local contents=
-    local i
-    for (( i=0; i < $NODE_COUNT; i++ )); do
-        contents="${contents}nameserver ${ips[$i]}\n"
-    done
-    echo -e $contents > /etc/resolv.conf
+    {
+        local i
+        for (( i=0; i < $NODE_COUNT; i++ )); do
+            echo "nameserver ${ips[$i]}"
+        done
+    } > /etc/resolv.conf
 
     log "end"
 }
