@@ -5,7 +5,7 @@ Wants=openvswitch.service
 
 [Service]
 Type=oneshot
-EnvironmentFile=/etc/sysconfig/ovsbridge
+EnvironmentFile=-/etc/sysconfig/ovsbridge
 ExecStart=/usr/sbin/ovsbridge
 
 [Install]
