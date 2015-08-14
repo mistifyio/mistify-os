@@ -136,8 +136,6 @@ case "$1" in
     'start')
         # Initialize our own interface state file
         cp /dev/null $MISTIFY_IFSTATE
-        # Initialize the ovs bridge mac file if necessary
-        touch $MISTIFY_MAC
 
         parse_boot_args
 
