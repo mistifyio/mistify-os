@@ -239,7 +239,6 @@ function add_hypervisor() {
     log "done"
 
     log "waiting for hypervisor. please start node$index"
-    do_until 5 curl --silent http://${ips[$index]}:4001/v2/keys
     do_until 5 etcdctl cluster-health
     log "done"
 
