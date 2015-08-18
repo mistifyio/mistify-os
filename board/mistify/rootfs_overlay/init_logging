@@ -1,0 +1,65 @@
+#!/bin/bash
+
+logger_dir=/run/initramfs
+logger_pipe=$logger_dir/logger.pipe
+logger_pidfile=$logger_dir/logger.pid
+
+function start_logging() {
+    # Ensure directory exists
+    mkdir -p $logger_dir
+
+    # Create pipe for log routing
+    mkfifo $logger_pipe
+
+    # Start the logger reading from the pipe
+    log <$logger_pipe >/dev/console 2>&1 &
+    # Save the logger PID for killing later
+    printf '%s' $! >$logger_pidfile
+
+    # Redirect STDOUT and STDERR to the pipe, and thus to the logger
+    exec >$logger_pipe 2>&1
+}
+
+function stop_logging() {
+    # Exit early if the pipe file doesn't exist
+    [ -e $logger_pipe ] || return
+
+    # Signal the logger to shut down and set FDs to the console
+    exec 0<>/dev/console 1<>/dev/console 2<>/dev/console
+
+    # Wait for the logger to hopefully shut down on its own
+    local timeout=1 sleep=0.1 i=0
+    until [ ! -e $logger_pipe ] || [ $i -eq $timeout ]; do
+        sleep 0.1
+        i=$(( i + $sleep ))
+    done
+
+    # Logger is still running and may needs so be killed manually if there is
+    # a valid PID on file
+    if [ $i -eq 10 ]; then
+        read -r pid <$logger_pidfile 2>/dev/null
+        if [ -n "$pid" ]; then
+            kill "$pid" 2>/dev/null
+        fi
+    fi
+}
+
+function log() {
+    # Set up a FD for kmsg if possible
+    if [ -c /dev/kmsg]; then
+        exec 3>/dev/kmsg
+    else
+        exec 3>/dev/null
+    fi
+
+    # Continuously read and log lines until EOF
+    local logline
+    while read -r logline; do
+        printf 'init: %s\n' "$logline" >&3
+    done
+
+    # Close open kmsg FD
+    exec 3>&-
+    # Clean up files relating to this logger process
+    rm -f $logger_pipe $logger_pidfile
+}
