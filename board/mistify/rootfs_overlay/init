@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/bin/bash
+
+. init_logging
 
 /bin/mount -t devtmpfs devtmpfs /dev
 /bin/mount -t proc -o nodev,noexec,nosuid proc /proc
@@ -7,9 +9,11 @@
 /bin/mount -t tmpfs -o mode=1777 tmpfs /tmp
 /bin/mount -t tmpfs -o mode=1777 tmpfs /var/tmp
 
-exec 0</dev/console
-exec 1>/dev/console
-exec 2>/dev/console
+# parse the kernel command line
+parse_logging_params </proc/cmdline
+
+# Turn on logging
+start_logging
 
 /lib/systemd/systemd-modules-load
 
@@ -48,5 +52,8 @@ if [ -f /etc/hostid ]; then
 fi
 
 kill `pgrep systemd-udevd`
+
+# Turn off logging
+stop_logging
 
 exec /sbin/init $*
