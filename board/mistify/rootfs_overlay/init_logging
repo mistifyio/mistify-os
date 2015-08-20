@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Heavilly inspired by Arch mkinitcpio scripts
+# https://projects.archlinux.org/mkinitcpio.git/tree/init_functions
+
 logger_dir=/run/initramfs
 logger_pipe=$logger_dir/logger.pipe
 logger_pidfile=$logger_dir/logger.pid
@@ -130,9 +133,9 @@ function stop_logging() {
         ((i++))
     done
 
-    # Logger is still running and may needs so be killed manually if there is
+    # Logger is still running and may needs to be killed manually if there is
     # a valid PID on file
-    if [ $i -eq 10 ]; then
+    if [ $i -eq $timeout ]; then
         read -r pid <$logger_pidfile 2>/dev/null
         if [ -n "$pid" ]; then
             kill "$pid" 2>/dev/null
