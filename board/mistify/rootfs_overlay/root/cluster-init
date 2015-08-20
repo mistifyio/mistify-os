@@ -79,6 +79,13 @@ function do_until() {
     log "end"
 }
 
+# Check if cluster is healthy. Returns 0 if healthy, 1 if unhealthy
+function etcd_cluster_healthy() {
+    # Can't rely on `etcdctl cluster-health` exit code to determine cluster
+    # health. Look for a response that doesn't contain "unhealthy"
+    ! $( etcdctl cluster-health | grep -q "unhealthy")
+}
+
 function configure_network() {
     log "begin"
     rm -f /etc/systemd/network/*
@@ -204,7 +211,7 @@ function update_hypervisor0_etcd {
 
     log "restarting etcd"
     systemctl restart etcd
-    do_until 5 etcdctl cluster-health
+    do_until 5 etcd_cluster_healthy
     log "done"
 
     # Update the peerURLS using the member API
@@ -239,7 +246,7 @@ function add_hypervisor() {
     log "done"
 
     log "waiting for hypervisor. please start node$index"
-    do_until 5 etcdctl cluster-health
+    do_until 5 etcd_cluster_healthy
     log "done"
 
     log "end"
