@@ -4,6 +4,94 @@ logger_dir=/run/initramfs
 logger_pipe=$logger_dir/logger.pipe
 logger_pidfile=$logger_dir/logger.pid
 
+# Logging targets handled with bitmask
+log_target_mask=0
+declare -A log_target_bits=(
+    ["file"]=$(( 1 << 0 ))
+    ["kmsg"]=$(( 1 << 1 ))
+    ["cons"]=$(( 1 << 2 ))
+)
+# Add an "all" target based on the individual options
+for _tb in ${log_target_bits[@]}; do
+    log_target_bits["all"]=$(( ${log_target_bits["all"]:-0} | $_tb ))
+done
+
+# Deselect log target(s)
+function add_log_targets() {
+    local target
+    local target_bits
+    for target in $@; do
+        target_bits=${log_target_bits["$target"]}
+        if [ $target_bits -gt 0 ]; then
+            log_target_mask=$(( $log_target_mask | $target_bits ))
+        fi
+    done
+}
+
+# Check if a log target has been selected
+function log_target_set() {
+    local target_bits=${log_target_bits["$1"]}
+    if [ $target_bits -eq 0 ]; then
+        return 1
+    fi
+    [ $(( $log_target_mask & $target_bits )) -eq $target_bits ]
+}
+
+# Handle setup relating to debug
+function log_debug() {
+    # If debug is not set, nothing to do here
+    if [ -z "$logger_debug" ]; then
+        return
+    fi
+
+    # Turn debug mode on
+    if [ "$1" = "on" ]; then
+        # Default to console if targets haven't been specified
+        if [ $log_target_mask -eq 0 ]; then
+            add_log_targets "cons"
+        fi
+
+        # Activate debugging
+        set -x
+    else
+        # Turn off debugging
+        set +x 
+    fi
+}
+
+function parse_logging_params() {
+    # Read in the cmdline kernel parameters
+    local cmdline
+    local param
+    read -r cmdline
+    for param in $cmdline; do
+        case $param in
+            # Stop on #
+            \#*)
+                break
+                ;;
+            # Logging params, following mkinitcpio conventions
+            rd.*)
+                # Individual
+                case ${param#rd.} in
+                    debug)
+                        logger_debug=y
+                        ;;
+                    log)
+                        # default log to kmsg and console if value unspecified
+                        add_log_targets "kmsg" "cons"
+                        ;;
+                    log=*)
+                        # set specified targets
+                        local targets=$(echo ${param#rd.log=} | tr "|" "\n")
+                        add_log_targets ${targets[@]}
+                        ;;
+                esac
+                ;;
+        esac
+    done
+}
+
 function start_logging() {
     # Ensure directory exists
     mkdir -p $logger_dir
@@ -18,20 +106,28 @@ function start_logging() {
 
     # Redirect STDOUT and STDERR to the pipe, and thus to the logger
     exec >$logger_pipe 2>&1
+
+    # Enable debug mode if set
+    log_debug "on"
 }
 
 function stop_logging() {
     # Exit early if the pipe file doesn't exist
     [ -e $logger_pipe ] || return
 
+    # Disable debug mode if set
+    log_debug "off"
+
     # Signal the logger to shut down and set FDs to the console
     exec 0<>/dev/console 1<>/dev/console 2<>/dev/console
 
     # Wait for the logger to hopefully shut down on its own
-    local timeout=1 sleep=0.1 i=0
+    local timeout=10 # sleep iterations (timeout seconds = $timeout * $sleep)
+    local sleep=0.1 # seconds
+    local i=0
     until [ ! -e $logger_pipe ] || [ $i -eq $timeout ]; do
-        sleep 0.1
-        i=$(( i + $sleep ))
+        sleep $sleep
+        ((i++))
     done
 
     # Logger is still running and may needs so be killed manually if there is
@@ -45,21 +141,43 @@ function stop_logging() {
 }
 
 function log() {
-    # Set up a FD for kmsg if possible
-    if [ -c /dev/kmsg]; then
-        exec 3>/dev/kmsg
+    # Set up target FDs
+
+    # file
+    if log_target_set "file"; then
+        exec 4>$logger_dir/init.log
     else
-        exec 3>/dev/null
+        exec 4>/dev/null
+    fi
+
+    # kmsg
+    if log_target_set "kmsg"; then
+        exec 5>/dev/kmsg
+    else
+        exec 5>/dev/null
+    fi
+
+    # cons
+    if log_target_set "cons"; then
+        exec 6>/dev/console
+    else
+        exec 6>/dev/null
     fi
 
     # Continuously read and log lines until EOF
     local logline
     while read -r logline; do
-        printf 'init: %s\n' "$logline" >&3
+        # file
+        printf '%s\n' "$logline" >&4
+        # kmsg
+        printf 'init: %s\n' "$logline" >&5
+        # console
+        printf '%s\n' "$logline" >&6
     done
 
-    # Close open kmsg FD
-    exec 3>&-
+    # Close open target FDs
+    exec 4>&- 5>&- 6>&-
+
     # Clean up files relating to this logger process
     rm -f $logger_pipe $logger_pidfile
 }

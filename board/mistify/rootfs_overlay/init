@@ -9,6 +9,9 @@
 /bin/mount -t tmpfs -o mode=1777 tmpfs /tmp
 /bin/mount -t tmpfs -o mode=1777 tmpfs /var/tmp
 
+# parse the kernel command line
+parse_logging_params </proc/cmdline
+
 # Turn on logging
 start_logging
 
