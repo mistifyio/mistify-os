@@ -601,7 +601,6 @@ BR2_CCACHE_DIR=$builddir/.buildroot_ccache \
 BR2_DL_DIR=$downloaddir BR2_EXTERNAL=$projectdir \
 BR2_DEFAULT_KERNEL_HEADERS=$buildrootkernelheaders \
 GOROOT=$GOROOT -C $buildrootdir \
-$makeoption \
 $target"
 
 #+
@@ -710,7 +709,7 @@ else
   cd $buildrootdir
   ln -sf $logfilename $logdir/buildroot.log
   _envvars=`env | sort`
-  cat << EOF >$logfile
+  cat << EOF | tee $logfile
 ++++
 $id: Running make command:
 $makecommand
