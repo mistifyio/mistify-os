@@ -13,7 +13,7 @@ function config_contains () {
   #-
   opt=$1
   shift
- 
+
   for o in $*; do
     if [ "$1" == "$o" ]; then
       return 0
@@ -39,7 +39,7 @@ function merge_variant () {
   message "Merging files $1 and $2 into $3"
   message "Base file is: $1"
   sed_expression="s/^\(# \)\{0,1\}\(${prefix}_[a-zA-Z0-9_]*\)[= ].*/\2/p"
-  
+
   baselist=$(sed -n "$sed_expression" $1)
   variantlist=$(sed -n "$sed_expression" $2)
   run cp $1 $3
@@ -71,6 +71,21 @@ function variant_file () {
   eval "$3=$vf"
 }
 
+function copy_if_different () {
+    #+
+    # Parameters:
+    # 1 = source file
+    # 2 = destination file
+    #-
+    diff $1 $2 &> /dev/null
+    if [ $? -gt 0 ]; then
+        verbose Files $1 and $2 are different -- copying.
+        run cp $1 $2
+    else
+        verbose Files $1 and $2 are the same -- not copying.
+    fi
+}
+
 function use_variant () {
     #+
     # Parameters:
@@ -91,7 +106,7 @@ function use_variant () {
 	else
 	    verbose "Variant file doesn't exist. Copying $1 to $2"
 	fi
-	run cp $1 $2
+	copy_if_different $1 $2
 	return 0
     fi
 }
