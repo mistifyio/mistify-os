@@ -443,6 +443,11 @@ if [ ! -z "$showusage" ]; then
     exit 0
 fi
 
+if []; then
+    install-toolchain
+    exit
+fi
+
 if [ ! -f $buildrootdir/README ]; then
   message "Cloning Buildroot from the Buildroot project repository."
   git clone $buildrooturi $buildrootdir

@@ -58,7 +58,60 @@ save-settings () {
     set_build_default toolchainversion $toolchainversion
 }
 
-install-toolchain () {
+checkout-toolchain() {
+    if [ ! -f $toolchaindir/README ]; then
+	message 'Cloning toolchain build tool from the toolchain repository.'
+	git clone $tcuri $toolchaindir
+	#+
+	# TODO: It is possible that the previous clone failed. Might want to use
+	# git again to update just in case.
+	#-
+	if [ $? -gt 0 ]; then
+	    die "Cloning the toolchain encountered an error."
+	fi
+    fi
+
+    cd $toolchaindir
+
+    verbose toolchainversion is: $toolchainversion
+    message "Fetching toolchain update from remote repository."
+    git fetch
+
+    run git checkout $toolchainversion
+    if [ $? -ne 0 ]; then
+	die "Attempted to checkout the toolchain build tool using an invalid ID: $toolchainversion"
+    fi
+    #+
+    # If on a branch then pull the latest changes.
+    #-
+    run_ignore git symbolic-ref --short HEAD
+    if [ $? -eq 0 ]; then
+	message Updating from branch: $toolchainversion
+	run git pull
+    else
+	message Toolchain version $toolchainversion is not a branch. Not updating.
+    fi
+
+}
+
+install-toolchain() {
+    checkout-toolchain
+
+    cd $toolchaindir
+
+    cp $PWD/scripts/Makefile-toolchain makefile
+
+    makeargs=version=$toolchainversion download_dir=$downloaddir root_dir=$toolchaindir build_dir=$toolchaindir/variations/$toolchainversion
+
+    if [ -n "$dryrun" ]; then
+	    message "Just a test run -- not building the toolchain."
+	    make -n $makeargs
+    else
+        make $makeargs
+    fi
+}
+
+old-install-toolchain () {
     if [ -n "$toolchainreset" ]; then
 	for d in tcconfig tcuri toolchaindir toolchainprefix toolchainversion
 	do
@@ -100,38 +153,8 @@ install-toolchain () {
     # This is also used by install-go.
     message "The toolchain version is: $toolchainversion"
 
-    if [ ! -f $toolchaindir/README ]; then
-	message 'Cloning toolchain build tool from the toolchain repository.'
-	git clone $tcuri $toolchaindir
-	#+
-	# TODO: It is possible that the previous clone failed. Might want to use
-	# git again to update just in case.
-	#-
-	if [ $? -gt 0 ]; then
-	    die "Cloning the toolchain encountered an error."
-	fi
-    fi
+    checkout-toolchain
 
-    cd $toolchaindir
-
-    verbose toolchainversion is: $toolchainversion
-    message "Fetching toolchain update from remote repository."
-    git fetch
-
-    run git checkout $toolchainversion
-    if [ $? -ne 0 ]; then
-	die "Attempted to checkout the toolchain build tool using an invalid ID: $toolchainversion"
-    fi
-    #+
-    # If on a branch then pull the latest changes.
-    #-
-    run_ignore git symbolic-ref --short HEAD
-    if [ $? -eq 0 ]; then
-	message Updating from branch: $toolchainversion
-	run git pull
-    else
-	message Toolchain version $toolchainversion is not a branch. Not updating.
-    fi
     #+
     # Setup the correct toolchain config file.
     #-
