@@ -83,7 +83,7 @@ function do_until() {
 function etcd_cluster_healthy() {
     # Can't rely on `etcdctl cluster-health` exit code to determine cluster
     # health. Look for a response that doesn't contain "unhealthy"
-    ! $( etcdctl cluster-health | grep -q "unhealthy")
+    ! etcdctl cluster-health | grep -q "unhealthy"
 }
 
 function configure_network() {
