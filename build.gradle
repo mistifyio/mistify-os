@@ -1,5 +1,6 @@
 buildscript {
     repositories {
+        jcenter()
         maven { url "https://plugins.gradle.org/m2/" }
         dependencies {
             classpath 'org.ysb33r.gradle:gnumake:1.0.2'
@@ -12,11 +13,6 @@ defaultConfigFile = defaultConfigFile as File
 buildRootDir = buildRootDir as File
 
 validateFileExists(defaultConfigFile)
-
-processFileInPlace(defaultConfigFile) { text ->
-    text = text.replace('BR2_JLEVEL=0', "BR2_JLEVEL=${Runtime.runtime.availableProcessors() * 2 + 1}")
-    text.replace('BR2_CCACHE_INITIAL_SETUP=""', 'BR2_CCACHE_INITIAL_SETUP="-M 3G"')
-}
 
 ext.defaultConfig = new Properties()
 defaultConfig.load(defaultConfigFile.newDataInputStream())
@@ -31,20 +27,17 @@ ext {
     }
 }
 
-apply plugin: 'org.ajoberstar.grgit'
-
-import org.ajoberstar.grgit.*
-
-task cloneBuildRoot(group: 'BuildRoot')<<{
-    if (!buildRootDir.exists()){
-        def grgit = Grgit.clone(dir: buildRootDir, uri: buildRootUri, refToCheckout: buildRootVersion)
-    }else{
-        def grgit = Grgit.open(dir: buildRootDir)
-        grgit.fetch()
-        grgit.checkout(branch: buildRootVersion)
-    }
-
+task enabledProjects()<< {
+    enabledProjects.each { println it }
 }
+
+task updateDefaultConfig(group: 'BuildRoot') << {
+    processFileInPlace(defaultConfigFile) { text ->
+        text = text.replace('BR2_JLEVEL=0', "BR2_JLEVEL=${Runtime.runtime.availableProcessors() * 2 + 1}")
+        text.replace('BR2_CCACHE_INITIAL_SETUP=""', 'BR2_CCACHE_INITIAL_SETUP="-M 3G"')
+    }
+}
+
 
 task deleteStamps(type: Delete, group: 'BuildRoot') {
     description "Deletes all .stamp_target_installed inside the '${mistifyBuildOutputDir}' directory"
@@ -65,13 +58,48 @@ task createLogsDir() << {
     new File(buildRootLogsDir).mkdirs()
 }
 
-task cloneToolchain() << {
-//    buildRootDir
+import org.ajoberstar.grgit.*
+
+task cloneBuildRoot(group: 'BuildRoot') << {
+    if (!buildRootDir.exists()) {
+        def grgit = Grgit.clone(dir: buildRootDir, uri: buildRootUri, refToCheckout: buildRootVersion)
+    } else {
+        def grgit = Grgit.open(dir: buildRootDir)
+        grgit.fetch()
+        grgit.checkout(branch: buildRootVersion)
+    }
 }
 
-task build(type: Exec, dependsOn: [createLogsDir]) {
+task preBuild(dependsOn:[updateDefaultConfig, createLogsDir, cloneBuildRoot])
+
+task cloneToolchain() << {
+    def toolchaindir = "${rootDir}/toolchain/variations/crosstool-ng-1.21.0" as File
+    if (!toolchaindir.exists()){
+        def grgit = Grgit.clone(dir: toolchaindir, uri: buildRootUri, refToCheckout: buildRootVersion)
+    }else{
+        def grgit = Grgit.open(dir: toolchaindir)
+        grgit.fetch()
+        grgit.checkout(branch: buildRootVersion)
+    }
+
+}
+
+task libs(type: Sync) {
+    from configurations.runtime
+    into "$buildDir/libs"
+}
+
+task build(type: Exec, dependsOn: [preBuild]) {
+    def cmdLine = ['bash', '-c', './buildmistify', "--godir", goRootDir, "--toolchaindir", toolchainRootDir,
+                   "--toolchainversion", toolchainVersion, "--buildroot", buildRootDir,
+                   "--buildrootversion", buildRootVersion, "-b", buildOutputDir,
+                   "-d", buildRootDownloadDir]
+    doFirst{
+        println cmdLine.join(" ")
+    }
+
     description "Kicks of buildmistify shell script make"
-    commandLine './buildmistify'
+    commandLine cmdLine
 }
 
 
@@ -93,6 +121,7 @@ subprojects {
                 BR2_DEFAULT_KERNEL_HEADERS: getStrippedConfigValue(defaultConfig, 'BR2_LINUX_KERNEL_VERSION'),
                 BR2_JLEVEL: getStrippedConfigValue(defaultConfig, 'BR2_JLEVEL')
     }
+
     if (project in enabledProjects) {
 
     }
@@ -107,9 +136,6 @@ subprojects {
         targets "${project.name}-dirclean"
     }
 
-    task build(type: Exec) {
-        description "Kicks of buildmistify shell script make"
-    }
 }
 
 task wrapper(type: Wrapper) {

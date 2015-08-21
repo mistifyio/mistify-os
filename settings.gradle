@@ -16,3 +16,5 @@ getPackages().each {
     include it.packageName
     project(":${it.packageName}").projectDir = it.packageDir
 }
+
+include 'toolchain'
