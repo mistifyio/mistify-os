@@ -1,0 +1,38 @@
+diff --git a/cmd/nconfigd/main.go b/cmd/nconfigd/main.go
+index fce1396..4f7e588 100644
+--- a/cmd/nconfigd/main.go
++++ b/cmd/nconfigd/main.go
+@@ -28,8 +28,6 @@ type (
+ 	Config map[string]Tags
+ )
+ 
+-const eaddress = "http://127.0.0.1:4001"
+-
+ var ansibleDir = "/var/lib/ansible"
+ 
+ // loadConfig reads the config file and unmarshals it into a map containing
+@@ -193,13 +191,10 @@ func watchKeys(config Config, etcdClient *etcd.Client) *watcher.Watcher {
+ func main() {
+ 	// environment can only override default address
+ 	eaddr := os.Getenv("NCONFIGD_ETCD_ADDRESS")
+-	if eaddr == "" {
+-		eaddr = eaddress
+-	}
+ 
+ 	logLevel := flag.StringP("log-level", "l", "warn", "log level")
+ 	flag.StringVarP(&ansibleDir, "ansible", "a", ansibleDir, "directory containing the ansible run command")
+-	flag.StringP("etcd", "e", eaddress, "address of etcd server")
++	flag.StringP("etcd", "e", "", "address of etcd server (can also be set with NCONFIG_ETCD_ADDRESS)")
+ 	configPath := flag.StringP("config", "c", "", "path to config file with prefixs")
+ 	once := flag.BoolP("once", "o", false, "run only once and then exit")
+ 	flag.Parse()
+@@ -229,6 +224,9 @@ func main() {
+ 
+ 	log.WithField("config", config).Info("config loaded")
+ 
++	if eaddr == "" {
++		log.Fatal("etcd address is missing")
++	}
+ 	// set up etcd connection
+ 	log.WithField("address", eaddr).Info("connection to etcd")
+ 	etcdClient := etcd.NewClient([]string{eaddr})
