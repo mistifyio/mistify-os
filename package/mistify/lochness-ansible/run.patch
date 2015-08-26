@@ -1,0 +1,32 @@
+commit 33314fedc2b33cf7a465fe4f50b119838bd3dbaf
+Author: Manuel Mendez <mmendez534@gmail.com>
+Date:   Wed Aug 26 11:35:29 2015 -0400
+
+    testing
+
+diff --git a/run b/run
+index 8a02bba..05419e1 100755
+--- a/run
++++ b/run
+@@ -39,8 +39,8 @@ parser = argparse.ArgumentParser()
+ parser.add_argument('-i', '--id', default=platform.node())
+ parser.add_argument('-t', '--tag', action="append")
+ parser.add_argument('-e', '--etcd',
+-                    default=os.getenv('ETCD_ADDRESS', 'http://localhost:4001'),
+-                    help='address of etcd node, default:http://localhost:4001')
++                    default=os.getenv('ETCD_ADDRESS'),
++                    help='address of etcd node')
+ parsedArgs = parser.parse_args()
+ 
+ id = parsedArgs.id
+@@ -51,6 +51,10 @@ if id is '':
+ 
+ config = {'machine_id': id}
+ 
++if parsedArgs.etcd is None:
++    warn('etcd address is not configured, use --etcd or set ETCD_ADDRESS enviroment')
++    exit(-1)
++
+ eaddr = urlparse.urlparse(parsedArgs.etcd).netloc
+ conn = httplib.HTTPConnection(eaddr)
+ adir = tempfile.mkdtemp()
