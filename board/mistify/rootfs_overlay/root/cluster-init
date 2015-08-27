@@ -21,15 +21,14 @@ UUID0=${uuids[0]}
 function main() {
     log "begin"
 
-    configure_network
-
     log "stopping nconfigd to avoid races"
     systemctl stop nconfigd
     log "done"
 
+    configure_network
     configure_hypervisor_services
     configure_hypervisor_metadata
-    
+
     configure_global_etcd
 
     update_hypervisor0_etcd
