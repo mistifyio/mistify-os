@@ -111,6 +111,9 @@ function configure_hypervisor_services() {
     log "begin"
 
     log "setting values in etcd"
+    #TODO(MIST-576) figure out how to avoid every node getting info from one etcd
+    #member
+    etcdctl set /lochness/config/NCONFIGD_ETCD_ADDRESS http://$IP0:4001
     etcdctl set /lochness/hypervisors/$UUID0/config/dhcpd true
     etcdctl set /lochness/hypervisors/$UUID0/config/cbootstrapd true
     etcdctl set /lochness/hypervisors/$UUID0/config/tftpd true
@@ -187,7 +190,6 @@ function configure_hypervisor_etcd() {
     local config_path="/lochness/hypervisors/$uuid/config"
 
     log "setting values in etcd"
-    etcdctl set $config_path/NCONFIGD_ETCD_ADDRESS "http://$IP0:4001"
     etcdctl set $config_path/ETCD_NAME "$uuid"
     etcdctl set $config_path/ETCD_INITIAL_CLUSTER "$initial_cluster"
     etcdctl set $config_path/ETCD_INITIAL_ADVERTISE_PEER_URLS "$peer_url"
