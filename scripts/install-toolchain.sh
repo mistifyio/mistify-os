@@ -61,6 +61,7 @@ save-settings () {
 checkout-toolchain() {
     if [ ! -f $toolchaindir/README ]; then
 	message 'Cloning toolchain build tool from the toolchain repository.'
+	message "Repo URL: $tcuri"
 	git clone $tcuri $toolchaindir
 	#+
 	# TODO: It is possible that the previous clone failed. Might want to use
@@ -94,24 +95,31 @@ checkout-toolchain() {
 
 }
 
-install-toolchain() {
+new-install-toolchain() {
+    set-defaults
     checkout-toolchain
 
     cd $toolchaindir
 
-    cp $PWD/scripts/Makefile-toolchain makefile
+    cp $PWD/../scripts/Makefile-toolchain .
 
-    makeargs=version=$toolchainversion download_dir=$downloaddir root_dir=$toolchaindir build_dir=$toolchaindir/variations/$toolchainversion
+    makeargs="version=$toolchainversion download_dir=$downloaddir root_dir=$toolchaindir build_dir=$toolchaindir/variations/$toolchainversion config_file=$tcconfig"
+    message "Toolchain Make Args $makeargs"
 
     if [ -n "$dryrun" ]; then
 	    message "Just a test run -- not building the toolchain."
-	    make -n $makeargs
+
+	    make -f Makefile-toolchain -n $makeargs
     else
-        make $makeargs
+        make -f Makefile-toolchain $makeargs
+
+        if [ $? -gt 0 ]; then
+	        die "The toolchain build failed."
+        fi
     fi
 }
 
-old-install-toolchain () {
+set-defaults(){
     if [ -n "$toolchainreset" ]; then
 	for d in tcconfig tcuri toolchaindir toolchainprefix toolchainversion
 	do
@@ -119,6 +127,7 @@ old-install-toolchain () {
 	    reset_build_default $d
 	done
     fi
+
     tcconfigdefault=$(get_build_default tcconfig $PWD/configs/mistify-tc.config)
     tcuridefault=$(get_build_default tcuri git@github.com:crosstool-ng/crosstool-ng.git)
     toolchaindirdefault=$(get_build_default toolchaindir $PWD/toolchain)
@@ -153,8 +162,6 @@ old-install-toolchain () {
     # This is also used by install-go.
     message "The toolchain version is: $toolchainversion"
 
-    checkout-toolchain
-
     #+
     # Setup the correct toolchain config file.
     #-
@@ -162,6 +169,13 @@ old-install-toolchain () {
 	tcconfig=$tcconfigdefault
     fi
     message "The toolchain config file is: $tcconfig"
+
+}
+
+install-toolchain () {
+    set-defaults
+
+    checkout-toolchain
 
     #+
     # These variables are used within the crosstool-ng config file which helps
