@@ -21,13 +21,14 @@ export TC_ARCH_SUFFIX=$(version_extra)-$(version)
 export TC_PREFIX_DIR=$(build_output_dir)
 export TC_LOCAL_TARBALLS_DIR=$(download_dir)
 
+$(info Config file is $(config_file))
 $(info TC_PREFIX is ${TC_PREFIX})
 $(info TC_ARCH_SUFFIX is ${TC_ARCH_SUFFIX})
 $(info TC_PREFIX_DIR is ${TC_PREFIX_DIR})
 $(info TC_LOCAL_TARBALLS_DIR is ${TC_LOCAL_TARBALLS_DIR})
 $(info )
 
-all: cleanonchange build
+all: cleanonchange.cache build dist
 
 $(config_file):;
 
@@ -61,7 +62,12 @@ configuretoolchain.cache: bootstraptoolchain.cache $(config_status_file)
 	./configure --enable-local --prefix=$(root_dir)
 	touch configuretoolchain.cache
 
-build: configuretoolchain.cache createbuildirs
+ctng.cache: configuretoolchain.cache
+	sed -i.bak 's/MAKELEVEL),0/MAKELEVEL),1/g' Makefile
+	make -f Makefile
+	touch ctng.cache
+
+build: createbuildirs ctng.cache
 	time ./ct-ng build
 
 dist:
