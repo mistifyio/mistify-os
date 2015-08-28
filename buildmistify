@@ -143,6 +143,8 @@ Usage: ./buildmistify [options] [target]
         Run the Busybox configuration utility.
     linux-menuconfig
         Run the Linux kernel configuration utility.
+    toolchain-build
+        Run the toolchain build
 
   NOTE: This script maintains state in $statedir.
   The targets toolchain-menuconfig, menuconfig, busybox-menuconfig and
@@ -438,14 +440,14 @@ if [ -z "$logfilename" ]; then
   logfilename=buildroot-`date +%y%m%d%H%M%S`.log
 fi
 
-if [ ! -z "$showusage" ]; then
-    usage
+if [ "$target" == "toolchain-build" ]; then
+    new-install-toolchain
     exit 0
 fi
 
-if []; then
-    install-toolchain
-    exit
+if [ ! -z "$showusage" ]; then
+    usage
+    exit 0
 fi
 
 if [ ! -f $buildrootdir/README ]; then
