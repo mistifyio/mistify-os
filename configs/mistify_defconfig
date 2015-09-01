@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2015.08-rc1-gdbaf37f Configuration
+# Buildroot 2015.08-gdb49c99 Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 BR2_HOSTARCH_NEEDS_IA32_COMPILER=y
@@ -1154,6 +1154,7 @@ BR2_PACKAGE_SQLITE=y
 # BR2_PACKAGE_LIBVIPS is not set
 # BR2_PACKAGE_MENU_CACHE is not set
 # BR2_PACKAGE_OPENCV is not set
+# BR2_PACKAGE_OPENCV3 is not set
 # BR2_PACKAGE_OPENJPEG is not set
 # BR2_PACKAGE_PANGO is not set
 BR2_PACKAGE_PIXMAN=y
@@ -1184,6 +1185,7 @@ BR2_PACKAGE_LIBAIO_ARCH_SUPPORTS=y
 # BR2_PACKAGE_LIBFREEFARE is not set
 # BR2_PACKAGE_LIBFTDI is not set
 # BR2_PACKAGE_LIBFTDI1 is not set
+# BR2_PACKAGE_LIBGUDEV is not set
 # BR2_PACKAGE_LIBHID is not set
 # BR2_PACKAGE_LIBIIO is not set
 # BR2_PACKAGE_LIBINPUT is not set
@@ -1737,6 +1739,50 @@ BR2_PACKAGE_WGET=y
 #
 # Package managers
 #
+
+#
+# -------------------------------------------------------
+#
+
+#
+# Please note:                                           
+#
+
+#
+# - Buildroot does *not* generate binary packages,       
+#
+
+#
+# - Buildroot does *not* install any package database.   
+#
+
+#
+# *                                                      
+#
+
+#
+# It is up to you to provide those by yourself if you    
+#
+
+#
+# want to use any of those package managers.             
+#
+
+#
+# *                                                      
+#
+
+#
+# See the manual:                                        
+#
+
+#
+# http://buildroot.org/manual.html#faq-no-binary-packages
+#
+
+#
+# -------------------------------------------------------
+#
 # BR2_PACKAGE_IPKG is not set
 # BR2_PACKAGE_OPKG is not set
 # BR2_PACKAGE_RPM is not set
@@ -2009,10 +2055,6 @@ BR2_TARGET_GRUB_FS_ISO9660=y
 # BR2_PACKAGE_GPU_VIV_BIN_MX6Q is not set
 # BR2_PACKAGE_LIBSEMANAGE_PYTHON_BINDINGS is not set
 # BR2_TARGET_UBOOT_NETWORK is not set
-# BR2_PACKAGE_OPENCV_LIB_CONTRIB is not set
-# BR2_PACKAGE_OPENCV_LIB_GPU is not set
-# BR2_PACKAGE_OPENCV_LIB_LEGACY is not set
-# BR2_PACKAGE_OPENCV_LIB_NONFREE is not set
 
 #
 # Legacy options removed in 2015.05
