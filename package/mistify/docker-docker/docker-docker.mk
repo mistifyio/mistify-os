@@ -42,6 +42,7 @@ DOCKER_BUILDTAGS += exclude_graphdriver_devicemapper
 
 define DOCKER_DOCKER_BUILD_CMDS
 	mkdir -p $(DOCKER_DOCKER_GOSRC)
+	rm -rf $(@D)/vendor/src/github.com/docker/libcontainer
 	rsync -av --delete-after --exclude=.git --exclude-from=$(@D)/.gitignore \
 		$(@D)/ $(DOCKER_DOCKER_GOSRC)/
 

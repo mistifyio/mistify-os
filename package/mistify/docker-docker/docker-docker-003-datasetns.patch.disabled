@@ -1,0 +1,44 @@
+commit 3ad49ac4c25cc7a74b3ac7184c52beb9f5868b92
+Author: Albert Lee <trisk@omniti.com>
+Date:   Thu Sep 3 09:29:09 2015 -0400
+
+    Initial dataset namespace support
+
+diff --git a/daemon/execdriver/native/create.go b/daemon/execdriver/native/create.go
+index b29bdd7..de0f710 100644
+--- a/daemon/execdriver/native/create.go
++++ b/daemon/execdriver/native/create.go
+@@ -35,6 +35,10 @@ func (d *driver) createContainer(c *execdriver.Command) (*configs.Config, error)
+ 		return nil, err
+ 	}
+ 
++	if err := d.createDataset(container, c); err != nil {
++		return nil, err
++	}
++
+ 	if err := d.setupRemappedRoot(container, c); err != nil {
+ 		return nil, err
+ 	}
+@@ -193,6 +197,10 @@ func (d *driver) createUTS(container *configs.Config, c *execdriver.Command) err
+ 	return nil
+ }
+ 
++func (d *driver) createDataset(container *configs.Config, c *execdriver.Command) error {
++	return nil
++}
++
+ func (d *driver) setupRemappedRoot(container *configs.Config, c *execdriver.Command) error {
+ 	if c.RemappedRoot.Uid == 0 {
+ 		container.Namespaces.Remove(configs.NEWUSER)
+diff --git a/daemon/execdriver/native/template/default_template.go b/daemon/execdriver/native/template/default_template.go
+index ac47e40..4e22999 100644
+--- a/daemon/execdriver/native/template/default_template.go
++++ b/daemon/execdriver/native/template/default_template.go
+@@ -35,6 +35,7 @@ func New() *configs.Config {
+ 			{Type: "NEWPID"},
+ 			{Type: "NEWNET"},
+ 			{Type: "NEWUSER"},
++			{Type: "NEWDATASET"},
+ 		}),
+ 		Cgroups: &configs.Cgroup{
+ 			Parent:          "docker",

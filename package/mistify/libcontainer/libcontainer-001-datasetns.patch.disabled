@@ -1,0 +1,80 @@
+commit c8aa295db8315e6c7838203b2f97a2181c0e399e
+Author: Albert Lee <trisk@omniti.com>
+Date:   Thu Sep 3 00:30:03 2015 -0400
+
+    Add dataset namespace configuration.
+
+diff --git a/configs/namespaces_linux.go b/configs/namespaces_linux.go
+index c937b49..211b796 100644
+--- a/configs/namespaces_linux.go
++++ b/configs/namespaces_linux.go
+@@ -11,6 +11,7 @@ const (
+ 	NEWUTS  NamespaceType = "NEWUTS"
+ 	NEWIPC  NamespaceType = "NEWIPC"
+ 	NEWUSER NamespaceType = "NEWUSER"
++	NEWDATASET NamespaceType = "NEWDATASET"
+ )
+ 
+ func NamespaceTypes() []NamespaceType {
+@@ -21,6 +22,7 @@ func NamespaceTypes() []NamespaceType {
+ 		NEWUTS,
+ 		NEWIPC,
+ 		NEWUSER,
++		NEWDATASET,
+ 	}
+ }
+ 
+@@ -53,6 +55,8 @@ func (n *Namespace) file() string {
+ 		file = "user"
+ 	case NEWUTS:
+ 		file = "uts"
++	case NEWDATASET:
++		file = "dataset"
+ 	}
+ 	return file
+ }
+diff --git a/configs/namespaces_syscall.go b/configs/namespaces_syscall.go
+index c962999..7957e48 100644
+--- a/configs/namespaces_syscall.go
++++ b/configs/namespaces_syscall.go
+@@ -15,6 +15,7 @@ var namespaceInfo = map[NamespaceType]int{
+ 	NEWIPC:  syscall.CLONE_NEWIPC,
+ 	NEWUTS:  syscall.CLONE_NEWUTS,
+ 	NEWPID:  syscall.CLONE_NEWPID,
++	NEWDATASET: syscall.CLONE_NEWDATASET,
+ }
+ 
+ // CloneFlags parses the container's Namespaces options to set the correct
+diff --git a/nsenter/nsexec.c b/nsenter/nsexec.c
+index d8e45f3..ad7a8a7 100644
+--- a/nsenter/nsexec.c
++++ b/nsenter/nsexec.c
+@@ -62,7 +62,7 @@ static int clone_parent(jmp_buf * env)
+ 
+ void nsexec()
+ {
+-	char *namespaces[] = { "ipc", "uts", "net", "pid", "mnt" };
++	char *namespaces[] = { "ipc", "uts", "net", "pid", "mnt", "dataset" };
+ 	const int num = sizeof(namespaces) / sizeof(char *);
+ 	jmp_buf env;
+ 	char buf[PATH_MAX], *val;
+diff --git a/nsinit/config.go b/nsinit/config.go
+index bf3506c..49eb1b4 100644
+--- a/nsinit/config.go
++++ b/nsinit/config.go
+@@ -39,6 +39,7 @@ var createFlags = []cli.Flag{
+ 	cli.StringFlag{Name: "pid", Value: "", Usage: "pid namespace"},
+ 	cli.StringFlag{Name: "uts", Value: "", Usage: "uts namespace"},
+ 	cli.StringFlag{Name: "mnt", Value: "", Usage: "mount namespace"},
++	cli.StringFlag{Name: "dataset", Value: "", Usage: "dataset namespace"},
+ 	cli.StringFlag{Name: "veth-bridge", Usage: "veth bridge"},
+ 	cli.StringFlag{Name: "veth-address", Usage: "veth ip address"},
+ 	cli.StringFlag{Name: "veth-gateway", Usage: "veth gateway address"},
+@@ -156,6 +157,7 @@ func modify(config *configs.Config, context *cli.Context) {
+ 		"pid": configs.NEWPID,
+ 		"ipc": configs.NEWIPC,
+ 		"uts": configs.NEWUTS,
++		"dataset": configs.NEWDATASET,
+ 	} {
+ 		switch v := context.String(flag); v {
+ 		case "host":
