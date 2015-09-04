@@ -540,14 +540,12 @@ bbc=`ls -d $variantbuilddir/build/busybox-*`/.config
 
 if [ -f $bbc ]; then
   if [ -f $bbconfig ]; then
-    if [[ $bbconfig -nt $bbc ]]; then
-      use_variant $bbconfig $bbc $variant
-      if [ $? -gt 0 ]; then
-        warning "Busybox hasn't been built yet."
-      fi
-      message "Config file $bbconfig copied to $bbc"
-      set_build_default bbconfig $bbconfig
+    use_variant $bbconfig $bbc $variant
+    if [ $? -gt 0 ]; then
+    warning "Busybox hasn't been built yet."
     fi
+    message "Config file $bbconfig copied to $bbc"
+    set_build_default bbconfig $bbconfig
   else
     if [[ "$target" != "busybox-menuconfig" ]]; then
       error "The BusyBox config file doesn't exist."
