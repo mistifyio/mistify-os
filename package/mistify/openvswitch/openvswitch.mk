@@ -3,7 +3,7 @@
 #
 ################################################################################
 
-OPENVSWITCH_VERSION = f823133594320cd15071564126d3b5d554563562
+OPENVSWITCH_VERSION = 63b0899453da247bfa23517e62c40b73762fd65e
 OPENVSWITCH_SITE = https://github.com/openvswitch/ovs.git
 OPENVSWITCH_SITE_METHOD = git
 OPENVSWITCH_DEPENDENCIES += vtun
