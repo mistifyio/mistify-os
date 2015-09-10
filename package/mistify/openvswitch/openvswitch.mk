@@ -16,8 +16,6 @@ OPENVSWITCH_AUTORECONF_OPTS = --install --force
 OPENVSWITCH_LICENSE = Apache-2.0
 OPENVSWITCH_CONF_ENV += PYTHON=/usr/bin/python
 OPENVSWITCH_CONF_OPTS = \
-		--with-linux=$(LINUX_DIR) \
-		--with-linux-source=$(LINUX_DIR) \
 		--localstatedir=/var
 
 #+
