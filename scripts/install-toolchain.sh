@@ -18,7 +18,7 @@
 # to the crosstool version or commit ID to use by default. This can be a branch,
 # tag or even a commit ID.
 #-
-toolchaincommit=crosstool-ng-1.21.0
+toolchaincommit=b6342809d005ea2b0d24406eff52b6bac4ec0eee
 
 config-toolchain () {
     cd $1
