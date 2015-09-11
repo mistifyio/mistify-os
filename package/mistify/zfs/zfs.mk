@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-ZFS_VERSION = zfs-0.6.4.2
-ZFS_SITE    = https://github.com/zfsonlinux/zfs.git
+ZFS_VERSION = datasetns
+ZFS_SITE    = https://github.com/mistifyio/zfs.git
 ZFS_SITE_METHOD = git
 ZFS_LICENSE = CDDL
 ZFS_LICENSE_FILES = OPENSOLARIS.LICENSE

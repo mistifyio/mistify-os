@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-SPL_VERSION = spl-0.6.4.2
-SPL_SITE    = https://github.com/zfsonlinux/spl.git
+SPL_VERSION = datasetns
+SPL_SITE    = https://github.com/mistifyio/spl.git
 SPL_SITE_METHOD = git
 SPL_LICENSE = GPL v2
 SPL_LICENSE_FILES = COPYING
