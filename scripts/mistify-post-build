@@ -4,12 +4,23 @@
 # This script runs following a build of the target file system, $(TARGET_DIR).
 #
 # NOTE: In order for this script to execute the defconfig must point to it.
-# For more information see: 
+# For more information see:
 #   http://buildroot.uclibc.org/downloads/manual/manual.html#rootfs-custom
 # TODO: Maybe move the lists to a config file?
 #-
 
 targetdir=$1
+
+echo "Mistify-OS post build script."
+echo "PWD: `pwd`"
+echo "Args: $*"
+echo "BR2_CONFIG: $BR2_CONFIG"
+echo "HOST_DIR: $HOST_DIR"
+echo "STAGING_DIR: $STAGING_DIR"
+echo "TARGET_DIR: $TARGET_DIR"
+echo "BUILD_DIR: $BUILD_DIR"
+echo "BINARIES_DIR: $BINARIES_DIR"
+echo "BASE_DIR: $BASE_DIR"
 
 #
 # Install a symlink for /sbin/getty that points to /sbin/agetty.
@@ -81,3 +92,26 @@ MISTIFY_IMAGE_URL_RELEASE="http://builds.mistify.io/releases/MistifyOS-release/"
 MISTIFY_IMAGE_URL_NIGHTLY="http://builds.mistify.io/nightly/MistifyOS/"
 MISTIFY_IMAGE_URL_GUESTS="http://builds.mistify.io/guest-images/"
 EOF
+
+#+
+# If building a software development version then copy the needed development
+# files from the staging dir. Buildroot, unfortunately, isn't very helpful
+# with this.
+#
+# NOTE: This is pretty much a hack at the moment to get things working.
+#-
+if [ "$2" == "SDK" ]; then
+    echo "Copying additional files to target fs."
+    cp $STAGING_DIR/usr/lib/crt*.o $TARGET_DIR/usr/lib
+    cp $STAGING_DIR/usr/lib/libc.so $TARGET_DIR/usr/lib
+    cp $STAGING_DIR/usr/lib/libc_nonshared.a $TARGET_DIR/usr/lib
+    cp -r $STAGING_DIR/usr/include $TARGET_DIR/usr
+    ln -sf libgcc_s.so.1 $TARGET_DIR/usr/lib/libgcc.so
+    # This is definitely a hack. The normal ld doesn't support the
+    # options gcc demands.
+    for f in ar ld nm objdump ranlib strip; do
+        echo "Copying $f to usr/bin"
+        cp $TARGET_DIR/usr/x86_64-buildroot-linux-gnu/bin/$f $TARGET_DIR/usr/bin
+    done
+fi
+
