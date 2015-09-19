@@ -1,0 +1,5 @@
+config BR2_PACKAGE_SDK_GCC
+	bool "sdk-gcc"
+	help
+	  Install gcc on the target.
+

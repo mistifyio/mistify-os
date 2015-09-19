@@ -1,0 +1,9 @@
+config BR2_PACKAGE_SDK_AUTOCONF
+	bool "sdk-autoconf"
+	select BR2_PACKAGE_SDK_M4
+	select BR2_PACKAGE_PERL
+	help
+	  Extensible program for developing configure scripts.  These
+	  scripts handle all the mundane system/feature detection.
+
+	  http://www.gnu.org/software/autoconf/
