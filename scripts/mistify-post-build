@@ -107,11 +107,60 @@ if [ "$2" == "SDK" ]; then
     cp $STAGING_DIR/usr/lib/libc_nonshared.a $TARGET_DIR/usr/lib
     cp -r $STAGING_DIR/usr/include $TARGET_DIR/usr
     ln -sf libgcc_s.so.1 $TARGET_DIR/usr/lib/libgcc.so
+    #+
     # This is definitely a hack. The normal ld doesn't support the
     # options gcc demands.
+    #-
     for f in ar ld nm objdump ranlib strip; do
         echo "Copying $f to usr/bin"
         cp $TARGET_DIR/usr/x86_64-buildroot-linux-gnu/bin/$f $TARGET_DIR/usr/bin
     done
+    #+
+    # WARNING: insanity ahead
+    #
+    # OK now this is a serious hack. The build target path is embedded into config
+    # files and more. This especially causes strange failures with both perl and
+    # python. To work around this problem create a symlink in the target fs.
+    #-
+    mkdir -p $TARGET_DIR/$TARGET_DIR
+    ln -sf /usr $TARGET_DIR/$TARGET_DIR
+    mkdir -p $TARGET_DIR/$HOST_DIR
+    ln -sf /usr $TARGET_DIR/$HOST_DIR
+    #+
+    # Another serious hack.
+    # In order to run the config for crosstool-ng perl needs to support threads.
+    # Thread support has been removed from the latest versions of perl. There
+    # is a forks module which will install threads emulation --BUT-- the option
+    # to do so is available only if the installed perl doesn't support threads.
+    # The host install of perl does support threads -- thus the catch. To deal
+    # with this a workaround is to have the target install the forks module but
+    # that requires the perl headers.
+    #-
+    echo STAGING_DIR: $STAGING_DIR
+    echo TARGET_DIR: $TARGET_DIR
+    s=$STAGING_DIR/usr/lib/perl5
+    d=$TARGET_DIR/usr/lib/perl5
+    echo Source directory: $s
+    echo Destination directory: $d
+    rm -rf $d
+    cp -r $s $d
+    #+
+    # libm needs to be copied. It's not installed in the target for
+    # some odd reason. The correct way to do this would be to mod the
+    # install but for now...
+    #-
+    cp $STAGING_DIR/usr/lib/libm.* $TARGET_DIR/usr/lib
+    #+
+    # Some components assume libraries in usr/lib yet they are installed in
+    # /lib. A short term work-around is to create symlinks.
+    #-
+    ln -sf /lib/libpthread.so.0 $TARGET_DIR/usr/lib/libpthread.so
+
+    #+
+    # Some more symlinks for minor link problems.
+    #-
+    cp -P $TARGET_DIR/lib/libdl.so.2 $TARGET_DIR/lib/libdl.so
+
+
 fi
 
