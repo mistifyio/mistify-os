@@ -27,6 +27,7 @@ source "$BR2_EXTERNAL/package/mistify/statsd/Config.in"
 source "$BR2_EXTERNAL/package/mistify/zfs/Config.in"
 
 menu "Software Development"
+	source "$BR2_EXTERNAL/package/mistify/perl-forks/Config.in"
 	source "$BR2_EXTERNAL/package/mistify/sdk-autoconf/Config.in"
 	source "$BR2_EXTERNAL/package/mistify/sdk-automake/Config.in"
 	source "$BR2_EXTERNAL/package/mistify/sdk-bison/Config.in"
@@ -34,4 +35,5 @@ menu "Software Development"
 	source "$BR2_EXTERNAL/package/mistify/sdk-m4/Config.in"
 	source "$BR2_EXTERNAL/package/mistify/sdk-texinfo/Config.in"
 	source "$BR2_EXTERNAL/package/mistify/sdk-gcc/Config.in"
+	source "$BR2_EXTERNAL/package/mistify/sdk-overrides/Config.in"
 endmenu
