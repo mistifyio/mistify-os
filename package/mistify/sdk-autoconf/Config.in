@@ -2,6 +2,7 @@ config BR2_PACKAGE_SDK_AUTOCONF
 	bool "sdk-autoconf"
 	select BR2_PACKAGE_SDK_M4
 	select BR2_PACKAGE_PERL
+	select BR2_PACKAGE_PERL_THREADS
 	help
 	  Extensible program for developing configure scripts.  These
 	  scripts handle all the mundane system/feature detection.
