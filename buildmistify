@@ -441,7 +441,7 @@ if [ -z "$logfilename" ]; then
 fi
 
 if [ "$target" == "toolchain-build" ]; then
-    new-install-toolchain
+    install-toolchain-from-artifact
     exit 0
 fi
 

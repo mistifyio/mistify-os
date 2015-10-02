@@ -19,6 +19,9 @@
 # tag or even a commit ID.
 #-
 toolchaincommit=crosstool-ng-1.21.0
+toolchainartifact_version=1.21.15
+toolchainartifact_name=crosstool-ng-x86_64-unknown-linux-gnu-crosstool-ng
+toolchainartifact_url=https://s3.amazonaws.com/omniti-mystify-artifacts/libs-release-local/org/mistify/$toolchainartifact_name/$toolchainartifact_version/$toolchainartifact_name-$toolchainartifact_version.tgz
 
 config-toolchain () {
     cd $1
@@ -47,6 +50,17 @@ build-toolchain () {
 	die "The toolchain build failed."
     fi
     touch $toolchainbuilt
+}
+
+download-toolchain-artifact () {
+  wget -nc $toolchainartifact_url -O $downloaddir/$toolchainartifact_name-$toolchainartifact_version.tgz
+}
+
+extract-toolchain-artifact() {
+  rm -rf $toolchaindir
+  mkdir -p $toolchaindir
+  cd $toolchaindir
+  tar xvf $downloaddir/$toolchainartifact_name-$toolchainartifact_version.tgz
 }
 
 save-settings () {
@@ -95,7 +109,23 @@ checkout-toolchain() {
 
 }
 
-new-install-toolchain() {
+install-toolchain-from-artifact(){
+  set-defaults
+  download-toolchain-artifact
+
+  toolchainversionchanged=false
+  if [ ! `cat $toolchaindir/.toolchaincache` = "$toolchainartifact_name-$toolchainartifact_version" ]; then
+    toolchainversionchanged=true
+  fi
+
+  if [ ! -f $toolchaindir ] || [ $toolchainversionchanged ] ; then
+    extract-toolchain-artifact
+  fi
+
+  echo $toolchainartifact_name-$toolchainartifact_version > $toolchaindir/.toolchaincache
+}
+
+install-toolchain-from-source() {
     set-defaults
     checkout-toolchain
 
