@@ -59,8 +59,17 @@ download-toolchain-artifact () {
 extract-toolchain-artifact() {
   rm -rf $toolchaindir
   mkdir -p $toolchaindir
+
   cd $toolchaindir
-  tar xvf $downloaddir/$toolchainartifact_name-$toolchainartifact_version.tgz
+  message "Extracting toolchain artifact $toolchainartifact_name-$toolchainartifact_version.tgz"
+  tar xf $downloaddir/$toolchainartifact_name-$toolchainartifact_version.tgz
+
+  if [ $? -gt 0 ]; then
+    die "Toolchain artifact extraction failed."
+  fi
+
+  mv $toolchainartifact_name-$toolchainartifact_version/* $toolchaindir/
+  rm -rf $toolchainartifact_name-$toolchainartifact_version/
 }
 
 save-settings () {
@@ -110,16 +119,20 @@ checkout-toolchain() {
 }
 
 install-toolchain-from-artifact(){
+  toolchainversion="$toolchainartifact_name-$toolchainartifact_version"
   set-defaults
   download-toolchain-artifact
 
   toolchainversionchanged=false
-  if [ ! `cat $toolchaindir/.toolchaincache` = "$toolchainartifact_name-$toolchainartifact_version" ]; then
+  if [ "`cat $toolchaindir/.toolchaincache | tr -d "\012"`" != "$toolchainartifact_name-$toolchainartifact_version" ]; then
+    message "Toolchain artifact version changed or initial run"
     toolchainversionchanged=true
   fi
 
-  if [ ! -f $toolchaindir ] || [ $toolchainversionchanged ] ; then
+  if [ ! -d "$toolchaindir" ] || [ $toolchainversionchanged = true ] ; then
     extract-toolchain-artifact
+  else
+    message "Toolchain artifact already extracted... Skipping"
   fi
 
   echo $toolchainartifact_name-$toolchainartifact_version > $toolchaindir/.toolchaincache
