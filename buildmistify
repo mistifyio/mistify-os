@@ -132,6 +132,12 @@ Usage: ./buildmistify [options] [target]
     --dryrun
         Just showing what will happen with this script without running the
         Buildroot make.
+    --useartifacts
+        Downloads/Extracts dependent artifacts instead of building from source.
+        Currently supports toolchain ONLY.
+    --newtoolchainbuild
+        Uses new makefile to build toolchain from source.
+        Feature flag, will eventually replace the shell script code in install-toolchain.sh currently used to build.
     -h|--help
         Display this usage.
     ==== special targets ====
@@ -189,6 +195,8 @@ kconfig:,\
 bbconfig:,\
 tcconfig:,\
 dryrun,\
+useartifacts,\
+newtoolchainbuild,\
 downloaddir:,\
 resetmasters,\
 resetdefaults,\
@@ -303,6 +311,12 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--dryrun)
 	    dryrun=y
+	    ;;
+	--useartifacts)
+	    useartifacts=y
+	    ;;
+	--newtoolchainbuild)
+	    newtoolchainbuild=y
 	    ;;
 	-h|--help)
 	    showusage=y
@@ -441,7 +455,13 @@ if [ -z "$logfilename" ]; then
 fi
 
 if [ "$target" == "toolchain-build" ]; then
-    install-toolchain-from-artifact
+    if [ ! -z "$useartifacts" ]; then
+        install-toolchain-from-artifact
+    elif [ ! -z "$newtoolchainbuild" ]; then
+        install-toolchain-from-source
+    else
+        install-toolchain
+    fi
     exit 0
 fi
 
@@ -594,7 +614,13 @@ message "Project dir: $projectdir"
 #+
 # Be sure the toolchain is installed.
 #-
-install-toolchain
+if [ ! -z "$useartifacts" ]; then
+  install-toolchain-from-artifact
+elif [ 1 -z "$newtoolchainbuild" ]; then
+  install-toolchain-from-source
+else
+  install-toolchain
+fi
 install-go
 
 #+
