@@ -3,7 +3,7 @@
 #
 ################################################################################
 
-OPENVSWITCH_VERSION = f823133594320cd15071564126d3b5d554563562
+OPENVSWITCH_VERSION = 63b0899453da247bfa23517e62c40b73762fd65e
 OPENVSWITCH_SITE = https://github.com/openvswitch/ovs.git
 OPENVSWITCH_SITE_METHOD = git
 OPENVSWITCH_DEPENDENCIES += vtun
@@ -16,8 +16,6 @@ OPENVSWITCH_AUTORECONF_OPTS = --install --force
 OPENVSWITCH_LICENSE = Apache-2.0
 OPENVSWITCH_CONF_ENV += PYTHON=/usr/bin/python
 OPENVSWITCH_CONF_OPTS = \
-		--with-linux=$(LINUX_DIR) \
-		--with-linux-source=$(LINUX_DIR) \
 		--localstatedir=/var
 
 #+

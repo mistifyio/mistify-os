@@ -64,12 +64,12 @@ Usage: ./buildmistify [options] [target]
         The repository from which to clone Buildroot. This is saved in the file
         $statedir/buildrooturi.
         [buildrooturi=`cat $statedir/buildrooturi`]
-    --buildroot <dir>
+    --buildrootdir <dir>
         Where Buildroot is to be installed. Using this option simplifies using a
         single Buildroot install for multiple projects OR using different
         versions of Buildroot for different projects. This is saved in the file
-        $statedir/buildroot.
-        [buildroot=`cat $statedir/buildroot`]
+        $statedir/buildrootdir.
+        [buildrootdir=`cat $statedir/buildrootdir`]
     --buildrootversion <version>
         Checkout Buildroot using a specified version. This can be a branch
         or tag name or even a commit ID. The version information is saved in the
@@ -186,7 +186,7 @@ gouri:,\
 godir:,\
 gotag:,\
 buildrooturi:,\
-buildroot:,\
+buildrootdir:,\
 buildrootversion:,\
 builddir:,\
 variant:,\
@@ -254,7 +254,7 @@ while [ $# -ge 1 ]; do
 	    buildrooturi=$2
 	    shift
 	    ;;
-	--buildroot)
+	--buildrootdir)
 	    buildrootdir=$2
 	    shift
 	    ;;
@@ -350,12 +350,14 @@ buildrooturidefault=$(get_build_default buildrooturi git@github.com:mistifyio/bu
 buildrootdirdefault=$(get_build_default buildrootdir $PWD/build/buildroot)
 buildrootversiondefault=$(get_build_default buildrootversion master)
 
+rootdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 builddirdefault=$(get_build_default builddir $PWD/build/mistify)
 downloaddirdefault=$(get_build_default downloaddir $PWD/downloads)
 mconfigdefault=$(get_build_default mconfig $PWD/configs/mistify_defconfig)
 kconfigdefault=$(get_build_default kconfig $PWD/configs/mistify-kernel.config)
 bbconfigdefault=$(get_build_default bbconfig $PWD/configs/mistify-busybox.config)
 
+message "Root directory: $rootdir"
 
 if [[ $# -ge 1 ]]; then
   target="$@"
@@ -739,8 +741,19 @@ else
   #+
   # Run the buildroot make.
   #-
+  cd $buildrootdir
   ln -sf $logfilename $logdir/buildroot.log
-  time $makecommand 2>&1 | tee $logfile
+  _envvars=`env | sort`
+  cat << EOF | tee $logfile
+++++
+$id: Running make command:
+$makecommand
+$id: Environment:
+$_envvars
+$id: Buildroot dir is: $buildrootdir
+----
+EOF
+  time $makecommand 2>&1 | tee -a $logfile
   rc=${PIPESTATUS[0]}
   message "The Mistify-OS build is complete."
   message "The log file is: $logfile"
@@ -760,8 +773,8 @@ fi
 #-
 imagedir=$variantbuilddir/images
 cd $imagedir
-if [ -f rootfs.cpio.gz ]; then
-  ln -sf rootfs.cpio.gz initrd.mistify
+if [ -f rootfs.cpio.bz2 ]; then
+  ln -sf rootfs.cpio.bz2 initrd.mistify
   sha1sum initrd.mistify >initrd.mistify.sha1
 else
   warning "The initrd doesn't exist."

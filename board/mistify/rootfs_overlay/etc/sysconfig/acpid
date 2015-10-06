@@ -1,0 +1,5 @@
+##
+## Service configuration file for ACPI Event Daemon
+##
+
+OPTIONS=

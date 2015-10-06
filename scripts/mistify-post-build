@@ -54,9 +54,14 @@ rm -f $targetdir/etc/systemd/system/multi-user.target.wants/named.service
 # Replace /etc/os-release with a Mistify-relevant one. Format is documented at
 # http://www.freedesktop.org/software/systemd/man/os-release.html
 #
-mistify_version=`git describe --abbrev=0 --tags`
-mistify_hashid=`git rev-parse HEAD`
+echo "Generating /etc/os-release..."
+mistify_version=`(cd ../.. && git describe --abbrev=0 --tags)`
+mistify_hashid=`(cd ../../ && git rev-parse HEAD)`
 mistify_hashid_short=${mistify_hashid:0:8}
+
+echo "    Mistify Version: $mistify_version"
+echo "    Mistify Hash ID: $mistify_hashid"
+echo "    Mistify Short Hash: $mistify_hashid_short"
 
 cat > $targetdir/etc/os-release <<EOF
 NAME="MistifyOS"

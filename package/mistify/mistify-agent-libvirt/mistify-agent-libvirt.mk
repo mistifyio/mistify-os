@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-MISTIFY_AGENT_LIBVIRT_VERSION = 6d2db7d4bb23a63c9ec1b32ed33d9c967802f405
+MISTIFY_AGENT_LIBVIRT_VERSION = 20ef63c5851010eefc6dd7cd0f08f425cffc9cc7
 MISTIFY_AGENT_LIBVIRT_SITE    = git@github.com:mistifyio/mistify-agent-libvirt.git
 MISTIFY_AGENT_LIBVIRT_SITE_METHOD = git
 MISTIFY_AGENT_LIBVIRT_LICENSE = Apache

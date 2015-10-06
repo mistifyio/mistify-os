@@ -5,11 +5,11 @@ build_output_dir = $(build_dir)/compiled_output
 download_dir = $(HOME)/.toolchain/downloads
 distributions_dir = $(build_dir)/distributions
 
-version = 1.20.0-SNAPSHOT
+version = 1.21.0-SNAPSHOT
 arch = x86_64-unknown-linux-gnu
 version_extra = base
 
-config_file = $(root_dir)/configs/mistify_defconfig
+config_file = $(root_dir)/configs/mistify-tc.config
 config_status_file = config.status
 distribution = $(distributions_dir)/crosstool-ng-$(arch)-$(version)-$(version_extra).tar.gz
 
