@@ -41,6 +41,13 @@ fi
 ln -sf Etc/UTC $targetdir/usr/share/zoneinfo/UTC
 
 #
+# Enable getty on tty0
+#
+mkdir $targetdir/lib/systemd/system/getty.target.wants
+(cd $targetdir/lib/systemd/system/getty.target.wants && \
+  ln -sf ../getty@.service getty@tty1.service)
+
+#
 # Disable ISC DHCPD from starting up automatically
 #
 rm -f $targetdir/etc/systemd/system/multi-user.target.wants/dhcpd.service
