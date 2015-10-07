@@ -103,5 +103,5 @@ fi
 
 QUOTA=$(zfs get quota -Ho value $ZPOOL/private)
 if [ "$QUOTA" = "none" ]; then
-    zfs set quota=4G $ZPOOL/private
+    zfs set quota=32G $ZPOOL/private
 fi
