@@ -41,7 +41,7 @@ fi
 ln -sf Etc/UTC $targetdir/usr/share/zoneinfo/UTC
 
 #
-# Enable getty on tty0
+# Enable getty on tty1
 #
 mkdir $targetdir/lib/systemd/system/getty.target.wants
 (cd $targetdir/lib/systemd/system/getty.target.wants && \
