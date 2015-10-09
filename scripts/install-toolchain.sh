@@ -31,6 +31,7 @@ build-toolchain () {
     #+
     # Now configure and build the toolchain.
     #-
+    mkdir -p $toolchaindir/variations
     if [ ! -f $toolchainconfigured ]; then
 	message "Configuring the toolchain build."
 	config-toolchain $toolchaindir
@@ -115,8 +116,12 @@ install-toolchain () {
     cd $toolchaindir
 
     verbose toolchainversion is: $toolchainversion
-    message "Fetching toolchain update from remote repository."
-    git fetch
+    if [ -n "$noupdate" ]; then
+	warning Not fetching crosstool-ng.
+    else
+	message "Fetching toolchain update from remote repository."
+	git fetch
+    fi
 
     run git checkout $toolchainversion
     if [ $? -ne 0 ]; then
@@ -127,8 +132,12 @@ install-toolchain () {
     #-
     run_ignore git symbolic-ref --short HEAD
     if [ $? -eq 0 ]; then
-	message Updating from branch: $toolchainversion
-	run git pull
+	if [ -n "$noupdate" ]; then
+	    warning Not updating crosstool-ng.
+	else
+	    message Updating from branch: $toolchainversion
+	    run git pull
+	fi
     else
 	message Toolchain version $toolchainversion is not a branch. Not updating.
     fi
