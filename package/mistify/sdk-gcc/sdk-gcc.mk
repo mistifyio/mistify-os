@@ -23,8 +23,7 @@ define SDK_GCC_BUILD_CMDS
 	--enable-__cxa_atexit \
 	--enable-clocale=gnu \
 	--enable-languages=c,c++,go,objc,obj-c++,fortran \
-	--with-gxx-include-dir=/usr/include/c++/$(SDK_GCC_VERSION) \
-	--disable-multilib  && \
+	--with-gxx-include-dir=/usr/include/c++/$(SDK_GCC_VERSION) && \
 	make CC="$(TARGET_CC)" LD="$(TARGET_LD)"
 endef
 
