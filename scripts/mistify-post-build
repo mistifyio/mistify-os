@@ -106,6 +106,8 @@ EOF
 # with this.
 #
 # NOTE: This is pretty much a hack at the moment to get things working.
+# Many of these need more research and experimentation to determine a correct
+# solution.
 #-
 if [ "$2" == "SDK" ]; then
     echo "Copying additional files to target fs."
@@ -167,7 +169,63 @@ if [ "$2" == "SDK" ]; then
     # Some more symlinks for minor link problems.
     #-
     cp -P $TARGET_DIR/lib/libdl.so.2 $TARGET_DIR/lib/libdl.so
+    #+
+    # Crosstool-ng by default assumed the dl library is in /usr/lib.
+    # It is unknown at this time if simply moving the lib to /usr/lib will
+    # solve the problem and NOT break clang. Later will take the time to
+    # experiment with this.
+    #-
+    ln -sf /lib/libdl-2.21.so $TARGET_DIR/usr/lib/libdl.so
 
+    #+
+    # Bootstrapping ct-ng requires static linking during the early stages. Be
+    # sure the static libraries are in the target directories.
+    # NOTE: This is another hack. A true install to the target needs to be
+    # determined.
+    #-
+    cp $STAGING_DIR/usr/lib/*.a $TARGET_DIR/usr/lib
+    cp $STAGING_DIR/lib/*.a $TARGET_DIR/lib
+    cp $BUILD_DIR/sdk-gcc-build/x86_64-unknown-linux-gnu/libgcc/*.a \
+       $TARGET_DIR/usr/lib
+    #+
+    # Now buildroot complains about missing 32 bit libraries.
+    # These are needed to build 32 bit glibc on the target.
+    #-
+    cp $BUILD_DIR/sdk-gcc-build/x86_64-unknown-linux-gnu/32/libgcc/*.a \
+       $TARGET_DIR/usr/lib32
+    #+
+    # The header file gnu/stubs-32.h is missing. Not sure where to get that
+    # from. It is on an ubuntu host at /usr/include/x86_64-linux-gnu.
+    # Needing this is a side effect of building an ISO which uses grub and
+    # grub is 32 bit. Disabling grub and iso in the config avoids this
+    # problem.
+    #-
 
+    #+
+    # libutil is missing from the target.
+    #-
+    cp $STAGING_DIR/usr/lib/libutil* $TARGET_DIR/usr/lib
+    #+
+    # And for python build so is libcrypt.so.
+    #-
+    cp $STAGING_DIR/lib/libcrypt.so.* $TARGET_DIR/lib
+    ln -s ../../lib/libcrypt.so.1 $TARGET_DIR/usr/lib/libcrypt.so
+    #+
+    # Then for host-glib libresolv.so.
+    #-
+    ln -s ../../lib/libresolv.so.2 $TARGET_DIR/usr/lib/libresolv.so
+    #+
+    # Some host packages want cc instead of gcc. Under ubuntu this
+    # is a trail of symlinks thru /etc/alternatives/cc
+    #-
+    ln -s $TARGET_DIR/usr/bin/gcc $TARGET_DIR/usr/bin/cc
+    #+
+    # Now Scrt1.o is missing.
+    #-
+    cp $STAGING_DIR/usr/lib/Scrt1.o $TARGET_DIR/usr/lib
+    #+
+    # ldconfig is missing from the target directories.
+    #-
+    cp $STAGING_DIR/sbin/ldconfig $TARGET_DIR/sbin
 fi
 
