@@ -123,6 +123,8 @@ Usage: ./buildmistify [options] [target]
     ==== other ====
     --resetdefaults
         Reset options back to their default values.
+    --noupdate
+        Do not attempt to update buildroot or the toolchain from the repo.
     --verbose
         Enble verbose output from this script.
     -l|--logfile
@@ -190,6 +192,7 @@ dryrun,\
 downloaddir:,\
 resetmasters,\
 resetdefaults,\
+noupdate,\
 verbose,\
 logfile:,\
 viewlog,\
@@ -288,6 +291,9 @@ while [ $# -ge 1 ]; do
 	    ;;
 	--resetdefalts)
 	    resetdefaults=y
+	    ;;
+	--noupdate)
+	    noupdate=y
 	    ;;
 	--verbose)
 	    verbose=y
@@ -457,9 +463,12 @@ fi
 
 cd $buildrootdir
 
-message "Fetching Buildroot update from the remote repository."
-git fetch
-
+if [ -n "$noupdate" ]; then
+    warning Not fetching branches for buildroot.
+else
+    message "Fetching Buildroot update from the remote repository."
+    git fetch
+fi
 
 run git checkout $buildrootversion
 
@@ -471,8 +480,12 @@ fi
 #-
 run_ignore git symbolic-ref --short HEAD
 if [ $? -eq 0 ]; then
-    message Updating from branch: $buildrootversion
-    run git pull
+    if [ -n "$noupdate" ]; then
+	warning Not updating buildroot.
+    else
+	message Updating from branch: $buildrootversion
+	run git pull
+    fi
 else
     message Buildroot version $buildrootversion is not a branch. Not updating.
 fi
