@@ -19,7 +19,7 @@
 # tag or even a commit ID.
 #-
 toolchaincommit=b6342809d005ea2b0d24406eff52b6bac4ec0eee
-toolchainartifact_version=1.21.15
+toolchainartifact_version=$toolchaincommit
 toolchainartifact_name=crosstool-ng-x86_64-unknown-linux-gnu-crosstool-ng
 toolchainartifact_url=https://s3.amazonaws.com/omniti-mystify-artifacts/libs-release-local/org/mistify/$toolchainartifact_name/$toolchainartifact_version/$toolchainartifact_name-$toolchainartifact_version.tgz
 
