@@ -20,8 +20,9 @@
 #-
 toolchaincommit=b6342809d005ea2b0d24406eff52b6bac4ec0eee
 toolchainartifact_version=$toolchaincommit
-toolchainartifact_name=crosstool-ng-x86_64-unknown-linux-gnu-crosstool-ng
-toolchainartifact_url=https://s3.amazonaws.com/omniti-mystify-artifacts/libs-release-local/org/mistify/$toolchainartifact_name/$toolchainartifact_version/$toolchainartifact_name-$toolchainartifact_version.tgz
+toolchainartifact_version_extra=base
+toolchainartifact_name=crosstool-ng-x86_64-unknown-linux-gnu
+toolchainartifact_url=https://s3.amazonaws.com/omniti-mystify-artifacts/toolchain-artifacts/$toolchainartifact_name-$toolchainartifact_version-$toolchainartifact_version_extra.tar.gz
 
 config-toolchain () {
     cd $1
