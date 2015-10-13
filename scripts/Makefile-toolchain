@@ -1,0 +1,93 @@
+root_dir = $(shell pwd)
+
+build_dir = $(root_dir)/target
+build_output_dir = $(build_dir)/compiled_output
+download_dir = $(HOME)/.toolchain/downloads
+distributions_dir = $(build_dir)/distributions
+
+version = 1.21.0-SNAPSHOT
+arch = x86_64-unknown-linux-gnu
+version_extra = base
+
+config_file = $(root_dir)/configs/mistify-tc.config
+config_status_file = config.status
+distribution = $(distributions_dir)/crosstool-ng-$(arch)-$(version)-$(version_extra).tar.gz
+
+.Phony: build clean fullclean dist distclean version tagformat
+
+# Needed for ct-ng build script
+export TC_PREFIX=$(arch)
+export TC_ARCH_SUFFIX=$(version_extra)-$(version)
+export TC_PREFIX_DIR=$(build_output_dir)
+export TC_LOCAL_TARBALLS_DIR=$(download_dir)
+
+$(info Config file is $(config_file))
+$(info TC_PREFIX is ${TC_PREFIX})
+$(info TC_ARCH_SUFFIX is ${TC_ARCH_SUFFIX})
+$(info TC_PREFIX_DIR is ${TC_PREFIX_DIR})
+$(info TC_LOCAL_TARBALLS_DIR is ${TC_LOCAL_TARBALLS_DIR})
+$(info )
+
+all: cleanonchange.cache build dist
+
+$(config_file):;
+
+$(config_status_file):;
+
+cleanonchange.cache: $(config_file)
+	-rm -rf $(build_output_dir)
+	if [ -f ct-ng ]; then ./ct-ng distclean; fi;
+	-rm $(config_status_file)
+	touch cleanonchange.cache
+
+$(download_dir):
+	mkdir -p $(download_dir)
+
+$(build_output_dir):
+	mkdir -p $(build_output_dir)
+
+$(distributions_dir):
+	mkdir -p $(distributions_dir)
+
+.config: $(config_file)
+	cp $(config_file) .config
+
+createbuildirs: | $(download_dir) $(build_output_dir) $(distributions_dir)
+
+bootstraptoolchain.cache: .config
+	./bootstrap
+	touch bootstraptoolchain.cache
+
+configuretoolchain.cache: bootstraptoolchain.cache $(config_status_file)
+	./configure --enable-local --prefix=$(root_dir)
+	touch configuretoolchain.cache
+
+ctng.cache: configuretoolchain.cache
+	sed -i.bak 's/MAKELEVEL),0/MAKELEVEL),1/g' Makefile
+	make -f Makefile
+	touch ctng.cache
+
+build: createbuildirs ctng.cache
+	time ./ct-ng build
+
+dist:
+	tar cvzf $(distribution) $(build_output_dir)
+
+distclean:
+	-rm $(distributions_dir)/*
+
+clean:
+	-rm -rf $(build_output_dir)
+	if [ -f ct-ng ]; then ./ct-ng distclean; fi;
+
+fullclean: clean
+	-rm $(config_status_file)
+
+menuconfig: configuretoolchain.cache
+	./ct-ng menuconfig
+
+version:
+	@echo $(version)
+
+tagformat:
+	@echo $(arch)-{new_version}-$(version_extra)

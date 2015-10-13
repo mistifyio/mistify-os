@@ -132,6 +132,12 @@ Usage: ./buildmistify [options] [target]
     --dryrun
         Just showing what will happen with this script without running the
         Buildroot make.
+    --useartifacts
+        Downloads/Extracts dependent artifacts instead of building from source.
+        Currently supports toolchain ONLY.
+    --newtoolchainbuild
+        Uses new makefile to build toolchain from source.
+        Feature flag, will eventually replace the shell script code in install-toolchain.sh currently used to build.
     -h|--help
         Display this usage.
     ==== special targets ====
@@ -143,6 +149,8 @@ Usage: ./buildmistify [options] [target]
         Run the Busybox configuration utility.
     linux-menuconfig
         Run the Linux kernel configuration utility.
+    toolchain-build
+        Run the toolchain build
 
   NOTE: This script maintains state in $statedir.
   The targets toolchain-menuconfig, menuconfig, busybox-menuconfig and
@@ -187,6 +195,8 @@ kconfig:,\
 bbconfig:,\
 tcconfig:,\
 dryrun,\
+useartifacts,\
+newtoolchainbuild,\
 downloaddir:,\
 resetmasters,\
 resetdefaults,\
@@ -302,6 +312,12 @@ while [ $# -ge 1 ]; do
 	--dryrun)
 	    dryrun=y
 	    ;;
+	--useartifacts)
+	    useartifacts=y
+	    ;;
+	--newtoolchainbuild)
+	    newtoolchainbuild=y
+	    ;;
 	-h|--help)
 	    showusage=y
 	    ;;
@@ -334,12 +350,14 @@ buildrooturidefault=$(get_build_default buildrooturi git@github.com:mistifyio/bu
 buildrootdirdefault=$(get_build_default buildrootdir $PWD/build/buildroot)
 buildrootversiondefault=$(get_build_default buildrootversion master)
 
+rootdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 builddirdefault=$(get_build_default builddir $PWD/build/mistify)
 downloaddirdefault=$(get_build_default downloaddir $PWD/downloads)
 mconfigdefault=$(get_build_default mconfig $PWD/configs/mistify_defconfig)
 kconfigdefault=$(get_build_default kconfig $PWD/configs/mistify-kernel.config)
 bbconfigdefault=$(get_build_default bbconfig $PWD/configs/mistify-busybox.config)
 
+message "Root directory: $rootdir"
 
 if [[ $# -ge 1 ]]; then
   target="$@"
@@ -436,6 +454,17 @@ fi
 
 if [ -z "$logfilename" ]; then
   logfilename=buildroot-`date +%y%m%d%H%M%S`.log
+fi
+
+if [ "$target" == "toolchain-build" ]; then
+    if [ ! -z "$useartifacts" ]; then
+        install-toolchain-from-artifact
+    elif [ ! -z "$newtoolchainbuild" ]; then
+        install-toolchain-from-source
+    else
+        install-toolchain
+    fi
+    exit 0
 fi
 
 if [ ! -z "$showusage" ]; then
@@ -587,7 +616,13 @@ message "Project dir: $projectdir"
 #+
 # Be sure the toolchain is installed.
 #-
-install-toolchain
+if [ ! -z "$useartifacts" ]; then
+  install-toolchain-from-artifact
+elif [ 1 -z "$newtoolchainbuild" ]; then
+  install-toolchain-from-source
+else
+  install-toolchain
+fi
 install-go
 
 #+
