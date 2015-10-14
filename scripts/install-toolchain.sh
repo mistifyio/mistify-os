@@ -54,7 +54,14 @@ build-toolchain () {
 }
 
 download-toolchain-artifact () {
+  mkdir -p $downloaddir
+
+  message "Downloading toolchain artifact from $toolchainartifact_url"
   wget -nc $toolchainartifact_url -O $downloaddir/$toolchainartifact_name-$toolchainartifact_version.tgz
+  
+  if [ $? -gt 0 ]; then
+    die "Toolchain artifact download failed."
+  fi
 }
 
 extract-toolchain-artifact() {
