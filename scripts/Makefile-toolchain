@@ -71,7 +71,7 @@ build: createbuildirs ctng.cache
 	time ./ct-ng build
 
 dist:
-	tar cvzf $(distribution) $(build_output_dir)
+	tar cvzf $(distribution) -C $(build_output_dir) .
 
 distclean:
 	-rm $(distributions_dir)/*

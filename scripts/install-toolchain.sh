@@ -68,9 +68,6 @@ extract-toolchain-artifact() {
   if [ $? -gt 0 ]; then
     die "Toolchain artifact extraction failed."
   fi
-
-  mv $toolchainartifact_name-$toolchainartifact_version/* $toolchaindir/
-  rm -rf $toolchainartifact_name-$toolchainartifact_version/
 }
 
 save-settings () {
