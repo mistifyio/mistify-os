@@ -58,17 +58,17 @@ download-toolchain-artifact () {
 
   message "Downloading toolchain artifact from $toolchainartifact_url"
   wget -nc $toolchainartifact_url -O $downloaddir/$toolchainartifact_name-$toolchainartifact_version.tgz
-  
-  if [ $? -gt 0 ]; then
+
+  if [ $? -gt 1 ]; then
     die "Toolchain artifact download failed."
   fi
 }
 
 extract-toolchain-artifact() {
-  rm -rf $toolchaindir
-  mkdir -p $toolchaindir
+  rm -rf $TC_PREFIX_DIR
+  mkdir -p $TC_PREFIX_DIR
 
-  cd $toolchaindir
+  cd $TC_PREFIX_DIR
   message "Extracting toolchain artifact $toolchainartifact_name-$toolchainartifact_version.tgz"
   tar xf $downloaddir/$toolchainartifact_name-$toolchainartifact_version.tgz
 
@@ -128,13 +128,21 @@ install-toolchain-from-artifact(){
   set-defaults
   download-toolchain-artifact
 
+  export TC_ARCH_SUFFIX=-$toolchainversion
+  export TC_PREFIX=$toolchainprefix
+  export TC_PREFIX_DIR=$toolchaindir/variations/$toolchainversion
+  export TC_LOCAL_TARBALLS_DIR=$downloaddir
+  message "TC_ARCH_SUFFIX: $TC_ARCH_SUFFIX"
+  message "TC_PREFIX_DIR: $TC_PREFIX_DIR"
+  message "TC_LOCAL_TARBALLS_DIR: $TC_LOCAL_TARBALLS_DIR"
+
   toolchainversionchanged=false
   if [ "`cat $toolchaindir/.toolchaincache | tr -d "\012"`" != "$toolchainartifact_name-$toolchainartifact_version" ]; then
     message "Toolchain artifact version changed or initial run"
     toolchainversionchanged=true
   fi
 
-  if [ ! -d "$toolchaindir" ] || [ $toolchainversionchanged = true ] ; then
+  if [ ! -d "$TC_PREFIX_DIR" ] || [ $toolchainversionchanged = true ] ; then
     extract-toolchain-artifact
   else
     message "Toolchain artifact already extracted... Skipping"
