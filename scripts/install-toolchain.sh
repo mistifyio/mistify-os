@@ -18,7 +18,7 @@
 # to the crosstool version or commit ID to use by default. This can be a branch,
 # tag or even a commit ID.
 #-
-toolchaincommit=crosstool-ng-1.21.0
+toolchaincommit=glibc-multilib-sdk
 
 config-toolchain () {
     cd $1
@@ -68,7 +68,7 @@ install-toolchain () {
 	done
     fi
     tcconfigdefault=$(get_build_default tcconfig $PWD/configs/mistify-tc.config)
-    tcuridefault=$(get_build_default tcuri git@github.com:crosstool-ng/crosstool-ng.git)
+    tcuridefault=$(get_build_default tcuri git@github.com:mistifyio/crosstool-ng.git)
     toolchaindirdefault=$(get_build_default toolchaindir $PWD/toolchain)
     toolchainprefixdefault=$(get_build_default toolchainprefix x86_64-unknown-linux-gnu)
     toolchainversiondefault=$(get_build_default toolchainversion $toolchaincommit)
@@ -101,7 +101,7 @@ install-toolchain () {
     # This is also used by install-go.
     message "The toolchain version is: $toolchainversion"
 
-    if [ ! -f $toolchaindir/README ]; then
+    if [ ! -f $toolchaindir/README.md ]; then
 	message 'Cloning toolchain build tool from the toolchain repository.'
 	git clone $tcuri $toolchaindir
 	#+
