@@ -191,8 +191,9 @@ if [ "$2" == "SDK" ]; then
     # Now buildroot complains about missing 32 bit libraries.
     # These are needed to build 32 bit glibc on the target.
     #-
-    cp $BUILD_DIR/sdk-gcc-build/x86_64-unknown-linux-gnu/32/libgcc/*.a \
-       $TARGET_DIR/usr/lib32
+    # cp $BUILD_DIR/sdk-gcc-build/x86_64-unknown-linux-gnu/32/libgcc/*.a \
+    #   $TARGET_DIR/usr/lib32
+
     #+
     # The header file gnu/stubs-32.h is missing. Not sure where to get that
     # from. It is on an ubuntu host at /usr/include/x86_64-linux-gnu.
@@ -209,16 +210,16 @@ if [ "$2" == "SDK" ]; then
     # And for python build so is libcrypt.so.
     #-
     cp $STAGING_DIR/lib/libcrypt.so.* $TARGET_DIR/lib
-    ln -s ../../lib/libcrypt.so.1 $TARGET_DIR/usr/lib/libcrypt.so
+    ln -sf ../../lib/libcrypt.so.1 $TARGET_DIR/usr/lib/libcrypt.so
     #+
     # Then for host-glib libresolv.so.
     #-
-    ln -s ../../lib/libresolv.so.2 $TARGET_DIR/usr/lib/libresolv.so
+    ln -sf ../../lib/libresolv.so.2 $TARGET_DIR/usr/lib/libresolv.so
     #+
     # Some host packages want cc instead of gcc. Under ubuntu this
     # is a trail of symlinks thru /etc/alternatives/cc
     #-
-    ln -s $TARGET_DIR/usr/bin/gcc $TARGET_DIR/usr/bin/cc
+    ln -sf gcc $TARGET_DIR/usr/bin/cc
     #+
     # Now Scrt1.o is missing.
     #-
@@ -227,5 +228,21 @@ if [ "$2" == "SDK" ]; then
     # ldconfig is missing from the target directories.
     #-
     cp $STAGING_DIR/sbin/ldconfig $TARGET_DIR/sbin
+
+    #+
+    # Some parts for 32 bit compiles (needed for grub).
+    #-
+    if [ -d $TARGET_DIR/usr/lib32 ]; then
+	rm -rf $TARGET_DIR/usr/lib32
+    fi
+    rm -rf $TARGET_DIR/lib/32
+    cp -r $STAGING_DIR/lib/32 $TARGET_DIR/lib
+    rm $TARGET_DIR/lib32
+    ln -s lib/32 $TARGET_DIR/lib32
+    ln -sf libgcc_s.so.1 $TARGET_DIR/lib32/libgcc.so
+    rm -rf $TARGET_DIR/usr/lib/32
+    cp -r $STAGING_DIR/usr/lib/32 $TARGET_DIR/usr/lib
+    rm $TARGET_DIR/usr/lib32
+    ln -s lib/32 $TARGET_DIR/usr/lib32
 fi
 
