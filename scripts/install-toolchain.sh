@@ -18,7 +18,7 @@
 # to the crosstool version or commit ID to use by default. This can be a branch,
 # tag or even a commit ID.
 #-
-toolchaincommit=b6342809d005ea2b0d24406eff52b6bac4ec0eee
+toolchaincommit=glibc-multilib-sdk
 toolchainartifact_version=$toolchaincommit
 toolchainartifact_version_extra=base
 toolchainartifact_name=crosstool-ng-x86_64-unknown-linux-gnu
@@ -192,7 +192,7 @@ set-defaults(){
     fi
 
     tcconfigdefault=$(get_build_default tcconfig $PWD/configs/mistify-tc.config)
-    tcuridefault=$(get_build_default tcuri git@github.com:crosstool-ng/crosstool-ng.git)
+    tcuridefault=$(get_build_default tcuri git@github.com:mistifyio/crosstool-ng.git)
     toolchaindirdefault=$(get_build_default toolchaindir $PWD/toolchain)
     toolchainprefixdefault=$(get_build_default toolchainprefix x86_64-unknown-linux-gnu)
     toolchainversiondefault=$(get_build_default toolchainversion $toolchaincommit)
@@ -225,6 +225,46 @@ set-defaults(){
     # This is also used by install-go.
     message "The toolchain version is: $toolchainversion"
 
+    if [ ! -f $toolchaindir/README.md ]; then
+	message 'Cloning toolchain build tool from the toolchain repository.'
+	git clone $tcuri $toolchaindir
+	#+
+	# TODO: It is possible that the previous clone failed. Might want to use
+	# git again to update just in case.
+	#-
+	if [ $? -gt 0 ]; then
+	    die "Cloning the toolchain encountered an error."
+	fi
+    fi
+
+    cd $toolchaindir
+
+    verbose toolchainversion is: $toolchainversion
+    if [ -n "$noupdate" ]; then
+	warning Not fetching crosstool-ng.
+    else
+	message "Fetching toolchain update from remote repository."
+	git fetch
+    fi
+
+    run git checkout $toolchainversion
+    if [ $? -ne 0 ]; then
+	die "Attempted to checkout the toolchain build tool using an invalid ID: $toolchainversion"
+    fi
+    #+
+    # If on a branch then pull the latest changes.
+    #-
+    run_ignore git symbolic-ref --short HEAD
+    if [ $? -eq 0 ]; then
+	if [ -n "$noupdate" ]; then
+	    warning Not updating crosstool-ng.
+	else
+	    message Updating from branch: $toolchainversion
+	    run git pull
+	fi
+    else
+	message Toolchain version $toolchainversion is not a branch. Not updating.
+    fi
     #+
     # Setup the correct toolchain config file.
     #-
