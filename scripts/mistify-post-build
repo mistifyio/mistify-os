@@ -181,13 +181,6 @@ if [ "$2" == "SDK" ]; then
     cp $BUILD_DIR/sdk-gcc-build/x86_64-unknown-linux-gnu/libgcc/*.a \
        $TARGET_DIR/usr/lib
     #+
-    # Now buildroot complains about missing 32 bit libraries.
-    # These are needed to build 32 bit glibc on the target.
-    #-
-    # cp $BUILD_DIR/sdk-gcc-build/x86_64-unknown-linux-gnu/32/libgcc/*.a \
-    #   $TARGET_DIR/usr/lib32
-
-    #+
     # libutil is missing from the target.
     #-
     cp $STAGING_DIR/usr/lib/libutil* $TARGET_DIR/usr/lib
