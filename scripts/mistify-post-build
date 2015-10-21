@@ -188,14 +188,6 @@ if [ "$2" == "SDK" ]; then
     #   $TARGET_DIR/usr/lib32
 
     #+
-    # The header file gnu/stubs-32.h is missing. Not sure where to get that
-    # from. It is on an ubuntu host at /usr/include/x86_64-linux-gnu.
-    # Needing this is a side effect of building an ISO which uses grub and
-    # grub is 32 bit. Disabling grub and iso in the config avoids this
-    # problem.
-    #-
-
-    #+
     # libutil is missing from the target.
     #-
     cp $STAGING_DIR/usr/lib/libutil* $TARGET_DIR/usr/lib
