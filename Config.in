@@ -33,7 +33,6 @@ menu "Software Development"
 	source "$BR2_EXTERNAL/package/mistify/sdk-bison/Config.in"
 	source "$BR2_EXTERNAL/package/mistify/sdk-flex/Config.in"
 	source "$BR2_EXTERNAL/package/mistify/sdk-m4/Config.in"
-	source "$BR2_EXTERNAL/package/mistify/sdk-texinfo/Config.in"
 	source "$BR2_EXTERNAL/package/mistify/sdk-gcc/Config.in"
 	source "$BR2_EXTERNAL/package/mistify/sdk-overrides/Config.in"
 endmenu
