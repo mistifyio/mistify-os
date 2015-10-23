@@ -23,6 +23,10 @@ build-c-go () {
 	return
     fi
     verbose "build-c-go: Building go version $1."
+    if [ -n "$dryrun" ]; then
+	message "build-c-go: Just a test run -- not building go."
+	return
+    fi
     run mkdir -p $godir/$1
     cd $godir/$1
     verbose "Working directory is: $PWD"
@@ -65,6 +69,10 @@ build-go-go () {
     build-c-go $bootstraplabel $gobootstraptag
 
     verbose "build-go-go: Building go version $1."
+    if [ -n "$dryrun" ]; then
+	message "build-go-go: Just a test run -- not building go."
+	return
+    fi
     run mkdir -p $godir/$1
     cd $godir/$1
     verbose "Working directory is: $PWD"
@@ -144,22 +152,19 @@ install-go () {
     verbose "The go binaries are located at: $GOROOT"
 
     #+
-    # The go binaries don't exist.
+    # With go version 1.5 and later all C source has been removed from
+    # the go sources. This means go is needed to build go and makes this
+    # a two stage build.
+    # NOTE: This logic precludes the use of a hash.
     #-
-    if [ -n "$dryrun" ]; then
-	message "Just a test run -- not building go."
-	verbose "./all.bash"
+    major=`echo $gotag | cut -d . -f 1`
+    if [ ! "$major" == "go1" ]; then
+	die Only go1.x.x supported at this time.
+    fi
+    minor=`echo $gotag | cut -d . -f 2`
+    if [ "$minor" -lt "5" ]; then
+	build-c-go $golabel $gotag
     else
-	#+
-	# With go version 1.5 and later all C source has been removed from
-	# the go sources. This means go is needed to build go and makes this
-	# a two stage build.
-	#-
-	minor=`echo $gotag | cut -d . -f 2`
-	if [ "$minor" -lt "5" ]; then
-	    build-c-go $golabel $gotag
-	else
-	    build-go-go $golabel $gotag
-	fi
+	build-go-go $golabel $gotag
     fi
 }
