@@ -366,15 +366,15 @@ bbconfigdefault=$(get_build_default bbconfig $PWD/configs/mistify-busybox.config
 message "Root directory: $rootdir"
 
 if [[ $# -ge 1 ]]; then
-  target="$@"
-  message "Building target: $target"
-  # Any other arguments are passed to buildroot.
+    target="$@"
+    message "Building target: $target"
+    # Any other arguments are passed to buildroot.
 else
-  t=""
+    t=""
 fi
 
 if [ ! -e $statedir ]; then
-  mkdir -p $statedir
+    mkdir -p $statedir
 fi
 
 #+
@@ -383,7 +383,7 @@ fi
 # create it if necessary.
 #-
 if [ -z "$buildrootdir" ]; then
-  buildrootdir=$buildrootdirdefault
+    buildrootdir=$buildrootdirdefault
 fi
 message "Using Buildroot located at: $buildrootdir"
 set_build_default buildrootdir $buildrootdir
@@ -393,13 +393,13 @@ set_build_default buildrootdir $buildrootdir
 # If variant is null but was set on the command line then reset to the base.
 #-
 if [ -z "$variant" ]; then
-  if [ "$variantset" == "y" ]; then
-     reset_build_default variant
-  fi
-  variantdefault=$(get_build_default variant base)
-  variant=$variantdefault
+    if [ "$variantset" == "y" ]; then
+	reset_build_default variant
+    fi
+    variantdefault=$(get_build_default variant base)
+    variant=$variantdefault
 else
-  set_build_default variant $variant
+    set_build_default variant $variant
 fi
 variantdir=$variant
 message "Using $variant configuration."
@@ -412,7 +412,7 @@ export MISTIFY_VARIANT="$variant"
 # create it if necessary.
 #-
 if [ -z "$builddir" ]; then
-  builddir=$builddirdefault
+    builddir=$builddirdefault
 fi
 if [ ! -d "$builddir" ]; then
     mkdir -p $builddir
@@ -432,18 +432,18 @@ mkdir -p $logdir
 # Determine the uri to use to fetch the Buildroot tool.
 #-
 if [ -z "$buildrooturi" ]; then
-  buildrooturi=$buildrooturidefault
+    buildrooturi=$buildrooturidefault
 fi
 message "The Buildroot repository is: $buildrooturi"
 set_build_default buildrooturi $buildrooturi
 
 if [ -z "$buildrootversion" ]; then
-  buildrootversion=$buildrootversiondefault
+    buildrootversion=$buildrootversiondefault
 fi
 message "The Buildroot version is: $buildrootversion"
 
 if [ -z "$mconfig" ]; then
-  mconfig=$mconfigdefault
+    mconfig=$mconfigdefault
 fi
 
 if [ -z "$kconfig" ]; then
@@ -451,15 +451,15 @@ if [ -z "$kconfig" ]; then
 fi
 
 if [ -z "$downloaddir" ]; then
-  downloaddir=$downloaddirdefault
+    downloaddir=$downloaddirdefault
 fi
 
 if [ -z "$bbconfig" ]; then
-  bbconfig=$bbconfigdefault
+    bbconfig=$bbconfigdefault
 fi
 
 if [ -z "$logfilename" ]; then
-  logfilename=buildroot-`date +%y%m%d%H%M%S`.log
+    logfilename=buildroot-`date +%y%m%d%H%M%S`.log
 fi
 
 if [ "$target" == "toolchain-build" ]; then
@@ -479,15 +479,15 @@ if [ ! -z "$showusage" ]; then
 fi
 
 if [ ! -f $buildrootdir/README ]; then
-  message "Cloning Buildroot from the Buildroot project repository."
-  git clone $buildrooturi $buildrootdir
-  #+
-  # TODO: It is possible that the previous clone failed. Might want to use
-  # git again to update just in case.
-  #-
-  if [ $? -gt 0 ]; then
-    die "Cloning Buildroot encountered an error."
-  fi
+    message "Cloning Buildroot from the Buildroot project repository."
+    git clone $buildrooturi $buildrootdir
+    #+
+    # TODO: It is possible that the previous clone failed. Might want to use
+    # git again to update just in case.
+    #-
+    if [ $? -gt 0 ]; then
+	die "Cloning Buildroot encountered an error."
+    fi
 fi
 
 cd $buildrootdir
@@ -502,7 +502,7 @@ fi
 run git checkout $buildrootversion
 
 if [ $? -ne 0 ]; then
-  die "Attempted to checkout Buildroot using an invalid ID: $buildrootversion"
+    die "Attempted to checkout Buildroot using an invalid ID: $buildrootversion"
 fi
 #+
 # If on a branch then pull the latest changes.
@@ -531,22 +531,22 @@ message "The kernel headers version is: $buildrootkernelheaders"
 
 brc=$variantbuilddir/.config
 if [ -f $mconfig ]; then
-  verbose "Base config: $mconfig"
-  verbose "Target file: $brc"
-  verbose "Variant: $variant"
-  use_variant $mconfig $brc $variant
-  if [ $? -gt 0 ]; then
-    die "Could not copy the Buildroot config file."
-  fi
-  message "Config file $mconfig copied to $brc"
-  set_build_default mconfig $mconfig
+    verbose "Base config: $mconfig"
+    verbose "Target file: $brc"
+    verbose "Variant: $variant"
+    use_variant $mconfig $brc $variant
+    if [ $? -gt 0 ]; then
+	die "Could not copy the Buildroot config file."
+    fi
+    message "Config file $mconfig copied to $brc"
+    set_build_default mconfig $mconfig
 else
   case "$target" in
     "menuconfig" | "nconfig")
-      ;;
+	;;
     *)
-      die "The config file doesn't exist. Run $0 menuconfig."
-      ;;
+	die "The config file doesn't exist. Run $0 menuconfig."
+	;;
   esac
 fi
 
@@ -559,18 +559,18 @@ message "The Buildroot kernel config file is: $kconfig"
 brkc=$variantbuilddir/build/linux-`grep BR2_LINUX_KERNEL_VERSION $brc | cut -d "\"" -f 2`/.config
 verbose "Kernel configuration file: $brkc"
 if [ -f $brkc ]; then
-  if [ -f $kconfig ]; then
-    use_variant $kconfig $brkc $variant
-    if [ $? -gt 0 ]; then
-      die "Could not copy the kernel config file."
+    if [ -f $kconfig ]; then
+	use_variant $kconfig $brkc $variant
+	if [ $? -gt 0 ]; then
+	    die "Could not copy the kernel config file."
+	fi
+	message "Config file $kconfig copied to $brkc"
+	set_build_default kconfig $kconfig
+    else
+	if [[ "$target" != "linux-menuconfig" ]]; then
+	    die "The kernel config file doesn't exist. Run ./buildmistify linux-menuconfig."
+	fi
     fi
-    message "Config file $kconfig copied to $brkc"
-    set_build_default kconfig $kconfig
-  else
-    if [[ "$target" != "linux-menuconfig" ]]; then
-      die "The kernel config file doesn't exist. Run ./buildmistify linux-menuconfig."
-    fi
-  fi
 fi
 
 #+
@@ -581,19 +581,19 @@ message "The Buildroot BusyBox config file is: $bbconfig"
 bbc=`ls -d $variantbuilddir/build/busybox-*`/.config
 
 if [ -f $bbc ]; then
-  if [ -f $bbconfig ]; then
-    use_variant $bbconfig $bbc $variant
-    if [ $? -gt 0 ]; then
-    warning "Busybox hasn't been built yet."
+    if [ -f $bbconfig ]; then
+	use_variant $bbconfig $bbc $variant
+	if [ $? -gt 0 ]; then
+	    warning "Busybox hasn't been built yet."
+	fi
+	message "Config file $bbconfig copied to $bbc"
+	set_build_default bbconfig $bbconfig
+    else
+	if [[ "$target" != "busybox-menuconfig" ]]; then
+	    error "The BusyBox config file doesn't exist."
+	    die "Run ./buildmistify busybox-menuconfig."
+	fi
     fi
-    message "Config file $bbconfig copied to $bbc"
-    set_build_default bbconfig $bbconfig
-  else
-    if [[ "$target" != "busybox-menuconfig" ]]; then
-      error "The BusyBox config file doesn't exist."
-      die "Run ./buildmistify busybox-menuconfig."
-    fi
-  fi
 fi
 
 set_build_default downloaddir $downloaddir
@@ -610,15 +610,15 @@ message "The Buildroot download directory is: $downloaddir"
 # So, remove such files to force a fresh pull.
 #-
 if [ -n "$resetmasters" ]; then
-  if [ -d $downloaddir ]; then
-    p=$downloaddir/*-master.tar*
-    if ls $p 1> /dev/null 2>&1; then
-      for f in `ls $p`; do
-        warning "Removing cached master branch file: $f"
-        rm $f
-      done
+    if [ -d $downloaddir ]; then
+	p=$downloaddir/*-master.tar*
+	if ls $p 1> /dev/null 2>&1; then
+	for f in `ls $p`; do
+	    warning "Removing cached master branch file: $f"
+	    rm $f
+	done
+	fi
     fi
-  fi
 fi
 
 
@@ -628,11 +628,11 @@ message "Project dir: $projectdir"
 # Be sure the toolchain is installed.
 #-
 if [ ! -z "$useartifacts" ]; then
-  install-toolchain-from-artifact
+    install-toolchain-from-artifact
 elif [ 1 -z "$newtoolchainbuild" ]; then
-  install-toolchain-from-source
+    install-toolchain-from-source
 else
-  install-toolchain
+    install-toolchain
 fi
 install-go
 
@@ -746,16 +746,16 @@ message "Logging the build output to: $logfile"
 # Run buildroot.
 #-
 if [ -n "$dryrun" ]; then
-  message "Just a dry run -- not running make."
-  verbose $makecommand
+    message "Just a dry run -- not running make."
+    verbose $makecommand
 else
-  #+
-  # Run the buildroot make.
-  #-
-  cd $buildrootdir
-  ln -sf $logfilename $logdir/buildroot.log
-  _envvars=`env | sort`
-  cat << EOF | tee $logfile
+    #+
+    # Run the buildroot make.
+    #-
+    cd $buildrootdir
+    ln -sf $logfilename $logdir/buildroot.log
+    _envvars=`env | sort`
+    cat << EOF | tee $logfile
 ++++
 $id: Running make command:
 $makecommand
@@ -764,17 +764,17 @@ $_envvars
 $id: Buildroot dir is: $buildrootdir
 ----
 EOF
-  time $makecommand 2>&1 | tee -a $logfile
-  rc=${PIPESTATUS[0]}
-  message "The Mistify-OS build is complete."
-  message "The log file is: $logfile"
-  if [ $rc -gt 0 ]; then
-    error "Make complained about a build problem (see $logfile)."
-    if [ -n "$viewlog" ]; then
-      less $logfile
+    time $makecommand 2>&1 | tee -a $logfile
+    rc=${PIPESTATUS[0]}
+    message "The Mistify-OS build is complete."
+    message "The log file is: $logfile"
+    if [ $rc -gt 0 ]; then
+	error "Make complained about a build problem (see $logfile)."
+	if [ -n "$viewlog" ]; then
+	    less $logfile
+	fi
+	exit 1
     fi
-    exit 1
-  fi
 fi
 
 #+
@@ -785,22 +785,22 @@ fi
 imagedir=$variantbuilddir/images
 cd $imagedir
 if [ -f rootfs.cpio.bz2 ]; then
-  ln -sf rootfs.cpio.bz2 initrd.mistify
-  sha1sum initrd.mistify >initrd.mistify.sha1
+    ln -sf rootfs.cpio.bz2 initrd.mistify
+    sha1sum initrd.mistify >initrd.mistify.sha1
 else
-  warning "The initrd doesn't exist."
+    warning "The initrd doesn't exist."
 fi
 if [ -f bzImage ]; then
-  ln -sf bzImage bzImage.mistify
-  sha1sum bzImage.mistify >bzImage.mistify.sha1
+    ln -sf bzImage bzImage.mistify
+    sha1sum bzImage.mistify >bzImage.mistify.sha1
 else
-  warning "The kernel image doesn't exist."
+    warning "The kernel image doesn't exist."
 fi
 if [ -f rootfs.iso9660 ]; then
-  ln -sf rootfs.iso9660 mistify.iso
-  sha1sum mistify.iso >mistify.iso.sha1
+    ln -sf rootfs.iso9660 mistify.iso
+    sha1sum mistify.iso >mistify.iso.sha1
 else
-  warning "The ISO image doesn't exist."
+    warning "The ISO image doesn't exist."
 fi
 cd -
 
@@ -808,6 +808,6 @@ message "Images are in $imagedir and can be uploaded to the server."
 message "bzImage.buildroot: The kernel image."
 message "initrd.buildroot: The RAM disk."
 if [ -e $imagedir ]; then
-  ls -l $imagedir
+    ls -l $imagedir
 fi
 
