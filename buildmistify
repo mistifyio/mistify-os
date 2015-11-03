@@ -629,7 +629,7 @@ message "Project dir: $projectdir"
 #-
 if [ ! -z "$useartifacts" ]; then
     install-toolchain-from-artifact
-elif [ 1 -z "$newtoolchainbuild" ]; then
+elif [ ! -z "$newtoolchainbuild" ]; then
     install-toolchain-from-source
 else
     install-toolchain
