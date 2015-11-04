@@ -11,7 +11,6 @@
 /downloads/
 /go/
 /toolchain/
-/variants/
 
 # Exclude intellij project files
 *.iml
