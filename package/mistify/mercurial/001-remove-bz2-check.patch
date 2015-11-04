@@ -1,0 +1,19 @@
+--- a/setup.py	2015-11-04 18:27:42.526837124 +0000
++++ b/setup.py	2015-11-04 18:27:51.950837059 +0000
+@@ -53,16 +53,6 @@
+ except AttributeError:
+     pass
+ 
+-if isironpython:
+-    sys.stderr.write("warning: IronPython detected (no bz2 support)\n")
+-else:
+-    try:
+-        import bz2
+-        bz2.BZ2Compressor # silence unused import warning
+-    except ImportError:
+-        raise SystemExit(
+-            "Couldn't import standard bz2 (incomplete Python install).")
+-
+ ispypy = "PyPy" in sys.version
+ 
+ import os, stat, subprocess, time
