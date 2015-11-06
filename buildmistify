@@ -89,7 +89,8 @@ Usage: ./buildmistify [options] [target]
     --resetmasters
         Some packages may be configured to always pull from the master branch.
         This can result in stale copies in the download cache being used for the
-        build. This option causes these files to be removed before starting the build.
+        build. This option causes these files to be removed before starting the
+        build.
     ==== configuration ====
     --variant <variant>
         Use a configuration variant. The variant is always based upon the
@@ -139,7 +140,8 @@ Usage: ./buildmistify [options] [target]
         Currently supports toolchain ONLY.
     --newtoolchainbuild
         Uses new makefile to build toolchain from source.
-        Feature flag, will eventually replace the shell script code in install-toolchain.sh currently used to build.
+        Feature flag, will eventually replace the shell script code in
+        install-toolchain.sh currently used to build.
     -h|--help
         Display this usage.
     ==== special targets ====
