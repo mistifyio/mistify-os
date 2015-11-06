@@ -18,7 +18,11 @@
 # to the crosstool version or commit ID to use by default. This can be a branch,
 # tag or even a commit ID.
 #-
-toolchaincommit=glibc-multilib-sdk
+toolchaincommit=glibc-mulitlib-sdk
+toolchainartifact_version=$toolchaincommit
+toolchainartifact_version_extra=base
+toolchainartifact_name=crosstool-ng-x86_64-unknown-linux-gnu
+toolchainartifact_url=https://s3.amazonaws.com/omniti-mystify-artifacts/toolchain-artifacts/$toolchainartifact_name-$toolchainartifact_version-$toolchainartifact_version_extra.tar.gz
 
 config-toolchain () {
     cd $1
@@ -50,6 +54,30 @@ build-toolchain () {
     touch $toolchainbuilt
 }
 
+download-toolchain-artifact () {
+  mkdir -p $downloaddir
+
+  message "Downloading toolchain artifact from $toolchainartifact_url"
+  wget -nc $toolchainartifact_url -O $downloaddir/$toolchainartifact_name-$toolchainartifact_version.tgz
+
+  if [ $? -gt 1 ]; then
+    die "Toolchain artifact download failed."
+  fi
+}
+
+extract-toolchain-artifact() {
+  rm -rf $TC_PREFIX_DIR
+  mkdir -p $TC_PREFIX_DIR
+
+  cd $TC_PREFIX_DIR
+  message "Extracting toolchain artifact $toolchainartifact_name-$toolchainartifact_version.tgz"
+  tar xf $downloaddir/$toolchainartifact_name-$toolchainartifact_version.tgz
+
+  if [ $? -gt 0 ]; then
+    die "Toolchain artifact extraction failed."
+  fi
+}
+
 save-settings () {
     verbose Saving toolchain build settings.
     set_build_default tcconfig $tcconfig
@@ -59,7 +87,94 @@ save-settings () {
     set_build_default toolchainversion $toolchainversion
 }
 
-install-toolchain () {
+checkout-toolchain() {
+    if [ ! -f $toolchaindir/README ]; then
+	message 'Cloning toolchain build tool from the toolchain repository.'
+	message "Repo URL: $tcuri"
+	git clone $tcuri $toolchaindir
+	#+
+	# TODO: It is possible that the previous clone failed. Might want to use
+	# git again to update just in case.
+	#-
+	if [ $? -gt 0 ]; then
+	    die "Cloning the toolchain encountered an error."
+	fi
+    fi
+
+    cd $toolchaindir
+
+    verbose toolchainversion is: $toolchainversion
+    message "Fetching toolchain update from remote repository."
+    git fetch
+
+    run git checkout $toolchainversion
+    if [ $? -ne 0 ]; then
+	die "Attempted to checkout the toolchain build tool using an invalid ID: $toolchainversion"
+    fi
+    #+
+    # If on a branch then pull the latest changes.
+    #-
+    run_ignore git symbolic-ref --short HEAD
+    if [ $? -eq 0 ]; then
+	message Updating from branch: $toolchainversion
+	run git pull
+    else
+	message Toolchain version $toolchainversion is not a branch. Not updating.
+    fi
+
+}
+
+install-toolchain-from-artifact(){
+  toolchainversion="$toolchainartifact_name-$toolchainartifact_version"
+  set-defaults
+  download-toolchain-artifact
+
+  export TC_ARCH_SUFFIX=-$toolchainversion
+  export TC_PREFIX=$toolchainprefix
+  export TC_PREFIX_DIR=$toolchaindir/variations/$toolchainversion
+  export TC_LOCAL_TARBALLS_DIR=$downloaddir
+  message "TC_ARCH_SUFFIX: $TC_ARCH_SUFFIX"
+  message "TC_PREFIX_DIR: $TC_PREFIX_DIR"
+  message "TC_LOCAL_TARBALLS_DIR: $TC_LOCAL_TARBALLS_DIR"
+
+  toolchainversionchanged=false
+  if [ "`cat $toolchaindir/.toolchaincache | tr -d "\012"`" != "$toolchainartifact_name-$toolchainartifact_version" ]; then
+    message "Toolchain artifact version changed or initial run"
+    toolchainversionchanged=true
+  fi
+
+  if [ ! -d "$TC_PREFIX_DIR" ] || [ $toolchainversionchanged = true ] ; then
+    extract-toolchain-artifact
+  else
+    message "Toolchain artifact already extracted... Skipping"
+  fi
+
+  echo $toolchainartifact_name-$toolchainartifact_version > $toolchaindir/.toolchaincache
+}
+
+install-toolchain-from-source() {
+    set-defaults
+    checkout-toolchain
+
+    cp $rootdir/scripts/Makefile-toolchain $toolchaindir/
+
+    makeargs="version=$toolchainversion download_dir=$downloaddir root_dir=$toolchaindir build_dir=$toolchaindir/variations/$toolchainversion config_file=$tcconfig"
+    message "Toolchain Make Args $makeargs"
+
+    if [ -n "$dryrun" ]; then
+	    message "Just a test run -- not building the toolchain."
+
+	    make -f Makefile-toolchain  -C $toolchaindir -n $makeargs
+    else
+        make -f Makefile-toolchain  -C $toolchaindir $makeargs
+
+        if [ $? -gt 0 ]; then
+	        die "The toolchain build failed."
+        fi
+    fi
+}
+
+set-defaults(){
     if [ -n "$toolchainreset" ]; then
 	for d in tcconfig tcuri toolchaindir toolchainprefix toolchainversion
 	do
@@ -101,46 +216,6 @@ install-toolchain () {
     # This is also used by install-go.
     message "The toolchain version is: $toolchainversion"
 
-    if [ ! -f $toolchaindir/README.md ]; then
-	message 'Cloning toolchain build tool from the toolchain repository.'
-	git clone $tcuri $toolchaindir
-	#+
-	# TODO: It is possible that the previous clone failed. Might want to use
-	# git again to update just in case.
-	#-
-	if [ $? -gt 0 ]; then
-	    die "Cloning the toolchain encountered an error."
-	fi
-    fi
-
-    cd $toolchaindir
-
-    verbose toolchainversion is: $toolchainversion
-    if [ -n "$noupdate" ]; then
-	warning Not fetching crosstool-ng.
-    else
-	message "Fetching toolchain update from remote repository."
-	git fetch
-    fi
-
-    run git checkout $toolchainversion
-    if [ $? -ne 0 ]; then
-	die "Attempted to checkout the toolchain build tool using an invalid ID: $toolchainversion"
-    fi
-    #+
-    # If on a branch then pull the latest changes.
-    #-
-    run_ignore git symbolic-ref --short HEAD
-    if [ $? -eq 0 ]; then
-	if [ -n "$noupdate" ]; then
-	    warning Not updating crosstool-ng.
-	else
-	    message Updating from branch: $toolchainversion
-	    run git pull
-	fi
-    else
-	message Toolchain version $toolchainversion is not a branch. Not updating.
-    fi
     #+
     # Setup the correct toolchain config file.
     #-
@@ -148,6 +223,13 @@ install-toolchain () {
 	tcconfig=$tcconfigdefault
     fi
     message "The toolchain config file is: $tcconfig"
+
+}
+
+install-toolchain () {
+    set-defaults
+
+    checkout-toolchain
 
     #+
     # These variables are used within the crosstool-ng config file which helps
