@@ -88,7 +88,7 @@ save-settings () {
 }
 
 checkout-toolchain() {
-    if [ ! -f $toolchaindir/README ]; then
+    if [ ! -f $toolchaindir/ct-ng ]; then
 	message 'Cloning toolchain build tool from the toolchain repository.'
 	message "Repo URL: $tcuri"
 	git clone $tcuri $toolchaindir
