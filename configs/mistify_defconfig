@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Buildroot 2015.08-03332-g6909f4b Configuration
+# Buildroot 2015.08-03335-g7b153a0 Configuration
 #
 BR2_HAVE_DOT_CONFIG=y
 BR2_HOSTARCH_NEEDS_IA32_COMPILER=y
@@ -2284,3 +2284,15 @@ BR2_PACKAGE_QUEENSLAND=y
 BR2_PACKAGE_SPL=y
 BR2_PACKAGE_STATSD=y
 BR2_PACKAGE_ZFS=y
+
+#
+# Software Development
+#
+# BR2_PACKAGE_PERL_FORKS is not set
+# BR2_PACKAGE_SDK_AUTOCONF is not set
+# BR2_PACKAGE_SDK_AUTOMAKE is not set
+# BR2_PACKAGE_SDK_BISON is not set
+# BR2_PACKAGE_SDK_FLEX is not set
+# BR2_PACKAGE_SDK_M4 is not set
+# BR2_PACKAGE_SDK_GCC is not set
+# BR2_PACKAGE_SDK_OVERRIDES is not set
