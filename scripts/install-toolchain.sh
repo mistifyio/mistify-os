@@ -18,7 +18,7 @@
 # to the crosstool version or commit ID to use by default. This can be a branch,
 # tag or even a commit ID.
 #-
-toolchaincommit=glibc-mulitlib-sdk
+toolchaincommit=glibc-multilib-sdk
 toolchainartifact_version=$toolchaincommit
 toolchainartifact_version_extra=base
 toolchainartifact_name=crosstool-ng-x86_64-unknown-linux-gnu
@@ -88,7 +88,7 @@ save-settings () {
 }
 
 checkout-toolchain() {
-    if [ ! -f $toolchaindir/ct-ng ]; then
+    if [ ! -f $toolchaindir/ct-ng.in ]; then
 	message 'Cloning toolchain build tool from the toolchain repository.'
 	message "Repo URL: $tcuri"
 	git clone $tcuri $toolchaindir
