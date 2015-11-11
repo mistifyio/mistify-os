@@ -24,7 +24,7 @@ endef
 
 #+
 # A big deal here. The perl built by buildroot doesn't support threads.
-# automake on the otherhand requires thread. Soo.....
+# automake on the other hand requires thread. Soo.....
 # Add the config option here.
 #-
 PERL_CONF_OPTS += -Dusethreads
