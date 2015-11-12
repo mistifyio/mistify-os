@@ -1,0 +1,9 @@
+config BR2_PACKAGE_SDK_AUTOMAKE
+	bool "sdk-automake"
+	select BR2_PACKAGE_SDK_AUTOCONF
+	select BR2_PACKAGE_PERL
+	help
+	  Tool for automatically generating Makefiles for input to
+	  configure scripts (made by autoconf).
+
+	  http://www.gnu.org/software/automake/

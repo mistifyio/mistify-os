@@ -4,12 +4,23 @@
 # This script runs following a build of the target file system, $(TARGET_DIR).
 #
 # NOTE: In order for this script to execute the defconfig must point to it.
-# For more information see: 
+# For more information see:
 #   http://buildroot.uclibc.org/downloads/manual/manual.html#rootfs-custom
 # TODO: Maybe move the lists to a config file?
 #-
 
 targetdir=$1
+
+echo "Mistify-OS post build script."
+echo "PWD: `pwd`"
+echo "Args: $*"
+echo "BR2_CONFIG: $BR2_CONFIG"
+echo "HOST_DIR: $HOST_DIR"
+echo "STAGING_DIR: $STAGING_DIR"
+echo "TARGET_DIR: $TARGET_DIR"
+echo "BUILD_DIR: $BUILD_DIR"
+echo "BINARIES_DIR: $BINARIES_DIR"
+echo "BASE_DIR: $BASE_DIR"
 
 #
 # Install a symlink for /sbin/getty that points to /sbin/agetty.
@@ -88,3 +99,135 @@ MISTIFY_IMAGE_URL_RELEASE="http://builds.mistify.io/releases/MistifyOS-release/"
 MISTIFY_IMAGE_URL_NIGHTLY="http://builds.mistify.io/nightly/MistifyOS/"
 MISTIFY_IMAGE_URL_GUESTS="http://builds.mistify.io/guest-images/"
 EOF
+
+#+
+# If building a software development version then copy the needed development
+# files from the staging dir. Buildroot, unfortunately, isn't very helpful
+# with this.
+#
+# NOTE: This is pretty much a hack at the moment to get things working.
+# Many of these need more research and experimentation to determine a correct
+# solution.
+#-
+if [ "$2" == "SDK" ]; then
+    echo "Copying additional files to target fs."
+    cp $STAGING_DIR/usr/lib/crt*.o $TARGET_DIR/usr/lib
+    cp $STAGING_DIR/usr/lib/libc.so $TARGET_DIR/usr/lib
+    cp $STAGING_DIR/usr/lib/libc_nonshared.a $TARGET_DIR/usr/lib
+    cp -r $STAGING_DIR/usr/include $TARGET_DIR/usr
+    ln -sf libgcc_s.so.1 $TARGET_DIR/usr/lib/libgcc.so
+    #+
+    # This is definitely a hack. The normal ld doesn't support the
+    # options gcc demands.
+    #-
+    for f in ar ld nm objdump ranlib strip; do
+        echo "Copying $f to usr/bin"
+        cp $TARGET_DIR/usr/x86_64-buildroot-linux-gnu/bin/$f $TARGET_DIR/usr/bin
+    done
+    #+
+    # WARNING: insanity ahead
+    #
+    # OK now this is a serious hack. The build target path is embedded into config
+    # files and more. This especially causes strange failures with both perl and
+    # python. To work around this problem create a symlink in the target fs.
+    #-
+    mkdir -p $TARGET_DIR/$TARGET_DIR
+    ln -sf /usr $TARGET_DIR/$TARGET_DIR
+    mkdir -p $TARGET_DIR/$HOST_DIR
+    ln -sf /usr $TARGET_DIR/$HOST_DIR
+    #+
+    # Another serious hack.
+    # In order to run the config for crosstool-ng perl needs to support threads.
+    # Thread support has been removed from the latest versions of perl. There
+    # is a forks module which will install threads emulation --BUT-- the option
+    # to do so is available only if the installed perl doesn't support threads.
+    # The host install of perl does support threads -- thus the catch. To deal
+    # with this a workaround is to have the target install the forks module but
+    # that requires the perl headers.
+    #-
+    echo STAGING_DIR: $STAGING_DIR
+    echo TARGET_DIR: $TARGET_DIR
+    s=$STAGING_DIR/usr/lib/perl5
+    d=$TARGET_DIR/usr/lib/perl5
+    echo Source directory: $s
+    echo Destination directory: $d
+    rm -rf $d
+    cp -r $s $d
+    #+
+    # libm needs to be copied. It's not installed in the target for
+    # some odd reason. The correct way to do this would be to mod the
+    # install but for now...
+    #-
+    cp $STAGING_DIR/usr/lib/libm.* $TARGET_DIR/usr/lib
+    #+
+    # Some components assume libraries in usr/lib yet they are installed in
+    # /lib. A short term work-around is to create symlinks.
+    #-
+    ln -sf /lib/libpthread.so.0 $TARGET_DIR/usr/lib/libpthread.so
+
+    #+
+    # Some more symlinks for minor link problems.
+    #-
+    cp -P $TARGET_DIR/lib/libdl.so.2 $TARGET_DIR/lib/libdl.so
+    #+
+    # Crosstool-ng by default assumed the dl library is in /usr/lib.
+    # It is unknown at this time if simply moving the lib to /usr/lib will
+    # solve the problem and NOT break clang. Later will take the time to
+    # experiment with this.
+    #-
+    ln -sf /lib/libdl-2.21.so $TARGET_DIR/usr/lib/libdl.so
+
+    #+
+    # Bootstrapping ct-ng requires static linking during the early stages. Be
+    # sure the static libraries are in the target directories.
+    # NOTE: This is another hack. A true install to the target needs to be
+    # determined.
+    #-
+    cp $STAGING_DIR/usr/lib/*.a $TARGET_DIR/usr/lib
+    cp $STAGING_DIR/lib/*.a $TARGET_DIR/lib
+    cp $BUILD_DIR/sdk-gcc-build/x86_64-unknown-linux-gnu/libgcc/*.a \
+       $TARGET_DIR/usr/lib
+    #+
+    # libutil is missing from the target.
+    #-
+    cp $STAGING_DIR/usr/lib/libutil* $TARGET_DIR/usr/lib
+    #+
+    # And for python build so is libcrypt.so.
+    #-
+    cp $STAGING_DIR/lib/libcrypt.so.* $TARGET_DIR/lib
+    ln -sf ../../lib/libcrypt.so.1 $TARGET_DIR/usr/lib/libcrypt.so
+    #+
+    # Then for host-glib libresolv.so.
+    #-
+    ln -sf ../../lib/libresolv.so.2 $TARGET_DIR/usr/lib/libresolv.so
+    #+
+    # Some host packages want cc instead of gcc. Under ubuntu this
+    # is a trail of symlinks thru /etc/alternatives/cc
+    #-
+    ln -sf gcc $TARGET_DIR/usr/bin/cc
+    #+
+    # Now Scrt1.o is missing.
+    #-
+    cp $STAGING_DIR/usr/lib/Scrt1.o $TARGET_DIR/usr/lib
+    #+
+    # ldconfig is missing from the target directories.
+    #-
+    cp $STAGING_DIR/sbin/ldconfig $TARGET_DIR/sbin
+
+    #+
+    # Some parts for 32 bit compiles (needed for grub).
+    #-
+    if [ -d $TARGET_DIR/usr/lib32 ]; then
+	rm -rf $TARGET_DIR/usr/lib32
+    fi
+    rm -rf $TARGET_DIR/lib/32
+    cp -r $STAGING_DIR/lib/32 $TARGET_DIR/lib
+    rm $TARGET_DIR/lib32
+    ln -s lib/32 $TARGET_DIR/lib32
+    ln -sf libgcc_s.so.1 $TARGET_DIR/lib32/libgcc.so
+    rm -rf $TARGET_DIR/usr/lib/32
+    cp -r $STAGING_DIR/usr/lib/32 $TARGET_DIR/usr/lib
+    rm $TARGET_DIR/usr/lib32
+    ln -s lib/32 $TARGET_DIR/usr/lib32
+fi
+

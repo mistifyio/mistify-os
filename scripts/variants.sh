@@ -119,7 +119,7 @@ function update_variant () {
     # 3 = variation name (empty indicates using base file)
     #-
     verbose "update_variant: new file=$1, original=$2, variant=$3"
-    if [ ! -z "$3" ]; then
+    if [ -n "$3" ] && [ "$3" != "base" ]; then
 	vf=''
 	variant_file $2 $3 vf
 	mkdir -p $variantsconfigdir
@@ -142,11 +142,8 @@ function update_variant () {
 	fi
 	return 0
     else
-	if [ -z "$3" ]; then
-	    verbose "Updating base configuration file $2"
-	else
-	    verbose "Variant not needed. Copying $1 to $2."
-	fi
+	message "Updating base configuration file $2"
+	verbose "Variant not needed. Copying $1 to $2."
 	run cp $1 $2
 	return 0
     fi

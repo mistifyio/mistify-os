@@ -1,0 +1,6 @@
+config BR2_PACKAGE_SDK_OVERRIDES
+	bool "sdk-overrides"
+	help
+	  A series of variable and macro overrides needed to build the SDK
+	  version of Mistify-OS.
+

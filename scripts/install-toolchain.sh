@@ -18,7 +18,7 @@
 # to the crosstool version or commit ID to use by default. This can be a branch,
 # tag or even a commit ID.
 #-
-toolchaincommit=b6342809d005ea2b0d24406eff52b6bac4ec0eee
+toolchaincommit=glibc-multilib-sdk
 toolchainartifact_version=$toolchaincommit
 toolchainartifact_version_extra=base
 toolchainartifact_name=crosstool-ng-x86_64-unknown-linux-gnu
@@ -35,6 +35,7 @@ build-toolchain () {
     #+
     # Now configure and build the toolchain.
     #-
+    mkdir -p $toolchaindir/variations
     if [ ! -f $toolchainconfigured ]; then
 	message "Configuring the toolchain build."
 	config-toolchain $toolchaindir
@@ -87,7 +88,7 @@ save-settings () {
 }
 
 checkout-toolchain() {
-    if [ ! -f $toolchaindir/README ]; then
+    if [ ! -f $toolchaindir/ct-ng.in ]; then
 	message 'Cloning toolchain build tool from the toolchain repository.'
 	message "Repo URL: $tcuri"
 	git clone $tcuri $toolchaindir
@@ -181,9 +182,8 @@ set-defaults(){
 	    reset_build_default $d
 	done
     fi
-
-    tcconfigdefault=$(get_build_default tcconfig $PWD/configs/mistify-tc.config)
-    tcuridefault=$(get_build_default tcuri git@github.com:crosstool-ng/crosstool-ng.git)
+    tcconfigdefault=$(get_build_default tcconfig $PWD/configs/mistify-tc-multilib.config)
+    tcuridefault=$(get_build_default tcuri git@github.com:mistifyio/crosstool-ng.git)
     toolchaindirdefault=$(get_build_default toolchaindir $PWD/toolchain)
     toolchainprefixdefault=$(get_build_default toolchainprefix x86_64-unknown-linux-gnu)
     toolchainversiondefault=$(get_build_default toolchainversion $toolchaincommit)
