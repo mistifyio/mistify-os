@@ -19,19 +19,19 @@ build-c-go () {
     # 2 = The tag to checkout from the repo.
     #-
     if [ -f $godir/.$1-built ]; then
-	message "build-c-go: Using go version $1."
-	return
+        message "build-c-go: Using go version $1."
+    return
     fi
     verbose "build-c-go: Building go version $1."
     if [ -n "$dryrun" ]; then
-	message "build-c-go: Just a test run -- not building go."
-	return
+        message "build-c-go: Just a test run -- not building go."
+        return
     fi
     run mkdir -p $godir/$1
     cd $godir/$1
     verbose "Working directory is: $PWD"
     if [ ! -d go ]; then
-	run git clone $gouri
+        run git clone $gouri
     fi
     cd go
     run git fetch $gouri
@@ -40,8 +40,8 @@ build-c-go () {
     export GOOS=linux
     export GOARCH=amd64
     if [ -n "$TC_PREFIX_DIR" ]; then
-	export CC_FOR_TARGET="$TC_PREFIX_DIR/bin/${TC_PREFIX}-cc"
-	export CXX_FOR_TARGET="$TC_PREFIX_DIR/bin/${TC_PREFIX}-c++"
+        export CC_FOR_TARGET="$TC_PREFIX_DIR/bin/${TC_PREFIX}-cc"
+        export CXX_FOR_TARGET="$TC_PREFIX_DIR/bin/${TC_PREFIX}-c++"
     fi
     export CGO_ENABLED=1
 
@@ -62,22 +62,22 @@ build-go-go () {
     # 2 = The tag to checkout from the repo.
     #-
     if [ -f $godir/.$1-built ]; then
-	message "build-go-go: Using go version $1."
-	return
+        message "build-go-go: Using go version $1."
+        return
     fi
     bootstraplabel=$gobootstraptag-$toolchainversion
     build-c-go $bootstraplabel $gobootstraptag
 
     verbose "build-go-go: Building go version $1."
     if [ -n "$dryrun" ]; then
-	message "build-go-go: Just a test run -- not building go."
-	return
+        message "build-go-go: Just a test run -- not building go."
+        return
     fi
     run mkdir -p $godir/$1
     cd $godir/$1
     verbose "Working directory is: $PWD"
     if [ ! -d go ]; then
-	run git clone $gouri
+        run git clone $gouri
     fi
     cd go
     run git fetch $gouri
@@ -100,12 +100,12 @@ install-go () {
     # Determine the location of the go directory.
     #-
     if [ -z "$godir" ]; then
-	if [ -f $statedir/godir ]; then
-	    godir=`cat $statedir/godir`
-	else
-	    godir=$godirdefault
-	fi
-	message "Using go located at: $godir"
+        if [ -f $statedir/godir ]; then
+            godir=`cat $statedir/godir`
+        else
+            godir=$godirdefault
+        fi
+        message "Using go located at: $godir"
     fi
     eval godir=$godir
     verbose "Building go in: $godir"
@@ -115,15 +115,15 @@ install-go () {
     # Determine the uri to use to fetch the go source.
     #-
     if [ -z "$gouri" ]; then
-	if [ -f $statedir/gouri ]; then
-	    gouri=`cat $statedir/gouri`
-	else
-	    gouri=$gouridefault
-	fi
+        if [ -f $statedir/gouri ]; then
+            gouri=`cat $statedir/gouri`
+        else
+            gouri=$gouridefault
+        fi
     fi
     if [[ "$gouri" == "default" ]]; then
-      warning "Resetting the GO repository URI to the default: $gouridefault."
-      gouri=$gouridefault
+        warning "Resetting the GO repository URI to the default: $gouridefault."
+        gouri=$gouridefault
     fi
     message "The go source repository is: $gouri"
     echo $gouri >$statedir/gouri
@@ -132,15 +132,15 @@ install-go () {
     # Determine the tag or branch to use to fetch the go source.
     #-
     if [ -z "$gotag" ]; then
-	if [ -f $statedir/gotag ]; then
-	    gotag=`cat $statedir/gotag`
-	else
-	    gotag=$gotagdefault
-	fi
+        if [ -f $statedir/gotag ]; then
+            gotag=`cat $statedir/gotag`
+        else
+            gotag=$gotagdefault
+        fi
     fi
     if [[ "$gotag" == "default" ]]; then
-      warning "Resetting the GO repository tag to the default: $gotagdefault."
-      gotag=$gotagdefault
+        warning "Resetting the GO repository tag to the default: $gotagdefault."
+        gotag=$gotagdefault
     fi
     message "The go branch or tag is: $gotag"
     echo $gotag >$statedir/gotag
@@ -159,12 +159,12 @@ install-go () {
     #-
     major=`echo $gotag | cut -d . -f 1`
     if [ ! "$major" == "go1" ]; then
-	die Only go1.x.x supported at this time.
+        die Only go1.x.x supported at this time.
     fi
     minor=`echo $gotag | cut -d . -f 2`
     if [ "$minor" -lt "5" ]; then
-	build-c-go $golabel $gotag
+        build-c-go $golabel $gotag
     else
-	build-go-go $golabel $gotag
+        build-go-go $golabel $gotag
     fi
 }

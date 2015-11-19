@@ -37,9 +37,9 @@ build-toolchain () {
     #-
     mkdir -p $toolchaindir/variations
     if [ ! -f $toolchainconfigured ]; then
-	message "Configuring the toolchain build."
-	config-toolchain $toolchaindir
-	touch $toolchainconfigured
+        message "Configuring the toolchain build."
+        config-toolchain $toolchaindir
+        touch $toolchainconfigured
     fi
     cp $tcconfig $tcc
     message "Config file $tcconfig copied to $tcc"
@@ -49,33 +49,33 @@ build-toolchain () {
     tail build.log | grep "Build completed"
 
     if [ $? -gt 0 ]; then
-	die "The toolchain build failed."
+        die "The toolchain build failed."
     fi
     touch $toolchainbuilt
 }
 
 download-toolchain-artifact () {
-  mkdir -p $downloaddir
+    mkdir -p $downloaddir
 
-  message "Downloading toolchain artifact from $toolchainartifact_url"
-  wget -nc $toolchainartifact_url -O $downloaddir/$toolchainartifact_name-$toolchainartifact_version.tgz
+    message "Downloading toolchain artifact from $toolchainartifact_url"
+    wget -nc $toolchainartifact_url -O $downloaddir/$toolchainartifact_name-$toolchainartifact_version.tgz
 
-  if [ $? -gt 1 ]; then
-    die "Toolchain artifact download failed."
-  fi
+    if [ $? -gt 1 ]; then
+        die "Toolchain artifact download failed."
+    fi
 }
 
 extract-toolchain-artifact() {
-  rm -rf $TC_PREFIX_DIR
-  mkdir -p $TC_PREFIX_DIR
+    rm -rf $TC_PREFIX_DIR
+    mkdir -p $TC_PREFIX_DIR
 
-  cd $TC_PREFIX_DIR
-  message "Extracting toolchain artifact $toolchainartifact_name-$toolchainartifact_version.tgz"
-  tar xf $downloaddir/$toolchainartifact_name-$toolchainartifact_version.tgz
+    cd $TC_PREFIX_DIR
+    message "Extracting toolchain artifact $toolchainartifact_name-$toolchainartifact_version.tgz"
+    tar xf $downloaddir/$toolchainartifact_name-$toolchainartifact_version.tgz
 
-  if [ $? -gt 0 ]; then
-    die "Toolchain artifact extraction failed."
-  fi
+    if [ $? -gt 0 ]; then
+        die "Toolchain artifact extraction failed."
+    fi
 }
 
 save-settings () {
@@ -89,16 +89,16 @@ save-settings () {
 
 checkout-toolchain() {
     if [ ! -f $toolchaindir/ct-ng.in ]; then
-	message 'Cloning toolchain build tool from the toolchain repository.'
-	message "Repo URL: $tcuri"
-	git clone $tcuri $toolchaindir
-	#+
-	# TODO: It is possible that the previous clone failed. Might want to use
-	# git again to update just in case.
-	#-
-	if [ $? -gt 0 ]; then
-	    die "Cloning the toolchain encountered an error."
-	fi
+        message 'Cloning toolchain build tool from the toolchain repository.'
+        message "Repo URL: $tcuri"
+        git clone $tcuri $toolchaindir
+        #+
+        # TODO: It is possible that the previous clone failed. Might want to use
+        # git again to update just in case.
+        #-
+        if [ $? -gt 0 ]; then
+            die "Cloning the toolchain encountered an error."
+        fi
     fi
 
     cd $toolchaindir
@@ -109,47 +109,47 @@ checkout-toolchain() {
 
     run git checkout $toolchainversion
     if [ $? -ne 0 ]; then
-	die "Attempted to checkout the toolchain build tool using an invalid ID: $toolchainversion"
+        die "Attempted to checkout the toolchain build tool using an invalid ID: $toolchainversion"
     fi
     #+
     # If on a branch then pull the latest changes.
     #-
     run_ignore git symbolic-ref --short HEAD
     if [ $? -eq 0 ]; then
-	message Updating from branch: $toolchainversion
-	run git pull
+        message Updating from branch: $toolchainversion
+        run git pull
     else
-	message Toolchain version $toolchainversion is not a branch. Not updating.
+        message Toolchain version $toolchainversion is not a branch. Not updating.
     fi
 
 }
 
 install-toolchain-from-artifact(){
-  toolchainversion="$toolchainartifact_name-$toolchainartifact_version"
-  set-defaults
-  download-toolchain-artifact
+    toolchainversion="$toolchainartifact_name-$toolchainartifact_version"
+    set-defaults
+    download-toolchain-artifact
 
-  export TC_ARCH_SUFFIX=-$toolchainversion
-  export TC_PREFIX=$toolchainprefix
-  export TC_PREFIX_DIR=$toolchaindir/variations/$toolchainversion
-  export TC_LOCAL_TARBALLS_DIR=$downloaddir
-  message "TC_ARCH_SUFFIX: $TC_ARCH_SUFFIX"
-  message "TC_PREFIX_DIR: $TC_PREFIX_DIR"
-  message "TC_LOCAL_TARBALLS_DIR: $TC_LOCAL_TARBALLS_DIR"
+    export TC_ARCH_SUFFIX=-$toolchainversion
+    export TC_PREFIX=$toolchainprefix
+    export TC_PREFIX_DIR=$toolchaindir/variations/$toolchainversion
+    export TC_LOCAL_TARBALLS_DIR=$downloaddir
+    message "TC_ARCH_SUFFIX: $TC_ARCH_SUFFIX"
+    message "TC_PREFIX_DIR: $TC_PREFIX_DIR"
+    message "TC_LOCAL_TARBALLS_DIR: $TC_LOCAL_TARBALLS_DIR"
 
-  toolchainversionchanged=false
-  if [ "`cat $toolchaindir/.toolchaincache | tr -d "\012"`" != "$toolchainartifact_name-$toolchainartifact_version" ]; then
-    message "Toolchain artifact version changed or initial run"
-    toolchainversionchanged=true
-  fi
+    toolchainversionchanged=false
+    if [ "`cat $toolchaindir/.toolchaincache | tr -d "\012"`" != "$toolchainartifact_name-$toolchainartifact_version" ]; then
+        message "Toolchain artifact version changed or initial run"
+        toolchainversionchanged=true
+    fi
 
-  if [ ! -d "$TC_PREFIX_DIR" ] || [ $toolchainversionchanged = true ] ; then
-    extract-toolchain-artifact
-  else
-    message "Toolchain artifact already extracted... Skipping"
-  fi
+    if [ ! -d "$TC_PREFIX_DIR" ] || [ $toolchainversionchanged = true ] ; then
+        extract-toolchain-artifact
+    else
+        message "Toolchain artifact already extracted... Skipping"
+    fi
 
-  echo $toolchainartifact_name-$toolchainartifact_version > $toolchaindir/.toolchaincache
+    echo $toolchainartifact_name-$toolchainartifact_version > $toolchaindir/.toolchaincache
 }
 
 install-toolchain-from-source() {
@@ -162,25 +162,25 @@ install-toolchain-from-source() {
     message "Toolchain Make Args $makeargs"
 
     if [ -n "$dryrun" ]; then
-	    message "Just a test run -- not building the toolchain."
+        message "Just a test run -- not building the toolchain."
 
-	    make -f Makefile-toolchain  -C $toolchaindir -n $makeargs
+        make -f Makefile-toolchain  -C $toolchaindir -n $makeargs
     else
         make -f Makefile-toolchain  -C $toolchaindir $makeargs
 
         if [ $? -gt 0 ]; then
-	        die "The toolchain build failed."
+            die "The toolchain build failed."
         fi
     fi
 }
 
 set-defaults(){
     if [ -n "$toolchainreset" ]; then
-	for d in tcconfig tcuri toolchaindir toolchainprefix toolchainversion
-	do
-	    verbose Resetting default: $d
-	    reset_build_default $d
-	done
+        for d in tcconfig tcuri toolchaindir toolchainprefix toolchainversion
+        do
+            verbose Resetting default: $d
+            reset_build_default $d
+        done
     fi
     tcconfigdefault=$(get_build_default tcconfig $PWD/configs/mistify-tc-multilib.config)
     tcuridefault=$(get_build_default tcuri git@github.com:mistifyio/crosstool-ng.git)
@@ -192,26 +192,26 @@ set-defaults(){
     # Determine the location of the toolchain directory.
     #-
     if [ -z "$toolchaindir" ]; then
-	toolchaindir=$toolchaindirdefault
+        toolchaindir=$toolchaindirdefault
     fi
     message "Using toolchain located at: $toolchaindir"
     #+
     # Determine the toolchain variation to use.
     #-
     if [ -z "$toolchainprefix" ]; then
-	toolchainprefix=$toolchainprefixdefault
+        toolchainprefix=$toolchainprefixdefault
     fi
     message "Using toolchain variation: $toolchainprefix"
     #+
     # Determine the uri to use to fetch the toolchain source.
     #-
     if [ -z "$tcuri" ]; then
-	tcuri=$tcuridefault
+        tcuri=$tcuridefault
     fi
     message "The toolchain build tool repository is: $tcuri"
 
     if [ -z "$toolchainversion" ]; then
-	toolchainversion=$toolchainversiondefault
+        toolchainversion=$toolchainversiondefault
     fi
     # This is also used by install-go.
     message "The toolchain version is: $toolchainversion"
@@ -220,7 +220,7 @@ set-defaults(){
     # Setup the correct toolchain config file.
     #-
     if [ -z "$tcconfig" ]; then
-	tcconfig=$tcconfigdefault
+        tcconfig=$tcconfigdefault
     fi
     message "The toolchain config file is: $tcconfig"
 
@@ -253,42 +253,42 @@ install-toolchain () {
     toolchainbuilt=$TC_PREFIX_DIR/../.$toolchainversion-built
 
     if [[ "$target" == "toolchain-menuconfig" ]]; then
-	cd $toolchaindir
-	if [ ! -f $ctng ]; then
-	    config-toolchain $toolchaindir
-	fi
-	$ctng menuconfig
-	if [[ ! -f $tcconfig || $tcc -nt $tcconfig ]]; then
-	    ls -l $tcc $tcconfig
-	    cp $tcc $tcconfig
-	    if [ $? -gt 0 ]; then
-		die "Failed to save $tcconfig"
-	    else
-		rm $toolchainbuilt
-		message "Toolchain config file has been saved to: $tcconfig"
-		message "Run ./buildmistify to rebuild the toolchain."
-	    fi
-	fi
-	exit 0
+        cd $toolchaindir
+        if [ ! -f $ctng ]; then
+            config-toolchain $toolchaindir
+        fi
+        $ctng menuconfig
+        if [[ ! -f $tcconfig || $tcc -nt $tcconfig ]]; then
+            ls -l $tcc $tcconfig
+            cp $tcc $tcconfig
+            if [ $? -gt 0 ]; then
+            die "Failed to save $tcconfig"
+            else
+            rm $toolchainbuilt
+            message "Toolchain config file has been saved to: $tcconfig"
+            message "Run ./buildmistify to rebuild the toolchain."
+            fi
+        fi
+        exit 0
     fi
     if [ -f $tcc ]; then
-	if [ -f $tcconfig ]; then
-	    diff $tcconfig $tcc >/dev/null
-	    if [ $? -gt 0 ]; then
-		warning "The toolchain configuration has changed -- rebuilding the toolchain."
-		rm -f $toolchainbuilt
-	    fi
-	else
-	    error "The toolchain config file doesn't exist."
-	    die "Run ./buildmistify toolchain-menuconfig."
-	fi
+        if [ -f $tcconfig ]; then
+            diff $tcconfig $tcc >/dev/null
+            if [ $? -gt 0 ]; then
+                warning "The toolchain configuration has changed -- rebuilding the toolchain."
+                rm -f $toolchainbuilt
+            fi
+        else
+            error "The toolchain config file doesn't exist."
+            die "Run ./buildmistify toolchain-menuconfig."
+        fi
     fi
     #+
     # Don't build the toolchain if it has already been built.
     #-
     if [ -f $toolchainbuilt ]; then
-	    message "Using toolchain installed at: $TC_PREFIX_DIR"
-	    return 0
+        message "Using toolchain installed at: $TC_PREFIX_DIR"
+        return 0
     fi
     #+
     # Download, build and install the toolchain.
@@ -297,11 +297,11 @@ install-toolchain () {
     message "Installing toolchain to: $TC_PREFIX_DIR"
 
     if [ -n "$dryrun" ]; then
-	message "Just a test run -- not building the toolchain."
-	verbose "$ctng build"
+        message "Just a test run -- not building the toolchain."
+        verbose "$ctng build"
     else
-	build-toolchain
-	save-settings
+        build-toolchain
+        save-settings
     fi
     return 0
 }

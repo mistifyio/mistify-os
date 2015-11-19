@@ -1,7 +1,7 @@
 #+
 # Some standard functions for Mistify-OS scripts.
 #-
-projectdir=$PWD	# Save this directory for later.
+projectdir=$PWD    # Save this directory for later.
 # Where to maintain buildmistify settings.
 statedir=$projectdir/.buildmistify
 
@@ -37,10 +37,10 @@ function reset_build_default() {
     # Parameters:
     #   1: option name
     if [ -e $statedir/$1 ]; then
-      rm $statedir/$1
-      verbose Option $1 default has been reset.
+        rm $statedir/$1
+        verbose Option $1 default has been reset.
     else
-      verbose Option $1 has not been set.
+        verbose Option $1 has not been set.
     fi
 }
 
@@ -72,7 +72,7 @@ error () {
 
 verbose () {
     if [[ "$verbose" == "y" ]]; then
-	echo >&2 -e "$lightblue$id$nc: $*"
+        echo >&2 -e "$lightblue$id$nc: $*"
     fi
 }
 
@@ -96,12 +96,12 @@ function run_ignore {
 function confirm () {
     read -r -p "${1:-Are you sure? [y/N]} " response
     case $response in
-	[yY][eE][sS]|[yY])
-	    true
-	    ;;
-	*)
-	    false
-	    ;;
+        [yY][eE][sS]|[yY])
+            true
+            ;;
+        *)
+            false
+            ;;
     esac
 }
 
@@ -109,4 +109,3 @@ is_mounted () {
     mount | grep $1
     return $?
 }
-
