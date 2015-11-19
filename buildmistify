@@ -43,8 +43,12 @@ Usage: ./buildmistify [options] [target]
         file $statedir/toolchainversion.
         [toolchainversion=`cat $statedir/toolchainversion`]
     --toolchainreset
-	Reset the toolchain related options to their defaults.
-    ==== go ====
+        Reset the toolchain related options to their defaults.
+    --newtoolchainbuild
+        Uses new makefile to build toolchain from source.
+        Feature flag, will eventually replace the shell script code in
+        install-toolchain.sh currently used to build.
+        ==== go ====
     --godir <dir>
         Where the GO source code is cloned to before building. This is saved in
         the file $statedir/godir.
@@ -138,10 +142,6 @@ Usage: ./buildmistify [options] [target]
     --useartifacts
         Downloads/Extracts dependent artifacts instead of building from source.
         Currently supports toolchain ONLY.
-    --newtoolchainbuild
-        Uses new makefile to build toolchain from source.
-        Feature flag, will eventually replace the shell script code in
-        install-toolchain.sh currently used to build.
     -h|--help
         Display this usage.
     ==== special targets ====
@@ -186,6 +186,7 @@ toolchaindir:,\
 toolchainprefix:,\
 toolchainversion:,\
 toolchainreset,\
+newtoolchainbuild,\
 gouri:,\
 godir:,\
 gotag:,\
@@ -200,7 +201,6 @@ bbconfig:,\
 tcconfig:,\
 dryrun,\
 useartifacts,\
-newtoolchainbuild,\
 downloaddir:,\
 resetmasters,\
 resetdefaults,\
@@ -220,121 +220,121 @@ eval set -- $a
 
 while [ $# -ge 1 ]; do
     case "$1" in
-	--)
-	    shift
-	    break
-	    ;;
-	--tcuri)
-	    tcuri=$2
-	    shift
-	    ;;
-	--toolchaindir)
-	    toolchaindir=$2
-	    shift
-	    ;;
-	--toolchainprefix)
-	    toolchainprefix=$2
-	    shift
-	    ;;
-	--toolchainversion)
-	    toolchainversion=$2
-	    shift
-	    ;;
-	--toolchainreset)
-	    toolchainreset=y
-	    ;;
-	--gouri)
-	    gouri=$2
-	    shift
-	    ;;
-	--godir)
-	    godir=$2
-	    shift
-	    ;;
-	--gotag)
-	    gotag=$2
-	    shift
-	    ;;
-	--buildrooturi)
-	    buildrooturi=$2
-	    shift
-	    ;;
-	--buildrootdir)
-	    buildrootdir=$2
-	    shift
-	    ;;
-	--buildrootversion)
-	    buildrootversion=$2
-	    shift
-	    ;;
-	-b|--builddir)
-	    builddir=$2
-	    shift
-	    ;;
-	-d|--downloaddir)
-	    downloaddir=$2
-	    shift
-	    ;;
-	--resetmasters)
-	    resetmasters=y
-	    ;;
-	--variant)
-	    variant=$2
-	    # This variable helps handle the case where the variant is being
-	    # reset to the base ('').
-	    variantset=y
-	    shift
-	    ;;
-	-c|--mconfig)
-	    mconfig=$2
-	    shift
-	    ;;
-	-k|--kconfig)
-	    kconfig=$2
-	    shift
-	    ;;
-	--bbconfig)
-	    bbconfig=$2
-	    shift
-	    ;;
-	--tcconfig)
-	    tcconfig=$2
-	    shift
-	    ;;
-	--resetdefalts)
-	    resetdefaults=y
-	    ;;
-	--noupdate)
-	    noupdate=y
-	    ;;
-	--verbose)
-	    verbose=y
-	    ;;
-	-l|--logfile)
-	    logfilename=$2
-	    shift
-	    ;;
-	--viewlog)
-	    viewlog=y
-	    ;;
-	--dryrun)
-	    dryrun=y
-	    ;;
-	--useartifacts)
-	    useartifacts=y
-	    ;;
-	--newtoolchainbuild)
-	    newtoolchainbuild=y
-	    ;;
-	-h|--help)
-	    showusage=y
-	    ;;
-	# using getopt should avoid needing this catchall but just in case...
-	*)
-	    error "Invalid option: $1"
-	    usage
-	    exit 1
-	    ;;
+    --)
+        shift
+        break
+        ;;
+    --tcuri)
+        tcuri=$2
+        shift
+        ;;
+    --toolchaindir)
+        toolchaindir=$2
+        shift
+        ;;
+    --toolchainprefix)
+        toolchainprefix=$2
+        shift
+        ;;
+    --toolchainversion)
+        toolchainversion=$2
+        shift
+        ;;
+    --toolchainreset)
+        toolchainreset=y
+        ;;
+    --newtoolchainbuild)
+        newtoolchainbuild=y
+        ;;
+    --gouri)
+        gouri=$2
+        shift
+        ;;
+    --godir)
+        godir=$2
+        shift
+        ;;
+    --gotag)
+        gotag=$2
+        shift
+        ;;
+    --buildrooturi)
+        buildrooturi=$2
+        shift
+        ;;
+    --buildrootdir)
+        buildrootdir=$2
+        shift
+        ;;
+    --buildrootversion)
+        buildrootversion=$2
+        shift
+        ;;
+    -b|--builddir)
+        builddir=$2
+        shift
+        ;;
+    -d|--downloaddir)
+        downloaddir=$2
+        shift
+        ;;
+    --resetmasters)
+        resetmasters=y
+        ;;
+    --variant)
+        variant=$2
+        # This variable helps handle the case where the variant is being
+        # reset to the base ('').
+        variantset=y
+        shift
+        ;;
+    -c|--mconfig)
+        mconfig=$2
+        shift
+        ;;
+    -k|--kconfig)
+        kconfig=$2
+        shift
+        ;;
+    --bbconfig)
+        bbconfig=$2
+        shift
+        ;;
+    --tcconfig)
+        tcconfig=$2
+        shift
+        ;;
+    --resetdefalts)
+        resetdefaults=y
+        ;;
+    --noupdate)
+        noupdate=y
+        ;;
+    --verbose)
+        verbose=y
+        ;;
+    -l|--logfile)
+        logfilename=$2
+        shift
+        ;;
+    --viewlog)
+        viewlog=y
+        ;;
+    --dryrun)
+        dryrun=y
+        ;;
+    --useartifacts)
+        useartifacts=y
+        ;;
+    -h|--help)
+        showusage=y
+        ;;
+    # using getopt should avoid needing this catchall but just in case...
+    *)
+        error "Invalid option: $1"
+        usage
+        exit 1
+        ;;
     esac
     shift
 done
@@ -396,7 +396,7 @@ set_build_default buildrootdir $buildrootdir
 #-
 if [ -z "$variant" ]; then
     if [ "$variantset" == "y" ]; then
-	reset_build_default variant
+        reset_build_default variant
     fi
     variantdefault=$(get_build_default variant base)
     variant=$variantdefault
@@ -488,7 +488,7 @@ if [ ! -f $buildrootdir/README ]; then
     # git again to update just in case.
     #-
     if [ $? -gt 0 ]; then
-	die "Cloning Buildroot encountered an error."
+        die "Cloning Buildroot encountered an error."
     fi
 fi
 
@@ -512,10 +512,10 @@ fi
 run_ignore git symbolic-ref --short HEAD
 if [ $? -eq 0 ]; then
     if [ -n "$noupdate" ]; then
-	warning Not updating buildroot.
+        warning Not updating buildroot.
     else
-	message Updating from branch: $buildrootversion
-	run git pull
+        message Updating from branch: $buildrootversion
+        run git pull
     fi
 else
     message Buildroot version $buildrootversion is not a branch. Not updating.
@@ -538,18 +538,18 @@ if [ -f $mconfig ]; then
     verbose "Variant: $variant"
     use_variant $mconfig $brc $variant
     if [ $? -gt 0 ]; then
-	die "Could not copy the Buildroot config file."
+        die "Could not copy the Buildroot config file."
     fi
     message "Config file $mconfig copied to $brc"
     set_build_default mconfig $mconfig
 else
-  case "$target" in
-    "menuconfig" | "nconfig")
-	;;
-    *)
-	die "The config file doesn't exist. Run $0 menuconfig."
-	;;
-  esac
+    case "$target" in
+        "menuconfig" | "nconfig")
+            ;;
+        *)
+            die "The config file doesn't exist. Run $0 menuconfig."
+            ;;
+    esac
 fi
 
 #+
@@ -562,16 +562,16 @@ brkc=$variantbuilddir/build/linux-`grep BR2_LINUX_KERNEL_VERSION $brc | cut -d "
 verbose "Kernel configuration file: $brkc"
 if [ -f $brkc ]; then
     if [ -f $kconfig ]; then
-	use_variant $kconfig $brkc $variant
-	if [ $? -gt 0 ]; then
-	    die "Could not copy the kernel config file."
-	fi
-	message "Config file $kconfig copied to $brkc"
-	set_build_default kconfig $kconfig
+        use_variant $kconfig $brkc $variant
+        if [ $? -gt 0 ]; then
+            die "Could not copy the kernel config file."
+        fi
+        message "Config file $kconfig copied to $brkc"
+        set_build_default kconfig $kconfig
     else
-	if [[ "$target" != "linux-menuconfig" ]]; then
-	    die "The kernel config file doesn't exist. Run ./buildmistify linux-menuconfig."
-	fi
+        if [[ "$target" != "linux-menuconfig" ]]; then
+            die "The kernel config file doesn't exist. Run ./buildmistify linux-menuconfig."
+        fi
     fi
 fi
 
@@ -584,17 +584,17 @@ bbc=`ls -d $variantbuilddir/build/busybox-*`/.config
 
 if [ -f $bbc ]; then
     if [ -f $bbconfig ]; then
-	use_variant $bbconfig $bbc $variant
-	if [ $? -gt 0 ]; then
-	    warning "Busybox hasn't been built yet."
-	fi
-	message "Config file $bbconfig copied to $bbc"
-	set_build_default bbconfig $bbconfig
+        use_variant $bbconfig $bbc $variant
+        if [ $? -gt 0 ]; then
+            warning "Busybox hasn't been built yet."
+        fi
+        message "Config file $bbconfig copied to $bbc"
+        set_build_default bbconfig $bbconfig
     else
-	if [[ "$target" != "busybox-menuconfig" ]]; then
-	    error "The BusyBox config file doesn't exist."
-	    die "Run ./buildmistify busybox-menuconfig."
-	fi
+        if [[ "$target" != "busybox-menuconfig" ]]; then
+            error "The BusyBox config file doesn't exist."
+            die "Run ./buildmistify busybox-menuconfig."
+        fi
     fi
 fi
 
@@ -613,13 +613,13 @@ message "The Buildroot download directory is: $downloaddir"
 #-
 if [ -n "$resetmasters" ]; then
     if [ -d $downloaddir ]; then
-	p=$downloaddir/*-master.tar*
-	if ls $p 1> /dev/null 2>&1; then
-	for f in `ls $p`; do
-	    warning "Removing cached master branch file: $f"
-	    rm $f
-	done
-	fi
+        p=$downloaddir/*-master.tar*
+        if ls $p 1> /dev/null 2>&1; then
+            for f in `ls $p`; do
+                warning "Removing cached master branch file: $f"
+                rm $f
+            done
+        fi
     fi
 fi
 
@@ -656,85 +656,85 @@ $target"
 #-
 case "$target" in
     "menuconfig" | "nconfig")
-	touch $timestampfile
-	verbose "Current directory is: $PWD"
-	$makecommand
-	if [[ ! -f $mconfig || $brc -nt $timestampfile ]]; then
-	    #+
-	    # NOTE: The buildroot config option BR2_DEFCONFIG
-	    # needs to point to the config file so that buildroot will copy the correct
-	    # file on the first build.
-	    #-
-	   update_variant $brc $mconfig $variant
-	    if [ $? -gt 0 ]; then
-		error "Failed to save $mconfig"
-		exit 1
-	    fi
-	    tip "Use $0 to build Mistify using the new configuration."
-	    if [ -z "$variant" ]; then
-		message "New config file at $brc saved to $mconfig"
-	    else
-		message "The configuration variant saved to $variant"
-	    fi
-	fi
-	rm -f $timestampfile
-	exit
-	;;
+        touch $timestampfile
+        verbose "Current directory is: $PWD"
+        $makecommand
+        if [[ ! -f $mconfig || $brc -nt $timestampfile ]]; then
+            #+
+            # NOTE: The buildroot config option BR2_DEFCONFIG
+            # needs to point to the config file so that buildroot will copy the correct
+            # file on the first build.
+            #-
+            update_variant $brc $mconfig $variant
+            if [ $? -gt 0 ]; then
+                error "Failed to save $mconfig"
+                exit 1
+            fi
+            tip "Use $0 to build Mistify using the new configuration."
+            if [ -z "$variant" ]; then
+                message "New config file at $brc saved to $mconfig"
+            else
+                message "The configuration variant saved to $variant"
+            fi
+        fi
+        rm -f $timestampfile
+        exit
+        ;;
     "xconfig" | "gconfig")
-	error "Configuration tool $target is not supported."
-	exit 1
-	;;
+        error "Configuration tool $target is not supported."
+        exit 1
+        ;;
     "linux-menuconfig")
-	#+
-	# NOTE: The buildroot config option BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE
-	# needs to point to the config file so that buildroot will copy the correct
-	# file on the first build.
-	#-
-	touch $timestampfile
-	$makecommand
-	if [[ ! -f $kconfig || $brkc -nt $timestampfile ]]; then
-	    update_variant $brkc $kconfig $variant
-	    if [ $? -gt 0 ]; then
-		error "Failed to save $kconfig"
-		exit 1
-	    fi
-	    tip "Use $0 to build Mistify using the new configuration."
-	    if [ -z "$variant" ]; then
-		message "New kernel config file at $brkc saved to $kconfig"
-	    else
-		message "The kernel configuration variant saved to $variant"
-	    fi
-	fi
-	rm -f $timestampfile
-	exit
-	;;
+        #+
+        # NOTE: The buildroot config option BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE
+        # needs to point to the config file so that buildroot will copy the correct
+        # file on the first build.
+        #-
+        touch $timestampfile
+        $makecommand
+        if [[ ! -f $kconfig || $brkc -nt $timestampfile ]]; then
+            update_variant $brkc $kconfig $variant
+            if [ $? -gt 0 ]; then
+                error "Failed to save $kconfig"
+                exit 1
+            fi
+            tip "Use $0 to build Mistify using the new configuration."
+            if [ -z "$variant" ]; then
+                message "New kernel config file at $brkc saved to $kconfig"
+            else
+                message "The kernel configuration variant saved to $variant"
+            fi
+        fi
+        rm -f $timestampfile
+        exit
+        ;;
     "busybox-menuconfig")
-	#+
-	# NOTE: The buildroot config option BR2_PACKAGE_BUSYBOX_CONFIG
-	# needs to point to the config file so that buildroot will copy the correct
-	# file on the first build.
-	#-
-	touch $timestampfile
-	$makecommand
-	# NOTE: May want to use grep instead of a timestamp compare.
-	if [[ ! -f $bbconfig || $bbc -nt $timestampfile ]]; then
-	    update_variant $bbc $bbconfig $variant
-	    if [ $? -gt 0 ]; then
-		error "Failed to save $bbconfig"
-		exit 1
-	    fi
-	    tip "Use $0 to build Mistify using the new configuration."
-	    if [ -z "$variant" ]; then
-		message "New BusyBox config file $bbc saved to $bbconfig"
-	    else
-		message "The BusyBox configuration variant saved to $variant"
-	    fi
-	fi
-	rm -f $timestampfile
-	exit
-	;;
+        #+
+        # NOTE: The buildroot config option BR2_PACKAGE_BUSYBOX_CONFIG
+        # needs to point to the config file so that buildroot will copy the correct
+        # file on the first build.
+        #-
+        touch $timestampfile
+        $makecommand
+        # NOTE: May want to use grep instead of a timestamp compare.
+        if [[ ! -f $bbconfig || $bbc -nt $timestampfile ]]; then
+            update_variant $bbc $bbconfig $variant
+            if [ $? -gt 0 ]; then
+                error "Failed to save $bbconfig"
+                exit 1
+            fi
+            tip "Use $0 to build Mistify using the new configuration."
+            if [ -z "$variant" ]; then
+                message "New BusyBox config file $bbc saved to $bbconfig"
+            else
+                message "The BusyBox configuration variant saved to $variant"
+            fi
+        fi
+        rm -f $timestampfile
+        exit
+        ;;
     *)
-	;;
+        ;;
 esac
 
 #+
@@ -771,11 +771,11 @@ EOF
     message "The Mistify-OS build is complete."
     message "The log file is: $logfile"
     if [ $rc -gt 0 ]; then
-	error "Make complained about a build problem (see $logfile)."
-	if [ -n "$viewlog" ]; then
-	    less $logfile
-	fi
-	exit 1
+        error "Make complained about a build problem (see $logfile)."
+        if [ -n "$viewlog" ]; then
+            less $logfile
+        fi
+        exit 1
     fi
 fi
 
@@ -812,4 +812,3 @@ message "initrd.buildroot: The RAM disk."
 if [ -e $imagedir ]; then
     ls -l $imagedir
 fi
-
