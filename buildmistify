@@ -7,6 +7,7 @@
 #-
 
 
+source scripts/mistify-functions.sh
 
 timestampfile=/tmp/buildmistify-ts
 
@@ -19,6 +20,8 @@ Usage: ./buildmistify [options] [target]
   the Mistify repository.
   Buildroot is configured to use an external toolchain. If the external
   toolchain is not present then it is installed before starting Buildroot.
+  Any of the options can be reset to their default value by passing "default"
+  as the parameter.
   Options:
     ==== external toolchain ====
     --tcuri <uri>
@@ -33,36 +36,46 @@ Usage: ./buildmistify [options] [target]
         $statedir/toolchaindir.
         [toolchaindir=`cat $statedir/toolchaindir`]
     --toolchainprefix <prefix>
-        This is the toolchain prefix to use to select a specific build of the
-        toolchain. This is saved in the file
+        This is the toolchain prefix to use to identify the intended target
+        architecture of the toolchain. This is saved in the file
         $statedir/toolchainprefix
         [toolchainprefix=`cat $statedir/toolchainprefix`]
     --toolchainversion <version>
         Checkout the toolchain using a specified version. This can be a branch
-        or tag name or even a commit ID. The version information is saved in the
-        file $statedir/toolchainversion.
+        or tag name or even a commit ID. This is used to build the path to where
+        the toolchain is cloned. This is saved in the file
+        $statedir/toolchainversion.
         [toolchainversion=`cat $statedir/toolchainversion`]
+    --toolchaininstallprefix <dir>
+        Where the toolchain should be installed. This is saved in the file
+        $statedir/toolchaininstallprefix
+        [toolchaininstallprefix=`cat $statedir/toolchaininstallprefix`]
     --toolchainreset
         Reset the toolchain related options to their defaults.
-    --newtoolchainbuild
-        Uses new makefile to build toolchain from source.
-        Feature flag, will eventually replace the shell script code in
-        install-toolchain.sh currently used to build.
-        ==== go ====
+    --tcartifacturi <uri>
+        The server on which pre-built toolchains are stored. This is used when
+        a pre-built toolchain is either copied to the server or installed from
+        the server. This is saved in the file
+        $statedir/tcartifacturi.
+        [tcartifacturi=`cat $statedir/tcartifacturi`]
+    ==== go ====
     --godir <dir>
         Where the GO source code is cloned to before building. This is saved in
         the file $statedir/godir.
         [godir=`cat $statedir/godir`]
-    --gouri default|<uri>
-        The repository from which to clone the GO source code. Use "default"
-        to reset to the default URI.
+    --gouri <uri>
+        The repository from which to clone the GO source code.
         This is saved in the file $statedir/gouri.
         [gouri=`cat $statedir/gouri`]
-    --gotag default|<tag>
+    --gotag <tag>
         The tag to use when fetching the GO source code from the repository.
-        Use "default" to reset to the default repository tag.
         This is saved in the file $statedir/gotag.
         [gotag=`cat $statedir/gotag`]
+    --gobootstraptag <tag>
+        The tag to use when fetching the GO source code from the repository for.
+        the version of go to use to bootstrap go 1.5 and latere.
+        This is saved in the file $statedir/gobootstraptag.
+        [gobootstraptag=`cat $statedir/gobootstraptag`]
     ==== buildroot ====
     --buildrooturi <uri>
         The repository from which to clone Buildroot. This is saved in the file
@@ -127,7 +140,7 @@ Usage: ./buildmistify [options] [target]
         [tcconfig=`cat $statedir/tcconfig 2>/dev/null || echo \\`]
     ==== other ====
     --resetdefaults
-        Reset options back to their default values.
+        Reset all options back to their default values.
     --noupdate
         Do not attempt to update buildroot or the toolchain from the repo.
     --verbose
@@ -161,17 +174,11 @@ Usage: ./buildmistify [options] [target]
   linux-menuconfig exit immediately after exiting the corresponding
   configuration utilities.
   Custom environment variables:
-    MISTIFY_DIR = Points to the directory in which buildmistify resides. This
+    MISTIFY_DIR Points to the directory in which buildmistify resides. This
     can then be used in the buildroot config to specify locations of files such
     as the config file.
 EOF
 }
-
-source scripts/mistify-functions.sh
-source scripts/install-toolchain.sh
-source scripts/install-go.sh
-source scripts/variants.sh
-
 
 #+
 # TODO: Add some quick checks to verify required tools are installed.
@@ -184,12 +191,14 @@ a=`getopt -l "\
 tcuri:,\
 toolchaindir:,\
 toolchainprefix:,\
+toolchaininstallprefix:,\
 toolchainversion:,\
 toolchainreset,\
-newtoolchainbuild,\
+tcartifacturi:,\
 gouri:,\
 godir:,\
 gotag:,\
+gobootstraptag:,\
 buildrooturi:,\
 buildrootdir:,\
 buildrootversion:,\
@@ -236,6 +245,10 @@ while [ $# -ge 1 ]; do
         toolchainprefix=$2
         shift
         ;;
+    --toolchaininstallprefix)
+        toolchaininstallprefix=$2
+        shift
+        ;;
     --toolchainversion)
         toolchainversion=$2
         shift
@@ -243,8 +256,9 @@ while [ $# -ge 1 ]; do
     --toolchainreset)
         toolchainreset=y
         ;;
-    --newtoolchainbuild)
-        newtoolchainbuild=y
+    --tcartifacturi)
+        tcartifacturi=$2
+        shift
         ;;
     --gouri)
         gouri=$2
@@ -256,6 +270,10 @@ while [ $# -ge 1 ]; do
         ;;
     --gotag)
         gotag=$2
+        shift
+        ;;
+    --gobootstraptag)
+        gobootstraptag=$2
         shift
         ;;
     --buildrooturi)
@@ -304,7 +322,7 @@ while [ $# -ge 1 ]; do
         tcconfig=$2
         shift
         ;;
-    --resetdefalts)
+    --resetdefaults)
         resetdefaults=y
         ;;
     --noupdate)
@@ -339,33 +357,53 @@ while [ $# -ge 1 ]; do
     shift
 done
 
-if [ ! -z "$resetdefaults" ]; then
-    reset_build_default buildrooturi
-    reset_build_default buildrootdir
-    reset_build_default buildrootversion
-    reset_build_default builddir
-    reset_build_default downloaddir
-    reset_build_default mconfig
-    reset_build_default kconfig
-    reset_build_default bbconfig
+defaults=(
+    tcuri=git@github.com:mistifyio/crosstool-ng.git
+    toolchaindir=$PWD/toolchain
+    toolchainprefix=x86_64-unknown-linux-gnu
+    toolchaininstallprefix=target-toolchain
+    toolchainversion=glibc-multilib-sdk
+    tcartifacturi=https://s3.amazonaws.com/omniti-mystify-artifacts/toolchain-artifacts
+    gouri=git@github.com:golang/go.git
+    godir=$PWD/go
+    gotag=go1.5.1
+    gobootstraptag=go1.4.2
+    variant=base
+    buildrooturi=git@github.com:mistifyio/buildroot.git
+    buildrootdir=$PWD/build/buildroot
+    buildrootversion=master
+    builddir=$PWD/build/mistify
+    downloaddir=$PWD/downloads
+    mconfig=$PWD/configs/mistify_defconfig
+    kconfig=$PWD/configs/mistify-kernel.config
+    bbconfig=$PWD/configs/mistify-busybox.config
+    tcconfig=$PWD/configs/mistify-tc-multilib.config
+)
+
+if [ -n "$toolchainreset" ]; then
+    for d in tcconfig tcuri toolchaindir toolchainprefix toolchainversion
+    do
+        verbose Resetting default: $d
+        reset_build_default $d
+    done
 fi
 
-#+
-# TODO: builtrootversion needs to be updated at release time to use the tag corresponding
-# to the release.
-#-
-buildrooturidefault=$(get_build_default buildrooturi git@github.com:mistifyio/buildroot.git)
-buildrootdirdefault=$(get_build_default buildrootdir $PWD/build/buildroot)
-buildrootversiondefault=$(get_build_default buildrootversion master)
+for v in "${defaults[@]}"
+do
+    if [ ! -z "$resetdefaults" ]; then
+        clear_build_variable $v
+    fi
+    init_build_variable $v
+done
 
-rootdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-builddirdefault=$(get_build_default builddir $PWD/build/mistify)
-downloaddirdefault=$(get_build_default downloaddir $PWD/downloads)
-mconfigdefault=$(get_build_default mconfig $PWD/configs/mistify_defconfig)
-kconfigdefault=$(get_build_default kconfig $PWD/configs/mistify-kernel.config)
-bbconfigdefault=$(get_build_default bbconfig $PWD/configs/mistify-busybox.config)
+if [ -n "$showusage" ]; then
+    usage
+    exit 0
+fi
 
-message "Root directory: $rootdir"
+source scripts/install-toolchain.sh
+source scripts/install-go.sh
+source scripts/variants.sh
 
 if [[ $# -ge 1 ]]; then
     target="$@"
@@ -375,20 +413,7 @@ else
     t=""
 fi
 
-if [ ! -e $statedir ]; then
-    mkdir -p $statedir
-fi
-
-#+
-# Determine the location of the Buildroot directory.
-# NOTE: The directory does not need to exist because the Buildroot init script will
-# create it if necessary.
-#-
-if [ -z "$buildrootdir" ]; then
-    buildrootdir=$buildrootdirdefault
-fi
 message "Using Buildroot located at: $buildrootdir"
-set_build_default buildrootdir $buildrootdir
 
 #+
 # Determine the configuration variant to use.
@@ -408,19 +433,8 @@ message "Using $variant configuration."
 
 export MISTIFY_VARIANT="$variant"
 
-#+
-# Determine the location of the build directory.
-# NOTE: The directory does not need to exist because the Buildroot make will
-# create it if necessary.
-#-
-if [ -z "$builddir" ]; then
-    builddir=$builddirdefault
-fi
-if [ ! -d "$builddir" ]; then
-    mkdir -p $builddir
-fi
+mkdir -p $builddir
 message "Build output directory is: $builddir"
-set_build_default builddir $builddir
 
 variantbuilddir=$builddir/$variantdir
 message "The variant build directory is: $variantbuilddir"
@@ -430,54 +444,16 @@ set_build_default variantbuilddir $variantbuilddir
 logdir=$variantbuilddir/logs
 mkdir -p $logdir
 
-#+
-# Determine the uri to use to fetch the Buildroot tool.
-#-
-if [ -z "$buildrooturi" ]; then
-    buildrooturi=$buildrooturidefault
-fi
 message "The Buildroot repository is: $buildrooturi"
-set_build_default buildrooturi $buildrooturi
-
-if [ -z "$buildrootversion" ]; then
-    buildrootversion=$buildrootversiondefault
-fi
 message "The Buildroot version is: $buildrootversion"
-
-if [ -z "$mconfig" ]; then
-    mconfig=$mconfigdefault
-fi
-
-if [ -z "$kconfig" ]; then
-    kconfig=$kconfigdefault
-fi
-
-if [ -z "$downloaddir" ]; then
-    downloaddir=$downloaddirdefault
-fi
-
-if [ -z "$bbconfig" ]; then
-    bbconfig=$bbconfigdefault
-fi
 
 if [ -z "$logfilename" ]; then
     logfilename=buildroot-`date +%y%m%d%H%M%S`.log
 fi
 
 if [ "$target" == "toolchain-build" ]; then
-    if [ ! -z "$useartifacts" ]; then
-        install-toolchain-from-artifact
-    elif [ ! -z "$newtoolchainbuild" ]; then
-        install-toolchain-from-source
-    else
-        install-toolchain
-    fi
-    exit 0
-fi
-
-if [ ! -z "$showusage" ]; then
-    usage
-    exit 0
+    install-toolchain
+    exit $?
 fi
 
 if [ ! -f $buildrootdir/README ]; then
@@ -498,7 +474,7 @@ if [ -n "$noupdate" ]; then
     warning Not fetching branches for buildroot.
 else
     message "Fetching Buildroot update from the remote repository."
-    git fetch
+    run git fetch
 fi
 
 run git checkout $buildrootversion
@@ -629,13 +605,7 @@ message "Project dir: $projectdir"
 #+
 # Be sure the toolchain is installed.
 #-
-if [ ! -z "$useartifacts" ]; then
-    install-toolchain-from-artifact
-elif [ ! -z "$newtoolchainbuild" ]; then
-    install-toolchain-from-source
-else
-    install-toolchain
-fi
+install-toolchain
 install-go
 
 #+
@@ -644,7 +614,7 @@ install-go
 export MISTIFY_DIR=$projectdir
 makecommand="\
 make O=$variantbuilddir \
-TOOLCHAIN_PATH=$TC_PREFIX_DIR TOOLCHAIN_PREFIX=$toolchainprefix \
+TOOLCHAIN_PATH=`toolchain-dir` TOOLCHAIN_PREFIX=$toolchainprefix \
 BR2_CCACHE_DIR=$builddir/.buildroot_ccache \
 BR2_DL_DIR=$downloaddir BR2_EXTERNAL=$projectdir \
 BR2_DEFAULT_KERNEL_HEADERS=$buildrootkernelheaders \
@@ -750,6 +720,7 @@ message "Logging the build output to: $logfile"
 if [ -n "$dryrun" ]; then
     message "Just a dry run -- not running make."
     verbose $makecommand
+    exit 0
 else
     #+
     # Run the buildroot make.

@@ -7,11 +7,6 @@
 # script. This is because the path to the toolchain is embedded and different
 # versions of the toolchain can be selected.
 #-
-gouridefault=git@github.com:golang/go.git
-godirdefault=$PWD/go
-gotagdefault=go1.5.1
-gobootstraptag=go1.4.2
-
 build-c-go () {
     #+
     # Parameters:
@@ -96,54 +91,11 @@ build-go-go () {
 }
 
 install-go () {
-    #+
-    # Determine the location of the go directory.
-    #-
-    if [ -z "$godir" ]; then
-        if [ -f $statedir/godir ]; then
-            godir=`cat $statedir/godir`
-        else
-            godir=$godirdefault
-        fi
-        message "Using go located at: $godir"
-    fi
-    eval godir=$godir
-    verbose "Building go in: $godir"
-    echo $godir >$statedir/godir
+    message "Building go in: $godir"
 
-    #+
-    # Determine the uri to use to fetch the go source.
-    #-
-    if [ -z "$gouri" ]; then
-        if [ -f $statedir/gouri ]; then
-            gouri=`cat $statedir/gouri`
-        else
-            gouri=$gouridefault
-        fi
-    fi
-    if [[ "$gouri" == "default" ]]; then
-        warning "Resetting the GO repository URI to the default: $gouridefault."
-        gouri=$gouridefault
-    fi
     message "The go source repository is: $gouri"
-    echo $gouri >$statedir/gouri
 
-    #+
-    # Determine the tag or branch to use to fetch the go source.
-    #-
-    if [ -z "$gotag" ]; then
-        if [ -f $statedir/gotag ]; then
-            gotag=`cat $statedir/gotag`
-        else
-            gotag=$gotagdefault
-        fi
-    fi
-    if [[ "$gotag" == "default" ]]; then
-        warning "Resetting the GO repository tag to the default: $gotagdefault."
-        gotag=$gotagdefault
-    fi
     message "The go branch or tag is: $gotag"
-    echo $gotag >$statedir/gotag
 
     golabel=$gotag-$toolchainversion
     verbose The Go label is: $golabel

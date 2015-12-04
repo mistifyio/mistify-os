@@ -1,17 +1,79 @@
-root_dir = $(shell pwd)
+#+
+# Some helpful macros.
+#-
+this_makefile = $(notdir $(lastword $(MAKEFILE_LIST)))
 
-build_dir = $(root_dir)/target
-build_output_dir = $(build_dir)/compiled_output
-download_dir = $(HOME)/.toolchain/downloads
-distributions_dir = $(build_dir)/distributions
+define message
+  $(info $(this_makefile): $(1))
+endef
 
-version = 1.21.0-SNAPSHOT
-arch = x86_64-unknown-linux-gnu
-version_extra = base
+define warn
+  $(warning $(this_makefile) warning: $(1))
+endef
 
-config_file = $(root_dir)/configs/mistify-tc.config
-config_status_file = config.status
-distribution = $(distributions_dir)/crosstool-ng-$(arch)-$(version)-$(version_extra).tar.gz
+define err
+  $(warning $(this_makefile) error: $(1))
+endef
+
+define die
+  $(error $(this_makefile): $(1))
+endef
+
+#+
+# This make file is designed to be called from the buildmistify
+# install-toolchain.sh script but can also be used from the command line.
+# It performs all the steps needed to clone the toolchain source from a git
+# repo (typically github) and build the final toolchain.
+# Parameters are passed from the buildmistify script on the make command line
+# as variable definitins which override the following variables. For consistency,
+# the variable names are those used by the buildmistify script.
+# To simplify use directly from the command line meaningful default values are
+# provided. The buildmistify help describes the meaning of each of these variables.
+#-
+$(call message, $(shell pwd))
+tcuri = git@github.com:mistifyio/crosstool-ng.git
+$(call message, "tcuri = $(tcuri)" )
+toolchaindir = $(shell pwd)/toolchain
+$(call message, "toolchaindir = $(toolchaindir)" )
+toolchainprefix = x86_64-unknown-linux-gnu
+$(call message, "toolchainprefix = $(toolchainprefix)" )
+toolchaininstallprefix = toolchain
+$(call message, "toolchaininstallprefix = $(toolchaininstallprefix)" )
+toolchainversion = glibc-multilib-sdk
+$(call message, "toolchainversion = $(toolchainversion)" )
+variant = base
+$(call message, "variant = $(variant)" )
+tcartifacturi = https://s3.amazonaws.com/omniti-mystify-artifacts/toolchain-artifacts
+$(call message, "tcartifacturi = $(tcartifacturi)" )
+tcconfig = $(shell pwd)/configs/mistify-tc-multilib.config
+$(call message, "tcconfig = $(tcconfig)" )
+downloaddir = $(shell pwd)/downloads
+$(call message, "downloaddir = $(downloaddir)" )
+verbose = n
+$(call message, "verbose = $(verbose)" )
+
+#+
+# Internal variables derived from the buildmistify commandline variables and
+# passed to this makefile by the buildmistify:install-toolchain.sh script.
+#-
+toolchain_name_prefix=crosstool-ng
+$(call message, "toolchain_name_prefix = $(toolchain_name_prefix)")
+toolchain_base_name = $(toolchain_name_prefix)-$(toolchainprefix)-$(toolchainversion)-$(variant)
+$(call message, "toolchain_base_name = $(toolchain_base_name)")
+toolchain_tar_file = $(toolchain_base_name).tgz
+$(call message, "toolchain_tar_file = $(toolchain_tar_file)")
+toolchainartifact_url = $(tcartifacturi)/$(toolchain_tar_file)
+$(call message, "toolchainartifact_url = $(toolchainartifact_url)")
+toolchain_variation_dir = $(toolchaindir)/build-$(toolchain_base_name)
+$(call message, "toolchain_variation_dir = $(toolchain_variation_dir)")
+toolchain_install_dir = $(toolchaindir)/$(toolchain_base_name)
+$(call message, "toolchain_install_dir = $(toolchain_install_dir)")
+
+toolchain_target_file = $(toolchain_install_dir)/bin/$(toolchainprefix)-gcc
+
+define run_in_tc_dir
+  cd $(toolchain_variation_dir) && $(1)
+endef
 
 .Phony: build clean fullclean dist distclean version tagformat
 
@@ -19,75 +81,95 @@ distribution = $(distributions_dir)/crosstool-ng-$(arch)-$(version)-$(version_ex
 export TC_PREFIX=$(arch)
 export TC_ARCH_SUFFIX=$(version_extra)-$(version)
 export TC_PREFIX_DIR=$(build_output_dir)
-export TC_LOCAL_TARBALLS_DIR=$(download_dir)
+export TC_LOCAL_TARBALLS_DIR=$(downloaddir)
 
-$(info Config file is $(config_file))
-$(info TC_PREFIX is ${TC_PREFIX})
-$(info TC_ARCH_SUFFIX is ${TC_ARCH_SUFFIX})
-$(info TC_PREFIX_DIR is ${TC_PREFIX_DIR})
-$(info TC_LOCAL_TARBALLS_DIR is ${TC_LOCAL_TARBALLS_DIR})
-$(info )
+# all: cleanonchange.cache build dist
+all: $(downloaddir)/$(toolchain_tar_file)
 
-all: cleanonchange.cache build dist
-
-$(config_file):;
+$(tcconfig):;
 
 $(config_status_file):;
 
-cleanonchange.cache: $(config_file)
-	-rm -rf $(build_output_dir)
-	if [ -f ct-ng ]; then ./ct-ng distclean; fi;
-	-rm $(config_status_file)
-	touch cleanonchange.cache
+$(toolchain_variation_dir):
+	git clone $(tcuri) $(toolchain_variation_dir)
 
-$(download_dir):
-	mkdir -p $(download_dir)
+$(toolchain_variation_dir)/.toolchainversion.$(toolchainversion): \
+  $(toolchain_variation_dir)
+	$(call run_in_tc_dir, \
+		git fetch)
+	$(call run_in_tc_dir, \
+		git checkout $(toolchainversion))
+	$(call run_in_tc_dir, \
+		git symbolic-ref --short HEAD && \
+		if [ $$? -eq 0 ]; then \
+			echo "Updating from branch: $(toolchainversion)"; \
+			git pull; \
+		fi)
+	touch $@
 
-$(build_output_dir):
-	mkdir -p $(build_output_dir)
+$(downloaddir):
+	mkdir -p $(downloaddir)
 
-$(distributions_dir):
-	mkdir -p $(distributions_dir)
+$(toolchain_variation_dir)/.config: $(tcconfig) \
+  $(toolchain_variation_dir)/.toolchainversion.$(toolchainversion)
+	cp $< $@
+	rm -rf $(toolchain_install_dir)
 
-.config: $(config_file)
-	cp $(config_file) .config
+$(toolchain_variation_dir)/configure: $(toolchain_variation_dir)/.config
+	$(call run_in_tc_dir, ./bootstrap )
 
-createbuildirs: | $(download_dir) $(build_output_dir) $(distributions_dir)
+#+
+# The toolchain makefile needs to be modified because it is being called
+# from this makefile. A variable is used here for two reasons. One, it's
+# easier to maintain the pattern and two, it can be overriden if necessary.
+#-
+fix_makefile_pattern = s/MAKELEVEL),0/MAKELEVEL),1/g
+$(toolchain_variation_dir)/Makefile: $(toolchain_variation_dir)/configure
+	$(call run_in_tc_dir, ./configure --enable-local)
+	$(call run_in_tc_dir, \
+	  sed -i.bak '$(fix_makefile_pattern)' Makefile \
+	)
 
-bootstraptoolchain.cache: .config
-	./bootstrap
-	touch bootstraptoolchain.cache
+$(toolchain_variation_dir)/ct-ng: $(toolchain_variation_dir)/Makefile
+	$(call run_in_tc_dir, make)
 
-configuretoolchain.cache: bootstraptoolchain.cache $(config_status_file)
-	./configure --enable-local --prefix=$(root_dir)
-	touch configuretoolchain.cache
+$(toolchain_target_file): \
+  $(toolchain_variation_dir)/ct-ng
+	$(call run_in_tc_dir, \
+	export TC_ARCH_SUFFIX=-$(toolchainversion); \
+    export TC_PREFIX=$(toolchainprefix); \
+    export TC_PREFIX_DIR=$(toolchain_install_dir); \
+    export TC_LOCAL_TARBALLS_DIR=$(downloaddir); \
+	time ./ct-ng build 2>&1 | tee tc-`date +%y%m%d%H%M%S`.log \
+	)
 
-ctng.cache: configuretoolchain.cache
-	sed -i.bak 's/MAKELEVEL),0/MAKELEVEL),1/g' Makefile
-	make -f Makefile
-	touch ctng.cache
+$(downloaddir)/$(toolchain_tar_file): \
+  $(toolchain_install_dir)/bin/$(toolchainprefix)-gcc
+	mkdir -p $(@D)
+	tar cvzf $@ -C $(toolchaindir) $(toolchain_base_name)
 
-build: createbuildirs ctng.cache
-	time ./ct-ng build
+build: $(toolchain_target_file)
 
-dist:
-	tar cvzf $(distribution) -C $(build_output_dir) .
+dist: $(downloaddir)/$(toolchain_tar_file)
 
 distclean:
-	-rm $(distributions_dir)/*
+	-rm $(downloaddir)/$(toolchain_tar_file)
 
 clean:
-	-rm -rf $(build_output_dir)
-	if [ -f ct-ng ]; then ./ct-ng distclean; fi;
+	-rm -rf $(toolchain_install_dir)
+	$(call run_in_tc_dir,
+	  if [ -f ct-ng ]; then ./ct-ng distclean; fi;
+	)
 
-fullclean: clean
-	-rm $(config_status_file)
+fullclean:
+	-rm -rf $(toolchain_variation_dir)
 
-menuconfig: configuretoolchain.cache
-	./ct-ng menuconfig
+toolchain-menuconfig: $(toolchain_variation_dir)/ct-ng
+	$(call run_in_tc_dir,
+	  ./ct-ng menuconfig)
 
 version:
-	@echo $(version)
+	@echo $(toolchainversion)
 
 tagformat:
-	@echo $(arch)-{new_version}-$(version_extra)
+	@echo $(toolchain_base_name)
