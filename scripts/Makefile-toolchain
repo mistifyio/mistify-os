@@ -77,13 +77,6 @@ endef
 
 .Phony: build clean fullclean dist distclean version tagformat
 
-# Needed for ct-ng build script
-export TC_PREFIX=$(arch)
-export TC_ARCH_SUFFIX=$(version_extra)-$(version)
-export TC_PREFIX_DIR=$(build_output_dir)
-export TC_LOCAL_TARBALLS_DIR=$(downloaddir)
-
-# all: cleanonchange.cache build dist
 all: $(downloaddir)/$(toolchain_tar_file)
 
 $(tcconfig):;
