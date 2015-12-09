@@ -381,7 +381,10 @@ defaults=(
 )
 
 if [ -n "$toolchainreset" ]; then
-    for d in tcconfig tcuri toolchaindir toolchainprefix toolchainversion
+    for d in \
+        tcconfig tcuri toolchaindir \
+        toolchainprefix toolchainversion \
+        tcartifacturi
     do
         verbose Resetting default: $d
         reset_build_default $d
