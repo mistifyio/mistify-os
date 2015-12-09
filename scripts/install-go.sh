@@ -32,20 +32,8 @@ build-c-go () {
     run git fetch $gouri
     run git checkout $2
     cd src
-    export GOOS=linux
-    export GOARCH=amd64
-    if [ -n "$TC_PREFIX_DIR" ]; then
-        export CC_FOR_TARGET="$TC_PREFIX_DIR/bin/${TC_PREFIX}-cc"
-        export CXX_FOR_TARGET="$TC_PREFIX_DIR/bin/${TC_PREFIX}-c++"
-    fi
-    export CGO_ENABLED=1
 
     run ./make.bash
-
-    # Clean up
-    unset CC_FOR_TARGET
-    unset CXX_FOR_TARGET
-    unset CGO_ENABLED
 
     touch $godir/.$1-built
 }
@@ -79,8 +67,6 @@ build-go-go () {
     run git checkout $2
     cd src
     export GOROOT_BOOTSTRAP=$godir/$bootstraplabel/go
-    export GOOS=linux
-    export GOARCH=amd64
 
     run ./make.bash
 
@@ -114,9 +100,21 @@ install-go () {
         die Only go1.x.x supported at this time.
     fi
     minor=`echo $gotag | cut -d . -f 2`
+    export GOOS=linux
+    export GOARCH=amd64
+    export CC_FOR_TARGET="${toolchain_install_dir}/bin/${toolchainprefix}-cc"
+    export CXX_FOR_TARGET="${toolchain_install_dir}/bin/${toolchainprefix}-c++"
+    export CGO_ENABLED=1
     if [ "$minor" -lt "5" ]; then
         build-c-go $golabel $gotag
     else
         build-go-go $golabel $gotag
     fi
+    # Clean up
+    unset GOOS
+    unset GOARCH
+    unset CC_FOR_TARGET
+    unset CXX_FOR_TARGET
+    unset CGO_ENABLED
+
 }
