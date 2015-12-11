@@ -83,11 +83,11 @@ function clear_build_variable() {
     #	1: variable name and default value pair delimited by the delimeter (2)
     #   2: an optional delimeter character (defaults to ';')
     if [ -z "$2" ]; then
-        d=';'
+        d='='
     else
         d=$2
     fi
-    e=(`echo $1 | tr $d " "`)
+    e=(`echo "$1" | tr "$d" " "`)
     verbose ""
     verbose Clearing state variable: ${e[0]}
     reset_build_default ${e[0]}
