@@ -265,7 +265,7 @@ while [ $# -ge 1 ]; do
         shift
         ;;
     --godir)
-        godir=`readlink -f $2`
+        godir=`readlink -m $2`
         shift
         ;;
     --gotag)
@@ -281,7 +281,7 @@ while [ $# -ge 1 ]; do
         shift
         ;;
     --buildrootdir)
-        buildrootdir=`readlink -f $2`
+        buildrootdir=`readlink -m $2`
         shift
         ;;
     --buildrootversion)
@@ -289,11 +289,11 @@ while [ $# -ge 1 ]; do
         shift
         ;;
     -b|--builddir)
-        builddir=`readlink -f $2`
+        builddir=`readlink -m $2`
         shift
         ;;
     -d|--downloaddir)
-        downloaddir=`readlink -f $2`
+        downloaddir=`readlink -m $2`
         shift
         ;;
     --resetmasters)
