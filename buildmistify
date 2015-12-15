@@ -238,7 +238,7 @@ while [ $# -ge 1 ]; do
         shift
         ;;
     --toolchaindir)
-        toolchaindir=$2
+        toolchaindir=`readlink -f $2`
         shift
         ;;
     --toolchainprefix)
@@ -265,7 +265,7 @@ while [ $# -ge 1 ]; do
         shift
         ;;
     --godir)
-        godir=$2
+        godir=`readlink -f $2`
         shift
         ;;
     --gotag)
@@ -281,7 +281,7 @@ while [ $# -ge 1 ]; do
         shift
         ;;
     --buildrootdir)
-        buildrootdir=$2
+        buildrootdir=`readlink -f $2`
         shift
         ;;
     --buildrootversion)
@@ -289,11 +289,11 @@ while [ $# -ge 1 ]; do
         shift
         ;;
     -b|--builddir)
-        builddir=$2
+        builddir=`readlink -f $2`
         shift
         ;;
     -d|--downloaddir)
-        downloaddir=$2
+        downloaddir=`readlink -f $2`
         shift
         ;;
     --resetmasters)
