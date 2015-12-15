@@ -126,18 +126,16 @@ $(toolchain_variation_dir)/Makefile: $(toolchain_variation_dir)/configure
 $(toolchain_variation_dir)/ct-ng: $(toolchain_variation_dir)/Makefile
 	$(call run_in_tc_dir, make)
 
-$(toolchain_target_file): \
-  $(toolchain_variation_dir)/ct-ng
+$(toolchain_target_file): $(toolchain_variation_dir)/ct-ng
 	$(call run_in_tc_dir, \
 	export TC_ARCH_SUFFIX=-$(toolchainversion); \
     export TC_PREFIX=$(toolchainprefix); \
     export TC_PREFIX_DIR=$(toolchain_install_dir); \
     export TC_LOCAL_TARBALLS_DIR=$(downloaddir); \
-	time ./ct-ng build 2>&1 | tee tc-`date +%y%m%d%H%M%S`.log \
+	./ct-ng build \
 	)
 
-$(downloaddir)/$(toolchain_tar_file): \
-  $(toolchain_install_dir)/bin/$(toolchainprefix)-gcc
+$(downloaddir)/$(toolchain_tar_file): $(toolchain_target_file)
 	mkdir -p $(@D)
 	tar cvzf $@ -C $(toolchaindir) $(toolchain_base_name)
 
