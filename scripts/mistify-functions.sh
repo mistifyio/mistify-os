@@ -1,7 +1,7 @@
 #+
 # Some standard functions for Mistify-OS scripts.
 #-
-projectdir=$PWD	# Save this directory for later.
+projectdir=$PWD    # Save this directory for later.
 # Where to maintain buildmistify settings.
 statedir=$projectdir/.buildmistify
 
@@ -17,11 +17,12 @@ function get_build_default() {
     #   1: option name
     #   2: default value
     if [ -e $statedir/$1 ]; then
-      r=`cat $statedir/$1`
+        r=`cat $statedir/$1`
     else
-      r=$2
+        verbose Setting ${e[0]} to default: ${e[1]}
+        r=$2
     fi
-    verbose The default for $1 is $2
+    verbose The variable $1 equals $2
     echo $r
 }
 
@@ -29,6 +30,10 @@ function set_build_default() {
     # Parameters:
     #   1: option name
     #   2: value
+    if [ ! -d $statedir ]; then
+        verbose Creating the state directory: $statedir
+        mkdir -p $statedir
+    fi
     echo "$2">$statedir/$1
     verbose The default $1 has been set to $2
 }
@@ -37,11 +42,55 @@ function reset_build_default() {
     # Parameters:
     #   1: option name
     if [ -e $statedir/$1 ]; then
-      rm $statedir/$1
-      verbose Option $1 default has been reset.
+        rm $statedir/$1
+        verbose Option $1 default has been reset.
     else
-      verbose Option $1 has not been set.
+        verbose Option $1 default has not been set.
     fi
+}
+
+function init_build_variable() {
+    # Parameters:
+    #	1: variable name and default value pair delimited by the delimeter (2)
+    #   2: an optional delimeter character (defaults to '=')
+    if [ -z "$2" ]; then
+        d='='
+    else
+        d=$2
+    fi
+    e=(`echo "$1" | tr "$d" " "`)
+    verbose ""
+    verbose State variable default: "${e[0]} = ${e[1]}"
+    eval val=\$${e[0]}
+    if [ -z "$val" ]; then
+        eval ${e[0]}=$(get_build_default ${e[0]} ${e[1]})
+    else
+        if [ "$val" = "default" ]; then
+            verbose Setting ${e[0]} to default: ${e[1]}
+            eval ${e[0]}=${e[1]}
+        else
+            eval ${e[0]}=$val
+        fi
+    fi
+    eval val=\$${e[0]}
+    verbose "State variable: ${e[0]} = $val"
+    verbose Saving current settings.
+    set_build_default ${e[0]} $val
+}
+
+function clear_build_variable() {
+    # Parameters:
+    #	1: variable name and default value pair delimited by the delimeter (2)
+    #   2: an optional delimeter character (defaults to '=')
+    if [ -z "$2" ]; then
+        d='='
+    else
+        d=$2
+    fi
+    e=(`echo "$1" | tr "$d" " "`)
+    verbose ""
+    verbose Clearing state variable: ${e[0]}
+    reset_build_default ${e[0]}
 }
 
 
@@ -72,7 +121,7 @@ error () {
 
 verbose () {
     if [[ "$verbose" == "y" ]]; then
-	echo >&2 -e "$lightblue$id$nc: $*"
+        echo >&2 -e "$lightblue$id$nc: $*"
     fi
 }
 
@@ -96,12 +145,12 @@ function run_ignore {
 function confirm () {
     read -r -p "${1:-Are you sure? [y/N]} " response
     case $response in
-	[yY][eE][sS]|[yY])
-	    true
-	    ;;
-	*)
-	    false
-	    ;;
+        [yY][eE][sS]|[yY])
+            true
+            ;;
+        *)
+            false
+            ;;
     esac
 }
 
@@ -109,4 +158,3 @@ is_mounted () {
     mount | grep $1
     return $?
 }
-
