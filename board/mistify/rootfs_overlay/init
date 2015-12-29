@@ -15,8 +15,8 @@ parse_logging_params </proc/cmdline
 # Turn on logging
 start_logging
 
+/bin/systemd-tmpfiles --create
 /lib/systemd/systemd-modules-load
-
 /lib/systemd/systemd-udevd --daemon
 
 /bin/udevadm trigger
@@ -26,7 +26,11 @@ start_logging
 
 /etc/pre-init.d/net-init.sh start
 
+# Turn off logging
+stop_logging
 /etc/pre-init.d/init-zpools.sh
+# Turn on logging
+start_logging
 
 /etc/pre-init.d/mount-aufs.sh
 

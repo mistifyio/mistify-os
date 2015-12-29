@@ -16,7 +16,7 @@ OPENVSWITCH_AUTORECONF_OPTS = --install --force
 OPENVSWITCH_LICENSE = Apache-2.0
 OPENVSWITCH_CONF_ENV += PYTHON=/usr/bin/python
 OPENVSWITCH_CONF_OPTS = \
-		--localstatedir=/var
+		--localstatedir=/
 
 #+
 # When using an external toolchain libatomic is not installed by default.
@@ -29,6 +29,10 @@ define OPENVSWITCH_INSTALL_INIT_SYSTEMD
 
 	$(INSTALL) -m 644 -D $(OPENVSWITCH_DIR)/rhel/usr_lib_systemd_system_openvswitch.service \
 		$(TARGET_DIR)/lib/systemd/system/openvswitch.service
+
+	$(INSTALL) -m 644 -D \
+		$(BR2_EXTERNAL)/package/mistify/openvswitch/tmpfiles-openvswitch.conf \
+		$(TARGET_DIR)/usr/lib/tmpfiles.d/openvswitch.conf
 
 	ln -sf ../openvswitch-nonetwork.service \
 		$(TARGET_DIR)/lib/systemd/system/multi-user.target.wants/openvswitch-nonetwork.service
@@ -47,10 +51,10 @@ endef
 
 define OPENVSWITCH_INSTALL_STUFF
 	test -d $(TARGET_DIR)/etc/openvswitch || \
-		$(MKDIR) $(TARGET_DIR)/etc/openvswitch
+		mkdir $(TARGET_DIR)/etc/openvswitch
 
 	test -d $(TARGET_DIR)/var/log/openvswitch || \
-		$(MKDIR) -p $(TARGET_DIR)/var/log/openvswitch
+		mkdir -p $(TARGET_DIR)/var/log/openvswitch
 
 	test -f $(TARGET_DIR)/etc/modules-load.d/openvswitch.conf || \
 		echo "openvswitch" > \
