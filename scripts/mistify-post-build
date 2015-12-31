@@ -52,13 +52,6 @@ fi
 ln -sf Etc/UTC $targetdir/usr/share/zoneinfo/UTC
 
 #
-# Enable getty on tty1
-#
-mkdir $targetdir/lib/systemd/system/getty.target.wants
-(cd $targetdir/lib/systemd/system/getty.target.wants && \
-  ln -sf ../getty@.service getty@tty1.service)
-
-#
 # Disable ISC DHCPD from starting up automatically
 #
 rm -f $targetdir/etc/systemd/system/multi-user.target.wants/dhcpd.service
@@ -99,6 +92,31 @@ MISTIFY_IMAGE_URL_RELEASE="http://builds.mistify.io/releases/MistifyOS-release/"
 MISTIFY_IMAGE_URL_NIGHTLY="http://builds.mistify.io/nightly/MistifyOS/"
 MISTIFY_IMAGE_URL_GUESTS="http://builds.mistify.io/guest-images/"
 EOF
+
+#
+# Constructing /var
+# Buildroot's default /var skeleton assumes /tmp as being the only writable area
+# on the system and symlinks the content of /var to either /tmp or /run. In our case,
+# we need both a writable and persistent /var that is backed by /mistify/private/var
+# on ZFS, so we must laboriously dismantle part of Buildroot's concept of /var, and
+# then reconstruct its contents to serve our needs.
+#
+
+# remove symlinks to /tmp and re-create as directories
+for i in $targetdir/var/cache \
+         $targetdir/var/lock \
+         $targetdir/var/log \
+         $targetdir/var/spool \
+         $targetdir/var/tmp; do
+    rm -rf $i
+    mkdir $i
+done
+
+mkdir -p $targetdir/var/spool/cron/crontabs
+mkdir -p $targetdir/var/lock/subsys
+
+# fix any permissions
+chmod 1777 $targetdir/var/tmp
 
 #+
 # If building a software development version then copy the needed development

@@ -5,7 +5,7 @@
 ################################################################################
 
 ETCD_VERSION = v2.1.1
-ETCD_SITE    = https://github.com/coreos/etcd/archive/
+ETCD_SITE    = https://github.com/coreos/etcd/archive
 ETCD_SOURCE = $(ETCD_VERSION).tar.gz
 ETCD_LICENSE = Apache
 ETCD_LICENSE_FILES = LICENSE

@@ -3,4 +3,3 @@
 # <file system> <mount pt>     <type>	<options>         <dump> <pass>
 devpts		/dev/pts       devpts   defaults,gid=5,mode=620	  0	 0
 tmpfs           /dev/shm       tmpfs    mode=0777         0      0
-tmpfs           /var/run       tmpfs    mode=1777         0      0

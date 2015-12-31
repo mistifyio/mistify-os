@@ -6,7 +6,7 @@
 
 BEANSTALKD_VERSION = 1.10
 BEANSTALKD_SOURCE  = v$(BEANSTALKD_VERSION).tar.gz
-BEANSTALKD_SITE    = https://github.com/kr/beanstalkd/archive/
+BEANSTALKD_SITE    = https://github.com/kr/beanstalkd/archive
 BEANSTALKD_LICENSE_FILES = LICENSE
 
 define BEANSTALKD_BUILD_CMDS
