@@ -3,7 +3,7 @@
 #-
 projectdir=$PWD    # Save this directory for later.
 # Where to maintain buildmistify settings.
-statedir=$projectdir/.buildmistify
+statedir=$builddir/.buildmistify
 
 # Which branch this script is running with.
 mistifybranch=`git symbolic-ref -q --short HEAD`

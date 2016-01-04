@@ -714,7 +714,7 @@ message "Project dir: $projectdir"
 #-
 export MISTIFY_DIR=$projectdir
 makecommand="\
-make O=$variantbuilddir \
+make -s V=0 O=$variantbuilddir \
 TOOLCHAIN_PATH=`toolchain-dir` TOOLCHAIN_PREFIX=$toolchainprefix \
 BR2_CCACHE_DIR=$builddir/.buildroot_ccache \
 BR2_DL_DIR=$downloaddir BR2_EXTERNAL=$projectdir \
