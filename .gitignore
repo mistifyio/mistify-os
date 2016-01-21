@@ -2,6 +2,7 @@
 .*
 !.empty
 !.gitignore
+!.travis.yml
 !/skeleton/root/.bash_history
 !/skeleton/root/.bash_logout
 !/skeleton/root/.bash_profile
