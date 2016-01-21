@@ -5,7 +5,7 @@
 ################################################################################
 
 DOCKER_DOCKER_VERSION = aac645ae047601fed1550c9d59d7c8ea978203b0
-DOCKER_DOCKER_SITE    = git@github.com:docker/docker.git
+DOCKER_DOCKER_SITE    = https://github.com/docker/docker.git
 DOCKER_DOCKER_SITE_METHOD = git
 DOCKER_DOCKER_LICENSE = Apache
 DOCKER_DOCKER_LICENSE_FILES = LICENSE
