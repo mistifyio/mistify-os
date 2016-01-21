@@ -31,7 +31,7 @@ endef
 # provided. The buildmistify help describes the meaning of each of these variables.
 #-
 $(call message, $(shell pwd))
-tcuri = git@github.com:mistifyio/crosstool-ng.git
+tcuri = https://github.com/mistifyio/crosstool-ng.git
 $(call message, "tcuri = $(tcuri)" )
 toolchaindir = $(shell pwd)/toolchain
 $(call message, "toolchaindir = $(toolchaindir)" )

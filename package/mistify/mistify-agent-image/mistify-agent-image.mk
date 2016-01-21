@@ -5,7 +5,7 @@
 ################################################################################
 
 MISTIFY_AGENT_IMAGE_VERSION = 81881ad6f3f7666f83c8f7ad95b434215485ae2a
-MISTIFY_AGENT_IMAGE_SITE    = git@github.com:mistifyio/mistify-agent-image.git
+MISTIFY_AGENT_IMAGE_SITE    = https://github.com/mistifyio/mistify-agent-image.git
 MISTIFY_AGENT_IMAGE_SITE_METHOD = git
 MISTIFY_AGENT_IMAGE_LICENSE = Apache
 MISTIFY_AGENT_IMAGE_LICENSE_FILES = LICENSE

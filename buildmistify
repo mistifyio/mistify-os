@@ -358,18 +358,18 @@ while [ $# -ge 1 ]; do
 done
 
 defaults=(
-    tcuri=git@github.com:mistifyio/crosstool-ng.git
+    tcuri=https://github.com/mistifyio/crosstool-ng.git
     toolchaindir=$PWD/toolchain
     toolchainprefix=x86_64-unknown-linux-gnu
     toolchaininstallprefix=target-toolchain
     toolchainversion=glibc-multilib-sdk
     tcartifacturi=https://s3.amazonaws.com/omniti-mystify-artifacts/toolchain-artifacts
-    gouri=git@github.com:golang/go.git
+    gouri=https://github.com/golang/go.git
     godir=$PWD/go
     gotag=go1.5.2
     gobootstraptag=go1.4.2
     variant=base
-    buildrooturi=git@github.com:mistifyio/buildroot.git
+    buildrooturi=https://github.com/mistifyio/buildroot.git
     buildrootdir=$PWD/build/buildroot
     buildrootversion=master
     builddir=$PWD/build/mistify

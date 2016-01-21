@@ -6,5 +6,5 @@ Documentation	A user for github which can be used to
 ...	which is inherently dangerous.
 
 *** Variables ***
-${GIT_URL}		git@github.com:mistifyio/mistify-os.git
+${GIT_URL}		https://github.com/mistifyio/mistify-os.git
 
