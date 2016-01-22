@@ -408,6 +408,8 @@ source scripts/install-toolchain.sh
 source scripts/install-go.sh
 source scripts/variants.sh
 
+set -x
+
 if [[ $# -ge 1 ]]; then
     target="$@"
     message "Building target: $target"
