@@ -36,10 +36,18 @@ cache:
     - $HOME/go
 
 install:
+  - while true; do echo 'still downloading'; sleep 60; done &
+  - pid=$!
   - ./buildmistify --useartifacts --downloaddir $HOME/downloads --godir $HOME/go -- VERBOSE=0 -s source
+  - kill $pid
 
 script:
-  - ./buildmistify --useartifacts --downloaddir $HOME/downloads --godir $HOME/go -- VERBOSE=0 -s
+  - while true; do echo 'still building'; sleep 60; done &
+  - pid=$!
+  - ./buildmistify --useartifacts --downloaddir $HOME/downloads --godir $HOME/go &> >(tee -a build-${TRAVIS_BUILD_ID}.txt | grep '^>>>')
+  - kill $pid
+  - echo 'last 1000 lines of log file'
+  - tail -1000 build-${TRAVIS_BUILD_ID}.txt
 
 notifications:
   email: false
