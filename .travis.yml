@@ -3,6 +3,12 @@ dist: trusty
 
 language: c
 
+env:
+  global:
+    - ARTIFACTS_BUCKET=omniti-mistify-travis-artifacts
+    - secure: "Pyds2riYg/c1ilKfq6iuDoJhazFBILavx9/Ldq3opDtmcrBw6CcOJh6XOZ3mH7U9E0JRUnLGIhML/Wlg30/4rmQxtoZjy3cIGa6CUsMjAUGj3WOtxhc4WQ+r461XecF/eIHS5m1ls7O7fEqgasEmUTIOID3c3sUvhOyfMioMQprolzrzPStIfYZgUEpraVmYvq57zjaonsCL1v9piQc484Mq2hIx27wE5xoL+G6PQY08KTiCOLC6ympkQHlFBkIwbcJFk2QRiMpV/XgZVkw8z2/6cBsnATRtPcm1KItuBpULZfz05XN8Y7cYyYiBXea09eU8Tzm2lXT3yHWWdMVcl9zZqQ5R/NCEwx6+V7Eqn8Wi5cqR4SjVZodWJyNBBSHDTpYH+tUtTe4hBBGQ3Db4pwUDCpKgvkdg1XYHVJQ+svUK//zwNMfSgwGBwZ8o4sFQJENQyR94Q6LS76+ot372Bz/Iy9mb1CnhYau8mq14AsB4gkemvm5MS7jMTVEYtU6ayIkPJ7V3Amw9b6Rk/RHRQWrDh0zZlNC9415VUkHfRRBvsiukBDCWm4FUNnP6j4KiqRjbUntmCjY3K5J5Eku/RcnlQZ7wO2C0z8W1jFeOJB21YF92oNLRfN4GzOYD1f531mfidWApz8Nz5r/taPxFciAYzIB0WLbK7kl5nhkWC6A="
+    - secure: "J7o949BAeR2cmJ2pO47GsK1QOc7b32krhoAz55KPK7oeo1UKkvCxrOCDuXYYmPFRrgk1KmcYJfRz6+RV56PELRjTR6zHrTEFuHItM+enR39z1CBluwLud4o1kvXfqibQiHogOhhQPQPW5DcyykzbiQ5XcIR00/4TiBklv9zQ42vTjyU+EOPEjPW3mTgp4AuNlOa3kNvoNFNC9PUBKqoeuKePgWhkVdTpZ02e3fcDJ/HkIoKcD9y8JL02WsUET41Vj7fOnnDn1qw4+erthNC3lCreui6sqG14Mk1Lx+9srjODRDJ5j/Rmix49u8um8tsmR6FB/8OFW79ZnEMqasBTZ0AYNcDUQaQk7701mHY0QZ/oZp1eDGPwwY6lGbEasTQkKbTR8m9ETeobeg9uqpn9zKc0TvAOHRH8BUdGg1x87P3K1d0oE2LOTQucHM4TLk7LqVI2iuRPpyotdEqdGZ+6b1e6L3+9ysEQ6dAKHpcS94jjhfFzsiFoFEXSJOGSNx0tgwqCksTNjCroYUEO8f4gRbJ1HMmiqHLRcJKveYlhI1Pa5FxdbRk0Q1uGPPBmog5XgMdE43dxaiQXVCVHXUCR3YdZv+sJoWOmEHzNYL+1AjNNddcYbvV8ssfMpoAB26KBp30JIbZjhF4zgeKADHzEiONci88FM3pSje+YgCjIecY="
+
 addons:
   apt:
     packages:
@@ -26,6 +32,9 @@ addons:
       - texinfo
       - unzip
       - xz-utils
+  artifacts:
+    paths:
+      - build-${TRAVIS_BUILD_ID}.txt
 
 
 cache:
