@@ -45,10 +45,13 @@ cache:
     - $HOME/go
 
 install:
+  - while true; do echo 'still building'; sleep 300; done &
+  - pid=$!
   - ./buildmistify --useartifacts --downloaddir $HOME/downloads --godir $HOME/go -- VERBOSE=0 -s source
+  - kill $pid
 
 script:
-  - while true; do echo 'still building'; sleep 60; done &
+  - while true; do echo 'still building'; sleep 300; done &
   - pid=$!
   - ./buildmistify --useartifacts --downloaddir $HOME/downloads --godir $HOME/go &> >(tee -a build-${TRAVIS_BUILD_ID}.txt | grep '^>>>')
   - kill $pid
