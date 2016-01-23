@@ -149,6 +149,9 @@ Usage: ./buildmistify [options] [target]
         Use this log file name instead of the generated log file name.
     --viewlog
         If the Buildroot make returns an error then view the log file.
+    --downloadonly
+        Do minimal work necessary to build buildroot itself and have it download
+        all the sources.
     --dryrun
         Just showing what will happen with this script without running the
         Buildroot make.
@@ -208,6 +211,7 @@ mconfig:,\
 kconfig:,\
 bbconfig:,\
 tcconfig:,\
+downloadonly,\
 dryrun,\
 useartifacts,\
 downloaddir:,\
@@ -338,6 +342,9 @@ while [ $# -ge 1 ]; do
     --viewlog)
         viewlog=y
         ;;
+    --downloadonly)
+        downloadonly=y
+        ;;
     --dryrun)
         dryrun=y
         ;;
@@ -408,10 +415,14 @@ source scripts/install-toolchain.sh
 source scripts/install-go.sh
 source scripts/variants.sh
 
-if [[ $# -ge 1 ]]; then
+if [[ -n $downloadonly ]]; then
+    target="source $@"
+    message "Downloading source only"
+    # Any other arguments are also passed to buildroot.
+elif [[ $# -ge 1 ]]; then
     target="$@"
     message "Building target: $target"
-    # Any other arguments are passed to buildroot.
+    # Any other arguments are also passed to buildroot.
 else
     t=""
 fi
@@ -609,7 +620,7 @@ message "Project dir: $projectdir"
 # Be sure the toolchain is installed.
 #-
 install-toolchain
-install-go
+[[ -z $downloadonly ]] && install-go
 
 #+
 # Now run the build.
