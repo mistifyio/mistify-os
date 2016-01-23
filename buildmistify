@@ -829,7 +829,7 @@ else
     cd $buildrootvariantdir
     ln -sf $logfilename $logdir/buildroot.log
     _envvars=`env | sort`
-    cat << EOF | tee $logfile
+    cat << EOF | tee -a $logfile
 ++++
 $id: Running make command:
 $makecommand
