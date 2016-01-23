@@ -166,6 +166,9 @@ Usage: ./buildmistify [options] [target]
     --viewlog
         If the Buildroot make returns an error then view the log file.
         [viewlog=$viewlog]
+  --downloadonly
+        Do minimal work necessary to build buildroot itself and have it download
+        all the sources.
     --dryrun
         Just showing what will happen with this script without running the
         Buildroot make.
@@ -235,6 +238,7 @@ mconfig:,\
 kconfig:,\
 bbconfig:,\
 tcconfig:,\
+downloadonly,\
 dryrun,\
 useartifacts,\
 downloaddir:,\
@@ -372,6 +376,9 @@ while [ $# -ge 1 ]; do
     --viewlog)
         viewlog=y
         ;;
+    --downloadonly)
+        downloadonly=y
+        ;;
     --dryrun)
         dryrun=y
         ;;
@@ -494,12 +501,18 @@ if [ -n "$forcebuild" ]; then
     rm -rf $buildrootvariantdir
     rm -rf $variantbuilddir
 fi
-install-go
+if [[ -z $downloadonly ]]; then
+    install-go
+fi
 
-if [[ $# -ge 1 ]]; then
+if [[ -n $downloadonly ]]; then
+    target="source $@"
+    message "Downloading source only"
+    # Any other arguments are also passed to buildroot.
+elif [[ $# -ge 1 ]]; then
     target="$@"
     message "Building target: $target"
-    # Any other arguments are passed to buildroot.
+    # Any other arguments are also passed to buildroot.
 else
     t=""
 fi
