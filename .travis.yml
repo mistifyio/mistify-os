@@ -34,7 +34,7 @@ addons:
       - xz-utils
   artifacts:
     paths:
-      - build-${TRAVIS_BUILD_ID}.txt
+      - build/mistify/base/logs/build-${TRAVIS_BUILD_ID}.txt
 
 
 cache:
@@ -45,18 +45,18 @@ cache:
     - $HOME/go
 
 install:
-  - while true; do echo 'still building'; sleep 300; done &
+  - while true; do echo 'still downloading'; sleep 300; done &
   - pid=$!
-  - ./buildmistify --useartifacts --downloaddir $HOME/downloads --godir $HOME/go -- VERBOSE=0 -s source
+  - ./buildmistify --useartifacts --downloaddir $HOME/downloads --downloadonly --logfile build-${TRAVIS_BUILD_ID}.txt  -- VERBOSE=0 -s
   - kill $pid
 
 script:
   - while true; do echo 'still building'; sleep 300; done &
   - pid=$!
-  - ./buildmistify --useartifacts --downloaddir $HOME/downloads --godir $HOME/go &> >(tee -a build-${TRAVIS_BUILD_ID}.txt | grep '^>>>')
+  - ./buildmistify --useartifacts --downloaddir $HOME/downloads --godir $HOME/go --logfile build-${TRAVIS_BUILD_ID}.txt |& grep '>>>'
   - kill $pid
   - echo 'last 1000 lines of log file'
-  - tail -1000 build-${TRAVIS_BUILD_ID}.txt
+  - tail -1000 build/mistify/base/logs/build-${TRAVIS_BUILD_ID}.txt
 
 notifications:
   email: false
