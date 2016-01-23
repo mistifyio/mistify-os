@@ -503,6 +503,8 @@ if [ -n "$forcebuild" ]; then
 fi
 if [[ -z $downloadonly ]]; then
     install-go
+else
+    clone-go-shared
 fi
 
 if [[ -n $downloadonly ]]; then
