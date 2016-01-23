@@ -7,6 +7,20 @@
 # script. This is because the path to the toolchain is embedded and different
 # versions of the toolchain can be selected.
 #-
+
+function clone-go-shared {
+    run mkdir -p $godir
+    cd $godir
+
+    echo ">>> go Downloading"
+    if [ ! -d go ]; then
+        run git clone $gouri
+    else
+        cd go
+        run git fetch $gouri
+    fi
+}
+
 build-c-go () {
     #+
     # Parameters:
@@ -26,13 +40,14 @@ build-c-go () {
     cd $godir/$1
     verbose "Working directory is: $PWD"
     if [ ! -d go ]; then
-        run git clone $gouri
+        run git clone $godir/go
     fi
     cd go
-    run git fetch $gouri
+    run git fetch $godir/go
     run git checkout $2
     cd src
 
+    echo ">>> go $2 Building"
     run ./make.bash
 
     touch $godir/.$1-built
@@ -60,14 +75,15 @@ build-go-go () {
     cd $godir/$1
     verbose "Working directory is: $PWD"
     if [ ! -d go ]; then
-        run git clone $gouri
+        run git clone $godir/go
     fi
     cd go
-    run git fetch $gouri
+    run git fetch $godir/go
     run git checkout $2
     cd src
     export GOROOT_BOOTSTRAP=$godir/$bootstraplabel/go
 
+    echo ">>> go $2 Building"
     run ./make.bash
 
     # Clean up
@@ -105,6 +121,10 @@ install-go () {
     export CC_FOR_TARGET="${toolchain_install_dir}/bin/${toolchainprefix}-cc"
     export CXX_FOR_TARGET="${toolchain_install_dir}/bin/${toolchainprefix}-c++"
     export CGO_ENABLED=1
+
+    message  "Fetching go repo to be shared"
+    clone-go-shared
+
     if [ "$minor" -lt "5" ]; then
         build-c-go $golabel $gotag
     else

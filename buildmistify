@@ -620,7 +620,11 @@ message "Project dir: $projectdir"
 # Be sure the toolchain is installed.
 #-
 install-toolchain
-[[ -z $downloadonly ]] && install-go
+if [[ -z $downloadonly ]]; then
+    install-go
+else
+    clone-go-shared
+fi
 
 #+
 # Now run the build.
