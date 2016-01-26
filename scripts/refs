@@ -1,6 +1,6 @@
 #!/bin/bash
 
-userauth='mistify-readonly:ad17f1c675cd24dc401134b1928fbca676cf9449'
+userauth='mistify-readonly:5550725283039ce0574f18f9f90f9bfb1750e4c9'
 url='https://api.github.com/repos/mistifyio'
 
 set -e
