@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-MISTIFY_IMAGE_SERVICE_VERSION = af4af5d9cde3691ea2cde69e5197a6342ab7f5af
+MISTIFY_IMAGE_SERVICE_VERSION = 42f9e5727f6a6f3d03a1119bd74cb242059ed63c
 MISTIFY_IMAGE_SERVICE_SITE    = git@github.com:mistifyio/mistify-image-service.git
 MISTIFY_IMAGE_SERVICE_SITE_METHOD = git
 MISTIFY_IMAGE_SERVICE_LICENSE = Apache

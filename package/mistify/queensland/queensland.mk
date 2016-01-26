@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-QUEENSLAND_VERSION = cdb52d7e67ce3d3d10ef184033e607fee35a782d
+QUEENSLAND_VERSION = b341ea035820365c74e16a4d148d4bbfdeefb12c
 QUEENSLAND_SITE    = https://github.com/mistifyio/queensland.git
 QUEENSLAND_SITE_METHOD = git
 QUEENSLAND_LICENSE = Apache
