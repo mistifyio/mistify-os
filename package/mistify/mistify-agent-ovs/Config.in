@@ -1,8 +1,0 @@
-config BR2_PACKAGE_MISTIFY_AGENT_OVS
-        bool "mistify-agent-ovs"
-         select BR2_PACKAGE_OVS_OVS
-         select BR2_PACKAGE_MISTIFY_AGENT
-        help
-          The Mistify OVS Sub-Agent
-
-          https://github.com/mistifyio/mistify-agent-ovs
