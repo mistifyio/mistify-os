@@ -156,7 +156,7 @@ fullclean:
 	-rm -rf $(toolchain_variation_dir)
 
 toolchain-menuconfig: $(toolchain_variation_dir)/ct-ng
-	$(call run_in_tc_dir,
+	$(call run_in_tc_dir, \
 	  ./ct-ng menuconfig)
 
 version:
