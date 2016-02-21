@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-AUFS_VERSION = aufs4.1
+AUFS_VERSION = aufs4.1.13+
 AUFS_SITE = https://github.com/sfjro/aufs4-standalone.git
 AUFS_SITE_METHOD = git
 AUFS_LICENSE = GPLv2
