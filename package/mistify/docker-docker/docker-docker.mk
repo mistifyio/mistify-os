@@ -53,6 +53,7 @@ define DOCKER_DOCKER_BUILD_CMDS
 		&& GOPATH=$(GOPATH)/src/$(REGISTRY_IMPORT)/Godeps/_workspace:$(GOPATH) \
 		GOROOT=$(GOROOT) \
 		PATH=$(GOROOT)/bin:$(PATH) \
+		GO15VENDOREXPERIMENT=0 \
 		go build -o $(GOPATH)/bin/registry-v2 \
 			$(REGISTRY_IMPORT)/cmd/registry
 
