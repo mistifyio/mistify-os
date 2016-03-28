@@ -15,7 +15,6 @@ repos=(lochness
        mistify-agent-docker
        mistify-agent-image
        mistify-agent-libvirt
-       mistify-agent-ovs
        mistify-image-service
        queensland
 )
