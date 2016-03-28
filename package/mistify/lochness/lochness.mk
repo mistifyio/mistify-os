@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LOCHNESS_VERSION = 03e0eae96254b79339580d5dc0ae99dfb20aae92
+LOCHNESS_VERSION = c838c371da4123aefff8e1f4f78be05e54f7af2d
 LOCHNESS_SITE    = https://github.com/mistifyio/lochness.git
 LOCHNESS_SITE_METHOD = git
 LOCHNESS_LICENSE = Apache
