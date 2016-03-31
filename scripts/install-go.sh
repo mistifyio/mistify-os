@@ -13,6 +13,12 @@ build-c-go () {
     # 1 = The label to associate with the build.
     # 2 = The tag to checkout from the repo.
     #-
+    if [ -n "$goreset" ]; then
+        warning Forcing a build of GO version: $2
+        rm -rf $godir/$1
+        rm -f $godir/$1-built
+    fi
+
     if [ -f $godir/.$1-built ]; then
         message "build-c-go: Using go version $1."
     return
@@ -44,12 +50,19 @@ build-go-go () {
     # 1 = The label to associate with the build.
     # 2 = The tag to checkout from the repo.
     #-
+    if [ -n "$goreset" ]; then
+        warning Forcing a build of GO version: $2
+        rm -rf $godir/$1
+        rm -f $godir/$1-built
+    fi
+    gobootstraplabel=$gobootstraptag-$toolchainversion-$variant
+    verbose The Go bootstrap label is: $gobootstraplabel
+
     if [ -f $godir/.$1-built ]; then
         message "build-go-go: Using go version $1."
         return
     fi
-    bootstraplabel=$gobootstraptag-$toolchainversion
-    build-c-go $bootstraplabel $gobootstraptag
+    build-c-go $gobootstraplabel $gobootstraptag
 
     verbose "build-go-go: Building go version $1."
     if [ -n "$dryrun" ]; then
@@ -66,7 +79,7 @@ build-go-go () {
     run git fetch $gouri
     run git checkout $2
     cd src
-    export GOROOT_BOOTSTRAP=$godir/$bootstraplabel/go
+    export GOROOT_BOOTSTRAP=$godir/$gobootstraplabel/go
 
     run ./make.bash
 
@@ -77,14 +90,14 @@ build-go-go () {
 }
 
 install-go () {
+    golabel=$gotag-$toolchainversion-$variant
+    verbose The Go label is: $golabel
+
     message "Building go in: $godir"
 
     message "The go source repository is: $gouri"
 
     message "The go branch or tag is: $gotag"
-
-    golabel=$gotag-$toolchainversion
-    verbose The Go label is: $golabel
 
     GOROOT=$godir/$golabel/go
     verbose "The go binaries are located at: $GOROOT"

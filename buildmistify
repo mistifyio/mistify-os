@@ -50,14 +50,16 @@ Usage: ./buildmistify [options] [target]
         Where the toolchain should be installed. This is saved in the file
         $statedir/toolchaininstallprefix
         [toolchaininstallprefix=`cat $statedir/toolchaininstallprefix`]
-    --toolchainreset
-        Reset the toolchain related options to their defaults.
     --tcartifacturi <uri>
         The server on which pre-built toolchains are stored. This is used when
         a pre-built toolchain is either copied to the server or installed from
         the server. This is saved in the file
         $statedir/tcartifacturi.
         [tcartifacturi=`cat $statedir/tcartifacturi`]
+    --toolchainreset
+        Reset the toolchain related options to their defaults and force a
+        rebuild of the toolchain. NOTE: Resetting the toolchain will force a
+        complete build.
     ==== go ====
     --godir <dir>
         Where the GO source code is cloned to before building. This is saved in
@@ -76,6 +78,8 @@ Usage: ./buildmistify [options] [target]
         the version of go to use to bootstrap go 1.5 and latere.
         This is saved in the file $statedir/gobootstraptag.
         [gobootstraptag=`cat $statedir/gobootstraptag`]
+    --goreset
+        Reset the GO related options and force are build of the GO tools.
     ==== buildroot ====
     --buildrooturi <uri>
         The repository from which to clone Buildroot. This is saved in the file
@@ -92,6 +96,9 @@ Usage: ./buildmistify [options] [target]
         or tag name or even a commit ID. The version information is saved in the
         file $statedir/buildrootversion.
         [buildrootversion=`cat $statedir/buildrootversion`]
+    --buildrootreset
+        Reset the Buildroot options to their defaults and force a fresh copy
+        of buildroot.
     ==== build ====
     -b|--builddir <dir>
         Where to put the build targets and output. This location is saved in the
@@ -112,8 +119,9 @@ Usage: ./buildmistify [options] [target]
     --variant <variant>
         Use a configuration variant. The variant is always based upon the
         base configuration files indicated by the --config, --kconfig,
-        --bbconfig and --tcconfig options. To reset to the base configuration
-        use an empty string as the variant name. e.g. --variant ''
+        --bbconfig and --tcconfig options. Because variants can also have
+        differing requirements for the toolchain the variant name is also used
+        to name the toolchain, go directory and the buildroot directory.
         The active variant name is saved in the file
         $statedir/variant.
         [variant=`cat $statedir/variant`]
@@ -193,15 +201,17 @@ toolchaindir:,\
 toolchainprefix:,\
 toolchaininstallprefix:,\
 toolchainversion:,\
-toolchainreset,\
 tcartifacturi:,\
+toolchainreset,\
 gouri:,\
 godir:,\
 gotag:,\
 gobootstraptag:,\
+goreset,\
 buildrooturi:,\
 buildrootdir:,\
 buildrootversion:,\
+buildrootreset,\
 builddir:,\
 variant:,\
 mconfig:,\
@@ -253,12 +263,12 @@ while [ $# -ge 1 ]; do
         toolchainversion=$2
         shift
         ;;
-    --toolchainreset)
-        toolchainreset=y
-        ;;
     --tcartifacturi)
         tcartifacturi=$2
         shift
+        ;;
+    --toolchainreset)
+        toolchainreset=y
         ;;
     --gouri)
         gouri=$2
@@ -276,6 +286,9 @@ while [ $# -ge 1 ]; do
         gobootstraptag=$2
         shift
         ;;
+    --goreset)
+        goreset=y
+        ;;
     --buildrooturi)
         buildrooturi=$2
         shift
@@ -287,6 +300,9 @@ while [ $# -ge 1 ]; do
     --buildrootversion)
         buildrootversion=$2
         shift
+        ;;
+    --buildrootreset)
+        buildrootreset=y
         ;;
     -b|--builddir)
         builddir=`readlink -m $2`
@@ -380,11 +396,39 @@ defaults=(
     tcconfig=$PWD/configs/mistify-tc-multilib.config
 )
 
+#+
+# These resets are done here so that command line arguments can be used to set
+# them at the same time.
+#-
 if [ -n "$toolchainreset" ]; then
     for d in \
         tcconfig tcuri toolchaindir \
         toolchainprefix toolchainversion \
         tcartifacturi
+    do
+        verbose Resetting default: $d
+        reset_build_default $d
+    done
+    #+
+    # Because buildroot and go can be affected when using a different toolchain
+    # they need to be reset as well.
+    #-
+    buildrootreset=y
+    goreset=y
+fi
+
+if [ -n "$buildrootreset" ]; then
+    for d in \
+        buildrooturi buildrootdir buildrootversion
+    do
+        verbose Resetting default: $d
+        reset_build_default $d
+    done
+fi
+
+if [ -n "$goreset" ]; then
+    for d in \
+        gouri godir gotag gobootstraptag
     do
         verbose Resetting default: $d
         reset_build_default $d
@@ -404,9 +448,27 @@ if [ -n "$showusage" ]; then
     exit 0
 fi
 
+variantbuilddir=$builddir/$variant
+message "The variant build directory is: $variantbuilddir"
+# Save the variant builddir so testmistify can know which build to test.
+set_build_default variantbuilddir $variantbuilddir
+
 source scripts/install-toolchain.sh
 source scripts/install-go.sh
 source scripts/variants.sh
+
+#+
+# Be sure the toolchain is installed.
+#-
+install-toolchain
+# install-toolchain sets forcebuild if the toolchain was either installed or
+# built.
+if [ -n "$forcebuild" ]; then
+    goreset=y
+    rm -rf $buildrootvariantdir
+    rm -rf $variantbuilddir
+fi
+install-go
 
 if [[ $# -ge 1 ]]; then
     target="$@"
@@ -416,7 +478,7 @@ else
     t=""
 fi
 
-message "Using Buildroot located at: $buildrootdir"
+message "Using Buildroot located at: $buildrootvariantdir"
 
 #+
 # Determine the configuration variant to use.
@@ -431,18 +493,12 @@ if [ -z "$variant" ]; then
 else
     set_build_default variant $variant
 fi
-variantdir=$variant
 message "Using $variant configuration."
 
 export MISTIFY_VARIANT="$variant"
 
 mkdir -p $builddir
 message "Build output directory is: $builddir"
-
-variantbuilddir=$builddir/$variantdir
-message "The variant build directory is: $variantbuilddir"
-# Save the variant builddir so testmistify can know which build to test.
-set_build_default variantbuilddir $variantbuilddir
 
 logdir=$variantbuilddir/logs
 mkdir -p $logdir
@@ -459,9 +515,16 @@ if [ "$target" == "toolchain-build" ]; then
     exit $?
 fi
 
-if [ ! -f $buildrootdir/README ]; then
+buildrootvariantdir=$buildrootdir/$variant
+verbose The buildroot variant directory is: $buildrootvariantdir
+if [ -n "$buildrootreset" ]; then
+    warning Removing buildroot directory.
+    rm -rf $buildrootvariantdir
+fi
+
+if [ ! -f $buildrootvariantdir/README ]; then
     message "Cloning Buildroot from the Buildroot project repository."
-    git clone $buildrooturi $buildrootdir
+    git clone $buildrooturi $buildrootvariantdir
     #+
     # TODO: It is possible that the previous clone failed. Might want to use
     # git again to update just in case.
@@ -471,7 +534,7 @@ if [ ! -f $buildrootdir/README ]; then
     fi
 fi
 
-cd $buildrootdir
+cd $buildrootvariantdir
 
 if [ -n "$noupdate" ]; then
     warning Not fetching branches for buildroot.
@@ -606,12 +669,6 @@ fi
 message "Project dir: $projectdir"
 
 #+
-# Be sure the toolchain is installed.
-#-
-install-toolchain
-install-go
-
-#+
 # Now run the build.
 #-
 export MISTIFY_DIR=$projectdir
@@ -621,7 +678,7 @@ TOOLCHAIN_PATH=`toolchain-dir` TOOLCHAIN_PREFIX=$toolchainprefix \
 BR2_CCACHE_DIR=$builddir/.buildroot_ccache \
 BR2_DL_DIR=$downloaddir BR2_EXTERNAL=$projectdir \
 BR2_DEFAULT_KERNEL_HEADERS=$buildrootkernelheaders \
-GOROOT=$GOROOT -C $buildrootdir \
+GOROOT=$GOROOT -C $buildrootvariantdir \
 $target"
 
 #+
@@ -728,7 +785,7 @@ else
     #+
     # Run the buildroot make.
     #-
-    cd $buildrootdir
+    cd $buildrootvariantdir
     ln -sf $logfilename $logdir/buildroot.log
     _envvars=`env | sort`
     cat << EOF | tee $logfile
@@ -737,7 +794,7 @@ $id: Running make command:
 $makecommand
 $id: Environment:
 $_envvars
-$id: Buildroot dir is: $buildrootdir
+$id: Buildroot dir is: $buildrootvariantdir
 ----
 EOF
     time $makecommand 2>&1 | tee -a $logfile
