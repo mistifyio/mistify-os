@@ -60,6 +60,7 @@ Usage: ./buildmistify [options] [target]
         Reset the toolchain related options to their defaults and force a
         rebuild of the toolchain. NOTE: Resetting the toolchain will force a
         complete build.
+        [toolchainreset=$toolchainreset]
     ==== go ====
     --godir <dir>
         Where the GO source code is cloned to before building. This is saved in
@@ -79,7 +80,9 @@ Usage: ./buildmistify [options] [target]
         This is saved in the file $statedir/gobootstraptag.
         [gobootstraptag=`cat $statedir/gobootstraptag`]
     --goreset
-        Reset the GO related options and force are build of the GO tools.
+        Reset the GO related options to their default values and force a fresh
+        build of the GO tools.
+        [goreset=$goreset]
     ==== buildroot ====
     --buildrooturi <uri>
         The repository from which to clone Buildroot. This is saved in the file
@@ -99,6 +102,7 @@ Usage: ./buildmistify [options] [target]
     --buildrootreset
         Reset the Buildroot options to their defaults and force a fresh copy
         of buildroot.
+        [buildrootreset=$buildrootreset]
     ==== build ====
     -b|--builddir <dir>
         Where to put the build targets and output. This location is saved in the
@@ -149,20 +153,30 @@ Usage: ./buildmistify [options] [target]
     ==== other ====
     --resetdefaults
         Reset all options back to their default values.
+        [resetdefaults=$resetdefaults]
     --noupdate
         Do not attempt to update buildroot or the toolchain from the repo.
+        [noupdate=$noupdate]
     --verbose
         Enble verbose output from this script.
+        [verbose=$verbose]
     -l|--logfile
         Use this log file name instead of the generated log file name.
+        [logfile=$logfile]
     --viewlog
         If the Buildroot make returns an error then view the log file.
+        [viewlog=$viewlog]
     --dryrun
         Just showing what will happen with this script without running the
         Buildroot make.
+        [dryrun=$dryrun]
     --useartifacts
         Downloads/Extracts dependent artifacts instead of building from source.
         Currently supports toolchain ONLY.
+        [useartifacts=$useartifacts]
+    --showoptions
+        Display the current options settings.
+        [showoptions=$showoptions]
     -h|--help
         Display this usage.
     ==== special targets ====
@@ -188,6 +202,9 @@ Usage: ./buildmistify [options] [target]
 EOF
 }
 
+display-options() {
+    echo "$(usage)" | grep =
+}
 #+
 # TODO: Add some quick checks to verify required tools are installed.
 #-
@@ -227,6 +244,7 @@ noupdate,\
 verbose,\
 logfile:,\
 viewlog,\
+showoptions,\
 help" \
    -o "c:k:b:t:l:d:h" -- "$@"`
 
@@ -360,6 +378,9 @@ while [ $# -ge 1 ]; do
     --useartifacts)
         useartifacts=y
         ;;
+    --showoptions)
+        showoptions=y
+        ;;
     -h|--help)
         showusage=y
         ;;
@@ -442,6 +463,11 @@ do
     fi
     init_build_variable $v
 done
+
+if [ -n "$showoptions" ]; then
+    display-options
+    exit 0
+fi
 
 if [ -n "$showusage" ]; then
     usage
