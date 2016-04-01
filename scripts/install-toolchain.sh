@@ -16,6 +16,7 @@ toolchain_tar_file=$toolchain_base_name.tgz
 toolchainartifact_url=$tcartifacturi/$toolchain_tar_file
 toolchain_variation_dir=$toolchaindir/build-$toolchain_base_name
 toolchain_install_dir=$toolchaindir/$toolchain_base_name
+toolchainreset=$toolchainreset
 
 #+
 # Internal variables.
@@ -121,8 +122,13 @@ run-toolchain-make () {
 install-toolchain-script () {
     tcc=$toolchain_variation_dir/.config
 
+    if [ -n "$toolchainreset" ]; then
+        warning Removing existing toolchain build artifacts and rebuilding.
+        run-toolchain-make distclean
+    fi
+
     if [[ "$target" == "toolchain-menuconfig" ]]; then
-        run-toolchain-make $target
+        cd $toolchain_variation_dir && ./ct-ng menuconfig
         if [[ ! -f $tcconfig || $tcc -nt $tcconfig ]]; then
             ls -l $tcc $tcconfig
             cp $tcc $tcconfig
@@ -140,7 +146,7 @@ install-toolchain-script () {
             diff $tcconfig $tcc >/dev/null
             if [ $? -gt 0 ]; then
                 warning "The toolchain configuration has changed -- rebuilding the toolchain."
-                run-toolchain-make clean
+                run-toolchain-make distclean
                 run-toolchain-make
             fi
         else
@@ -148,6 +154,7 @@ install-toolchain-script () {
             die "Run ./buildmistify toolchain-menuconfig."
         fi
     fi
+
     #+
     # Don't build the toolchain if it has already been built.
     #-
@@ -160,6 +167,11 @@ install-toolchain-script () {
     #-
     message "Toolchain not built."
     message "Installing toolchain to: $toolchain_install_dir"
+    #+
+    # Building the toolchain requires a full build.
+    #_
+    warning A full build is required!
+    forcebuild=y
 
     if [ -f $downloaddir/$toolchain_tar_file ]; then
         message "Installing prebuilt toolchain."

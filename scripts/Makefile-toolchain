@@ -129,9 +129,9 @@ $(toolchain_variation_dir)/ct-ng: $(toolchain_variation_dir)/Makefile
 $(toolchain_target_file): $(toolchain_variation_dir)/ct-ng
 	$(call run_in_tc_dir, \
 	export TC_ARCH_SUFFIX=-$(toolchainversion); \
-    export TC_PREFIX=$(toolchainprefix); \
-    export TC_PREFIX_DIR=$(toolchain_install_dir); \
-    export TC_LOCAL_TARBALLS_DIR=$(downloaddir); \
+	export TC_PREFIX=$(toolchainprefix); \
+	export TC_PREFIX_DIR=$(toolchain_install_dir); \
+	export TC_LOCAL_TARBALLS_DIR=$(downloaddir); \
 	./ct-ng build \
 	)
 
@@ -143,14 +143,13 @@ build: $(toolchain_target_file)
 
 dist: $(downloaddir)/$(toolchain_tar_file)
 
-distclean:
-	-rm $(downloaddir)/$(toolchain_tar_file)
-
 clean:
 	-rm -rf $(toolchain_install_dir)
-	$(call run_in_tc_dir,
-	  if [ -f ct-ng ]; then ./ct-ng distclean; fi;
-	)
+	$(call run_in_tc_dir, \
+	  if [ -f ct-ng ]; then ./ct-ng distclean; fi;)
+
+distclean: clean
+	-rm -f $(downloaddir)/$(toolchain_tar_file)
 
 fullclean:
 	-rm -rf $(toolchain_variation_dir)
