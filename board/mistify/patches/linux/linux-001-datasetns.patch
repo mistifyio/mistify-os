@@ -1,0 +1,450 @@
+commit 03969c96998daa307553e56410da6ad4bf0412e8
+Author: Albert Lee <trisk@omniti.com>
+Date:   Thu Sep 3 04:39:01 2015 -0400
+
+    Initial dataset namespace implementation for linux-4.0.y
+
+diff --git a/fs/proc/namespaces.c b/fs/proc/namespaces.c
+index c9eac45..3339e7d 100644
+--- a/fs/proc/namespaces.c
++++ b/fs/proc/namespaces.c
+@@ -8,6 +8,7 @@
+ #include <linux/ipc_namespace.h>
+ #include <linux/pid_namespace.h>
+ #include <linux/user_namespace.h>
++#include <linux/dataset_namespace.h>
+ #include "internal.h"
+ 
+ 
+@@ -28,6 +29,9 @@ static const struct proc_ns_operations *ns_entries[] = {
+ 	&userns_operations,
+ #endif
+ 	&mntns_operations,
++#ifdef CONFIG_DATASET_NS
++	&datasetns_operations,
++#endif
+ };
+ 
+ static void *proc_ns_follow_link(struct dentry *dentry, struct nameidata *nd)
+diff --git a/include/linux/dataset_namespace.h b/include/linux/dataset_namespace.h
+new file mode 100644
+index 0000000..2fe4598
+--- /dev/null
++++ b/include/linux/dataset_namespace.h
+@@ -0,0 +1,51 @@
++#ifndef _LINUX_DATASET_NAMESPACE_H
++#define _LINUX_DATASET_NAMESPACE_H
++
++#include <linux/kref.h>
++#include <linux/nsproxy.h>
++#include <linux/ns_common.h>
++
++struct user_namespace;
++
++struct dataset_namespace {
++	struct kref kref;
++	struct list_head list;
++	struct user_namespace *user_ns;
++	struct ns_common ns;
++};
++
++struct dataset_operations {
++	struct list_head list;
++	int (*init)(struct dataset_namespace *ns);
++	void (*exit)(struct dataset_namespace *ns);
++};
++
++extern struct dataset_namespace init_dataset_ns;
++
++extern int register_dataset_provider(struct dataset_operations *ops);
++extern void unregister_dataset_provider(struct dataset_operations *ops);
++
++#ifdef CONFIG_DATASET_NS
++extern struct dataset_namespace *copy_dataset_ns(unsigned long,
++    struct user_namespace *, struct dataset_namespace *);
++extern void free_dataset_ns(struct kref *);
++
++static inline void get_dataset_ns(struct dataset_namespace *ns)
++{
++	kref_get(&ns->kref);
++}
++
++static inline void put_dataset_ns(struct dataset_namespace *ns)
++{
++	kref_put(&ns->kref, free_dataset_ns);
++}
++#else
++static inline void get_dataset_ns(struct dataset_namespace *ns)
++{
++}
++static inline void put_dataset_ns(struct dataset_namespace *ns)
++{
++}
++#endif
++
++#endif /* _LINUX_DATASET_NAMESPACE_H */
+diff --git a/include/linux/nsproxy.h b/include/linux/nsproxy.h
+index 35fa08f..158f2e2 100644
+--- a/include/linux/nsproxy.h
++++ b/include/linux/nsproxy.h
+@@ -8,6 +8,7 @@ struct mnt_namespace;
+ struct uts_namespace;
+ struct ipc_namespace;
+ struct pid_namespace;
++struct dataset_namespace;
+ struct fs_struct;
+ 
+ /*
+@@ -32,7 +33,8 @@ struct nsproxy {
+ 	struct ipc_namespace *ipc_ns;
+ 	struct mnt_namespace *mnt_ns;
+ 	struct pid_namespace *pid_ns_for_children;
+-	struct net 	     *net_ns;
++	struct net	     *net_ns;
++	struct dataset_namespace *dataset_ns;
+ };
+ extern struct nsproxy init_nsproxy;
+ 
+diff --git a/include/linux/proc_ns.h b/include/linux/proc_ns.h
+index 42dfc61..d3a9b29 100644
+--- a/include/linux/proc_ns.h
++++ b/include/linux/proc_ns.h
+@@ -24,6 +24,7 @@ extern const struct proc_ns_operations ipcns_operations;
+ extern const struct proc_ns_operations pidns_operations;
+ extern const struct proc_ns_operations userns_operations;
+ extern const struct proc_ns_operations mntns_operations;
++extern const struct proc_ns_operations datasetns_operations;
+ 
+ /*
+  * We always define these enumerators
+@@ -34,6 +35,7 @@ enum {
+ 	PROC_UTS_INIT_INO	= 0xEFFFFFFEU,
+ 	PROC_USER_INIT_INO	= 0xEFFFFFFDU,
+ 	PROC_PID_INIT_INO	= 0xEFFFFFFCU,
++	PROC_DATASET_INIT_INO	= 0xEFFFFFFBU,
+ };
+ 
+ #ifdef CONFIG_PROC_FS
+diff --git a/include/uapi/linux/sched.h b/include/uapi/linux/sched.h
+index cc89dde..ab60b08 100644
+--- a/include/uapi/linux/sched.h
++++ b/include/uapi/linux/sched.h
+@@ -21,8 +21,8 @@
+ #define CLONE_DETACHED		0x00400000	/* Unused, ignored */
+ #define CLONE_UNTRACED		0x00800000	/* set if the tracing process can't force CLONE_PTRACE on this clone */
+ #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
+-/* 0x02000000 was previously the unused CLONE_STOPPED (Start in stopped state)
+-   and is now available for re-use. */
++/* 0x02000000 was previously the unused CLONE_STOPPED (Start in stopped state) */
++#define CLONE_NEWDATASET	0x02000000	/* New dataset namespace */
+ #define CLONE_NEWUTS		0x04000000	/* New utsname namespace */
+ #define CLONE_NEWIPC		0x08000000	/* New ipc namespace */
+ #define CLONE_NEWUSER		0x10000000	/* New user namespace */
+diff --git a/init/Kconfig b/init/Kconfig
+index f5dbc6d..927e042 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1202,6 +1202,12 @@ config NET_NS
+ 	  Allow user space to create what appear to be multiple instances
+ 	  of the network stack.
+ 
++config DATASET_NS
++	bool "Dataset namespace"
++	default y
++	help
++	  Allow tasks in the namespace to see a restricted view of datasets.
++
+ endif # NAMESPACES
+ 
+ config SCHED_AUTOGROUP
+diff --git a/kernel/Makefile b/kernel/Makefile
+index 1408b33..b92044c 100644
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -57,6 +57,7 @@ obj-$(CONFIG_CPUSETS) += cpuset.o
+ obj-$(CONFIG_UTS_NS) += utsname.o
+ obj-$(CONFIG_USER_NS) += user_namespace.o
+ obj-$(CONFIG_PID_NS) += pid_namespace.o
++obj-$(CONFIG_DATASET_NS) += dataset_namespace.o
+ obj-$(CONFIG_IKCONFIG) += configs.o
+ obj-$(CONFIG_SMP) += stop_machine.o
+ obj-$(CONFIG_KPROBES_SANITY_TEST) += test_kprobes.o
+diff --git a/kernel/dataset_namespace.c b/kernel/dataset_namespace.c
+new file mode 100644
+index 0000000..b2102c6
+--- /dev/null
++++ b/kernel/dataset_namespace.c
+@@ -0,0 +1,203 @@
++/*
++ * Copyright 2015 OmniTI Computer Consulting, Inc. All rights reserved.
++ */
++#include <linux/list.h>
++#include <linux/slab.h>
++#include <linux/nsproxy.h>
++#include <linux/proc_ns.h>
++#include <linux/user_namespace.h>
++#include <linux/dataset_namespace.h>
++
++static LIST_HEAD(dataset_operations_list);
++DEFINE_MUTEX(datasetns_mutex);
++
++LIST_HEAD(dataset_namespace_list);
++EXPORT_SYMBOL(dataset_namespace_list);
++
++struct dataset_namespace init_dataset_ns = {
++	.kref = {
++		.refcount	= ATOMIC_INIT(2),
++	},
++	.user_ns = &init_user_ns,
++	.ns.inum = PROC_DATASET_INIT_INO,
++#ifdef CONFIG_DATASET_NS
++	.ns.ops = &datasetns_operations,
++#endif
++};
++EXPORT_SYMBOL(init_dataset_ns);
++
++static int __init dataset_ns_init(void)
++{
++	mutex_lock(&datasetns_mutex);
++	list_add_tail(&init_dataset_ns.list, &dataset_namespace_list);
++	mutex_unlock(&datasetns_mutex);
++
++	return 0;
++}
++__initcall(dataset_ns_init);
++
++static struct dataset_namespace *create_dataset_ns(void)
++{
++	struct dataset_namespace *dsns;
++
++	dsns = kmalloc(sizeof(struct dataset_namespace), GFP_KERNEL);
++	if (dsns != NULL)
++		kref_init(&dsns->kref);
++
++	return dsns;
++}
++
++static struct dataset_namespace *clone_dataset_ns(struct user_namespace *user_ns,
++					  struct dataset_namespace *old_ns)
++{
++	struct dataset_namespace *dsns;
++	int err;
++
++	dsns = create_dataset_ns();
++	if (dsns == NULL)
++		return ERR_PTR(-ENOMEM);
++
++	err = ns_alloc_inum(&dsns->ns);
++	if (err != 0) {
++		kfree(dsns);
++		return ERR_PTR(err);
++	}
++
++	dsns->ns.ops = &datasetns_operations;
++	dsns->user_ns = get_user_ns(user_ns);
++
++	return dsns;
++}
++
++struct dataset_namespace *copy_dataset_ns(unsigned long flags,
++	struct user_namespace *user_ns, struct dataset_namespace *old_ns)
++{
++	struct dataset_namespace *new_ns;
++
++	get_dataset_ns(old_ns);
++
++	if (!(flags & CLONE_NEWDATASET))
++		return old_ns;
++
++	mutex_lock(&datasetns_mutex);
++	new_ns = clone_dataset_ns(user_ns, old_ns);
++	if (!IS_ERR(new_ns))
++		list_add_tail(&new_ns->list, &dataset_namespace_list);
++	mutex_unlock(&datasetns_mutex);
++	put_dataset_ns(old_ns);
++
++	return new_ns;
++}
++
++void free_dataset_ns(struct kref *kref)
++{
++	struct dataset_namespace *dsns;
++	struct dataset_operations *ops;
++
++	dsns = container_of(kref, struct dataset_namespace, kref);
++	mutex_lock(&datasetns_mutex);
++	list_del(&dsns->list);
++	list_for_each_entry(ops, &dataset_operations_list, list)
++	    ops->exit(dsns);
++	mutex_unlock(&datasetns_mutex);
++	put_user_ns(dsns->user_ns);
++	ns_free_inum(&dsns->ns);
++	kfree(dsns);
++}
++
++static int register_dataset_operations(struct dataset_operations *ops)
++{
++	struct dataset_namespace *dsns;
++	int error;
++
++	list_add_tail(&ops->list, &dataset_operations_list);
++	list_for_each_entry(dsns, &dataset_namespace_list, list) {
++	    error = ops->init(dsns);
++	    if (error < 0)
++		    goto out_undo;
++	}
++out:
++	return error;
++out_undo:
++	list_for_each_entry_continue_reverse(dsns, &dataset_namespace_list, list)
++		ops->exit(dsns);
++	goto out;
++}
++
++static void unregister_dataset_operations(struct dataset_operations *ops)
++{
++	struct dataset_namespace *dsns;
++
++	list_for_each_entry(dsns, &dataset_namespace_list, list)
++		ops->exit(dsns);
++	list_del(&ops->list);
++}
++
++int register_dataset_provider(struct dataset_operations *ops)
++{
++	int error = 0;
++
++	mutex_lock(&datasetns_mutex);
++	error = register_dataset_operations(ops);
++	mutex_unlock(&datasetns_mutex);
++
++	return error;
++}
++EXPORT_SYMBOL(register_dataset_provider);
++
++void unregister_dataset_provider(struct dataset_operations *ops)
++{
++	mutex_lock(&datasetns_mutex);
++	unregister_dataset_operations(ops);
++	mutex_unlock(&datasetns_mutex);
++}
++EXPORT_SYMBOL(unregister_dataset_provider);
++
++static inline struct dataset_namespace *to_dataset_ns(struct ns_common *ns)
++{
++	return container_of(ns, struct dataset_namespace, ns);
++}
++
++static struct ns_common *datasetns_get(struct task_struct *task)
++{
++	struct dataset_namespace *dsns = NULL;
++	struct nsproxy *nsproxy;
++
++	task_lock(task);
++	nsproxy = task->nsproxy;
++	if (nsproxy != NULL) {
++		dsns = nsproxy->dataset_ns;
++		get_dataset_ns(dsns);
++	}
++	task_unlock(task);
++
++	return &dsns->ns;
++}
++
++static void datasetns_put(struct ns_common *ns)
++{
++	put_dataset_ns(to_dataset_ns(ns));
++}
++
++static int datasetns_install(struct nsproxy *nsproxy, struct ns_common *ns)
++{
++	struct dataset_namespace *dsns = to_dataset_ns(ns);
++
++	if (!ns_capable(dsns->user_ns, CAP_SYS_ADMIN) ||
++	    !ns_capable(current_user_ns(), CAP_SYS_ADMIN))
++		return -EPERM;
++
++	get_dataset_ns(dsns);
++	put_dataset_ns(nsproxy->dataset_ns);
++	nsproxy->dataset_ns = dsns;
++
++	return 0;
++}
++
++const struct proc_ns_operations datasetns_operations = {
++	.name		= "dataset",
++	.type		= CLONE_NEWDATASET,
++	.get		= datasetns_get,
++	.put		= datasetns_put,
++	.install	= datasetns_install,
++};
+diff --git a/kernel/nsproxy.c b/kernel/nsproxy.c
+index 49746c8..5594ac0 100644
+--- a/kernel/nsproxy.c
++++ b/kernel/nsproxy.c
+@@ -22,6 +22,7 @@
+ #include <linux/pid_namespace.h>
+ #include <net/net_namespace.h>
+ #include <linux/ipc_namespace.h>
++#include <linux/dataset_namespace.h>
+ #include <linux/proc_ns.h>
+ #include <linux/file.h>
+ #include <linux/syscalls.h>
+@@ -39,6 +40,7 @@ struct nsproxy init_nsproxy = {
+ #ifdef CONFIG_NET
+ 	.net_ns			= &init_net,
+ #endif
++	.dataset_ns		= &init_dataset_ns,
+ };
+ 
+ static inline struct nsproxy *create_nsproxy(void)
+@@ -98,8 +100,17 @@ static struct nsproxy *create_new_namespaces(unsigned long flags,
+ 		goto out_net;
+ 	}
+ 
++	new_nsp->dataset_ns = copy_dataset_ns(flags, user_ns, tsk->nsproxy->dataset_ns);
++	if (IS_ERR(new_nsp->dataset_ns)) {
++		err = PTR_ERR(new_nsp->dataset_ns);
++		goto out_dataset;
++	}
++
+ 	return new_nsp;
+ 
++out_dataset:
++	if (new_nsp->net_ns)
++		put_net(new_nsp->net_ns);
+ out_net:
+ 	if (new_nsp->pid_ns_for_children)
+ 		put_pid_ns(new_nsp->pid_ns_for_children);
+@@ -128,7 +139,8 @@ int copy_namespaces(unsigned long flags, struct task_struct *tsk)
+ 	struct nsproxy *new_ns;
+ 
+ 	if (likely(!(flags & (CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC |
+-			      CLONE_NEWPID | CLONE_NEWNET)))) {
++			      CLONE_NEWPID | CLONE_NEWNET |
++			      CLONE_NEWDATASET)))) {
+ 		get_nsproxy(old_ns);
+ 		return 0;
+ 	}
+@@ -165,7 +177,10 @@ void free_nsproxy(struct nsproxy *ns)
+ 		put_ipc_ns(ns->ipc_ns);
+ 	if (ns->pid_ns_for_children)
+ 		put_pid_ns(ns->pid_ns_for_children);
+-	put_net(ns->net_ns);
++	if (ns->net_ns)
++		put_net(ns->net_ns);
++	if (ns->dataset_ns)
++		put_dataset_ns(ns->dataset_ns);
+ 	kmem_cache_free(nsproxy_cachep, ns);
+ }
+ 
+@@ -180,7 +195,8 @@ int unshare_nsproxy_namespaces(unsigned long unshare_flags,
+ 	int err = 0;
+ 
+ 	if (!(unshare_flags & (CLONE_NEWNS | CLONE_NEWUTS | CLONE_NEWIPC |
+-			       CLONE_NEWNET | CLONE_NEWPID)))
++			       CLONE_NEWNET | CLONE_NEWPID |
++			       CLONE_NEWDATASET)))
+ 		return 0;
+ 
+ 	user_ns = new_cred ? new_cred->user_ns : current_user_ns();
