@@ -22,7 +22,7 @@ define SDK_GCC_BUILD_CMDS
 	--enable-threads=posix \
 	--enable-__cxa_atexit \
 	--enable-clocale=gnu \
-	--enable-languages=c,c++,go \
+	--enable-languages=c,c++ \
 	--with-gxx-include-dir=/usr/include/c++/$(SDK_GCC_VERSION) && \
 	make CC="$(TARGET_CC)" LD="$(TARGET_LD)"
 endef
