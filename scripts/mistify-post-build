@@ -213,11 +213,21 @@ if [ "$2" == "SDK" ]; then
     # And for python build so is libcrypt.so.
     #-
     cp $STAGING_DIR/lib/libcrypt.so.* $TARGET_DIR/lib
-    ln -sf ../../lib/libcrypt.so.1 $TARGET_DIR/usr/lib/libcrypt.so
+    ln -sf libcrypt.so.1 $TARGET_DIR/usr/lib/libcrypt.so
     #+
     # Then for host-glib libresolv.so.
     #-
-    ln -sf ../../lib/libresolv.so.2 $TARGET_DIR/usr/lib/libresolv.so
+    ln -sf libresolv.so.2 $TARGET_DIR/usr/lib/libresolv.so
+    #+
+    # If libmvec exists in staging then add it to the target.
+    #-
+    lmv=`ls $STAGING_DIR/lib/libmvec-*.so 2>/dev/null`
+    if [ -n "$lmv" ]; then
+        echo Creating symlinks for $lmv
+        cp $STAGING_DIR/lib/libmvec-*.so $TARGET_DIR/lib
+        ln -sf $(basename $lmv) $TARGET_DIR/lib/libmvec.so.1
+        ln -sf libmvec.so.1 $TARGET_DIR/lib/libmvec.so
+    fi
     #+
     # Some host packages want cc instead of gcc. Under ubuntu this
     # is a trail of symlinks thru /etc/alternatives/cc
@@ -248,4 +258,3 @@ if [ "$2" == "SDK" ]; then
     rm $TARGET_DIR/usr/lib32
     ln -s lib/32 $TARGET_DIR/usr/lib32
 fi
-
