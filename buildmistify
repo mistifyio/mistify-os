@@ -61,6 +61,13 @@ Usage: ./buildmistify [options] [target]
         rebuild of the toolchain. NOTE: Resetting the toolchain will force a
         complete build.
         [toolchainreset=$toolchainreset]
+    --toolchainbuild
+        Force a build of the toolchain rather than use a prebuilt toolchain.
+        Normally the toolchain is unpacked from a tar file in the download
+        directory. This option ignores the tar file and instead builds a new
+        toolchain. NOTE: This will cause the tar file in the download directory
+        to be replaced.
+        [toolchainbuild=$toolchainbuild]
     ==== go ====
     --godir <dir>
         Where the GO source code is cloned to before building. This is saved in
@@ -220,6 +227,7 @@ toolchaininstallprefix:,\
 toolchainversion:,\
 tcartifacturi:,\
 toolchainreset,\
+toolchainbuild,\
 gouri:,\
 godir:,\
 gotag:,\
@@ -287,6 +295,9 @@ while [ $# -ge 1 ]; do
         ;;
     --toolchainreset)
         toolchainreset=y
+        ;;
+    --toolchainbuild)
+        toolchainbuild=y
         ;;
     --gouri)
         gouri=$2
@@ -434,6 +445,11 @@ if [ -n "$toolchainreset" ]; then
     # Because buildroot and go can be affected when using a different toolchain
     # they need to be reset as well.
     #-
+    buildrootreset=y
+    goreset=y
+fi
+
+if [ -n "$toolchainbuild" ]; then
     buildrootreset=y
     goreset=y
 fi

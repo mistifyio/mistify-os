@@ -38,7 +38,7 @@ download-toolchain-artifact () {
         wget -nc $toolchainartifact_url -O $downloaddir/$toolchain_tar_file
 
         if [ $? -gt 1 ]; then
-            die "Toolchain artifact download failed."
+            warning "Toolchain artifact download failed -- rebuilding."
         fi
     else
         message "Using existing tar file $downloaddir/$toolchain_tar_file."
@@ -60,12 +60,6 @@ extract-toolchain-artifact() {
     if [ ! -d $toolchain_install_dir ]; then
         die "Toolchain tar file not formatted correctly."
     fi
-}
-
-install-toolchain-from-artifact(){
-    download-toolchain-artifact
-    extract-toolchain-artifact
-    return 0
 }
 
 run-make()
@@ -122,9 +116,11 @@ run-toolchain-make () {
 install-toolchain-script () {
     tcc=$toolchain_variation_dir/.config
 
-    if [ -n "$toolchainreset" ]; then
+    if [ -n "$toolchainreset" ] || [ -n "$toolchainbuild" ]; then
         warning Removing existing toolchain build artifacts and rebuilding.
         run-toolchain-make distclean
+    else
+        download-toolchain-artifact
     fi
 
     if [[ "$target" == "toolchain-menuconfig" ]]; then
@@ -175,7 +171,7 @@ install-toolchain-script () {
 
     if [ -f $downloaddir/$toolchain_tar_file ]; then
         message "Installing prebuilt toolchain."
-        install-toolchain-from-artifact
+        extract-toolchain-artifact
     else
         run-toolchain-make
     fi
@@ -190,9 +186,6 @@ install-toolchain () {
 
     mkdir -p $toolchaindir
 
-    if [ -n "$useartifacts" ]; then
-        download-toolchain-artifact
-    fi
     install-toolchain-script
     return $?
 }
