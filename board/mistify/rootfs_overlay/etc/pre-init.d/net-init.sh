@@ -1,33 +1,55 @@
 #!/bin/bash
 
-MISTIFY_IFSTATE=/tmp/.ifstate
-MISTIFY_CONFIG=/tmp/mistify-config
-MISTIFY_MAC=/etc/sysconfig/ovsbridge
+CERANA_IFSTATE=/tmp/.ifstate
+CERANA_CONFIG=/tmp/mistify-config
+CERANA_MAC=/etc/sysconfig/ovsbridge
 PROC_CMDLINE=/proc/cmdline
 ETHER_DEVS=(`ls /sys/class/net | egrep -v '^lo$'`)
 
-MISTIFY_KOPT_IP=""
-MISTIFY_KOPT_GW=""
-MISTIFY_KOPT_IFACE=""
+CERANA_KOPT_PREFIX="cerana"
 
-# Parse the kernel boot arguments and look for any mistify.* arguments and
+CERANA_KOPT_ZFS_CONFIG=""
+CERANA_KOPT_CLUSTER_IPS=""
+CERANA_KOPT_CLUSTER_BOOTSTRAP=""
+CERANA_KOPT_CLUSTER_RESCUE=""
+CERANA_KOPT_MGMT_MAC=""
+CERANA_KOPT_MGMT_IP=""
+CERANA_KOPT_MGMT_GW=""
+CERANA_KOPT_MGMT_IFACE=""
+
+# Parse the kernel boot arguments and look for our arguments and
 # pick out their values.
 function parse_boot_args() {
     local cmdline=$(cat $PROC_CMDLINE)
-    grep -q 'mistify.debug/test/not-for-prod' <<<$cmdline || return
+    grep -q $CERANA_KOPT_PREFIX <<<$cmdline || return
 
     for kopt in $cmdline; do
         k=`echo $kopt | awk -F= '{print $1}'`
         v=`echo $kopt | awk -F= '{print $2}'`
         case $k in
-            'mistify.debug/test/not-for-prod.ip')
-                MISTIFY_KOPT_IP="$v"
+            $CERANA_KOPT_PREFIX.zfs_config)
+                CERANA_KOPT_ZFS_CONFIG="$v"
                 ;;
-            'mistify.debug/test/not-for-prod.gw')
-                MISTIFY_KOPT_GW="$v"
+            $CERANA_KOPT_PREFIX.cluster_ips)
+                CERANA_KOPT_CLUSTER_IPS="$v"
                 ;;
-            'mistify.debug/test/not-for-prod.iface')
-                MISTIFY_KOPT_IFACE="$v"
+            $CERANA_KOPT_PREFIX.cluster_bootstrap)
+                CERANA_KOPT_CLUSTER_BOOTSTRAP="$v"
+                ;;
+            $CERANA_KOPT_PREFIX.cluster_rescue)
+                CERANA_KOPT_CLUSTER_RESCUE="$v"
+                ;;
+            $CERANA_KOPT_PREFIX.mgmt_mac)
+                CERANA_KOPT_MGMT_MAC="$v"
+                ;;
+            $CERANA_KOPT_PREFIX.mgmt_ip)
+                CERANA_KOPT_MGMT_IP="$v"
+                ;;
+            $CERANA_KOPT_PREFIX.mgmt_gw)
+                CERANA_KOPT_MGMT_GW="$v"
+                ;;
+            $CERANA_KOPT_PREFIX.mgmt_iface)
+                CERANA_KOPT_MGMT_IFACE="$v"
                 ;;
         esac
     done
@@ -36,23 +58,23 @@ function parse_boot_args() {
 # Act on any IP address being passed to us via kernel boot arguments.
 # By default, configure the first enummerated interface on the system with it.
 function configure_net_manual() {
-    if [ -n "$MISTIFY_KOPT_IFACE" ]; then
-        local iface="$MISTIFY_KOPT_IFACE"
+    if [ -n "$CERANA_KOPT_MGMT_IFACE" ]; then
+        local iface="$CERANA_KOPT_MGMT_IFACE"
     else
         local iface="${ETHER_DEVS[0]}"
     fi
 
-    echo "Manually configuring $iface with $MISTIFY_KOPT_IP..."
+    echo "Manually configuring $iface with $CERANA_KOPT_MGMT_IP..."
     /sbin/ip link set $iface up
-    /sbin/ip addr add $MISTIFY_KOPT_IP dev $iface
-    echo "IFTYPE=MANUAL" >> $MISTIFY_IFSTATE
-    echo "IFACE=$iface" >> $MISTIFY_IFSTATE
-    echo "IP=$MISTIFY_KOPT_IP" >> $MISTIFY_IFSTATE
+    /sbin/ip addr add $CERANA_KOPT_MGMT_IP dev $iface
+    echo "IFTYPE=MANUAL" >> $CERANA_IFSTATE
+    echo "IFACE=$iface" >> $CERANA_IFSTATE
+    echo "IP=$CERANA_KOPT_MGMT_IP" >> $CERANA_IFSTATE
 
-    if [ -n "$MISTIFY_KOPT_GW" ]; then
-        echo "Manually adding $MISTIFY_KOPT_GW as default route"
-        /sbin/ip route add default via $MISTIFY_KOPT_GW
-        echo "GW=$MISTIFY_KOPT_GW" >> $MISTIFY_IFSTATE
+    if [ -n "$CERANA_KOPT_MGMT_GW" ]; then
+        echo "Manually adding $CERANA_KOPT_GW as default route"
+        /sbin/ip route add default via $CERANA_KOPT_MGMT_GW
+        echo "GW=$CERANA_KOPT_MGMT_GW" >> $CERANA_IFSTATE
     fi
 
     save_mac_for_bridge $iface
@@ -63,14 +85,14 @@ function configure_net_manual() {
 function configure_net_dhcp() {
     set -x
     echo "Probing for DHCP"
-    /sbin/dhclient -v -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE -1 ${ETHER_DEVS[*]} &&
-        echo "IFTYPE=DHCP" >> $MISTIFY_IFSTATE
+    /sbin/dhclient -v -e CERANA_IFSTATE=$CERANA_IFSTATE -1 ${ETHER_DEVS[*]} &&
+        echo "IFTYPE=DHCP" >> $CERANA_IFSTATE
 }
 
 # Unconfigure and otherwise clean up any interfaces we may have configured
 function unconfigure_net_iface() {
-    if [ -f $MISTIFY_IFSTATE ]; then
-        . $MISTIFY_IFSTATE
+    if [ -f $CERANA_IFSTATE ]; then
+        . $CERANA_IFSTATE
     else
         return 1
     fi
@@ -80,7 +102,7 @@ function unconfigure_net_iface() {
     fi
 
     echo "Releasing DHCP lease on $IFACE..."
-    /sbin/dhclient -v -e MISTIFY_IFSTATE=$MISTIFY_IFSTATE -r ${ETHER_DEVS[*]}
+    /sbin/dhclient -v -e CERANA_IFSTATE=$CERANA_IFSTATE -r ${ETHER_DEVS[*]}
     /sbin/ip addr del $IP dev $IFACE
     /sbin/ip link set $IFACE up
 
@@ -89,14 +111,14 @@ function unconfigure_net_iface() {
 
 function save_mac_for_bridge() {
     local mac=$(cat /sys/class/net/$1/address)
-    ! grep -sq MACAddress $MISTIFY_MAC &&
-        echo "MACAddress=$mac" >> $MISTIFY_MAC &&
+    ! grep -sq MACAddress $CERANA_MAC &&
+        echo "MACAddress=$mac" >> $CERANA_MAC &&
         echo "Saving MAC address for bridge $mac"
 }
 
 function get_mistify_config() {
-    if [ -f $MISTIFY_IFSTATE ]; then
-        . $MISTIFY_IFSTATE
+    if [ -f $CERANA_IFSTATE ]; then
+        . $CERANA_IFSTATE
     else
         return 1
     fi
@@ -121,7 +143,7 @@ function get_mistify_config() {
     local addr=$(echo $resp | awk '/\sA\s/ {print $NF}')
     local port=$(echo $resp | awk '/\sSRV\s/ {print $7}')
     local ip=${IP%%/*}
-    curl http://$addr:$port/config/$ip > $MISTIFY_CONFIG
+    curl http://$addr:$port/config/$ip > $CERANA_CONFIG
 
     if [ $? -ne 0 ]; then
         echo "FATAL: Could not get Mistify configuration for $ip!"
@@ -135,11 +157,11 @@ function get_mistify_config() {
 case "$1" in
     'start')
         # Initialize our own interface state file
-        cp /dev/null $MISTIFY_IFSTATE
+        cp /dev/null $CERANA_IFSTATE
 
         parse_boot_args
 
-        if [ -n "$MISTIFY_KOPT_IP" ]; then
+        if [ -n "$CERANA_KOPT_MGMT_IP" ]; then
             configure_net_manual
         else
             configure_net_dhcp
