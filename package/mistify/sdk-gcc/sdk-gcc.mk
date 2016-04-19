@@ -4,7 +4,7 @@
 #
 #############################################################
 
-SDK_GCC_VERSION = 5.3.0
+SDK_GCC_VERSION = 4.9.3
 SDK_GCC_SITE = $(BR2_GNU_MIRROR)/gcc/releases/gcc-$(SDK_GCC_VERSION)
 SDK_GCC_SOURCE = gcc-$(SDK_GCC_VERSION).tar.bz2
 SDK_GCC_LICENSE = GPLv3+
