@@ -8,19 +8,20 @@
 #   http://buildroot.uclibc.org/downloads/manual/manual.html#rootfs-custom
 # TODO: Maybe move the lists to a config file?
 #-
+. $(dirname $0)/mistify-functions.sh
 
 targetdir=$1
 
-echo "Mistify-OS post build script."
-echo "PWD: `pwd`"
-echo "Args: $*"
-echo "BR2_CONFIG: $BR2_CONFIG"
-echo "HOST_DIR: $HOST_DIR"
-echo "STAGING_DIR: $STAGING_DIR"
-echo "TARGET_DIR: $TARGET_DIR"
-echo "BUILD_DIR: $BUILD_DIR"
-echo "BINARIES_DIR: $BINARIES_DIR"
-echo "BASE_DIR: $BASE_DIR"
+message "Mistify-OS post build script."
+message "PWD: `pwd`"
+message "Args: $*"
+message "BR2_CONFIG: $BR2_CONFIG"
+message "HOST_DIR: $HOST_DIR"
+message "STAGING_DIR: $STAGING_DIR"
+message "TARGET_DIR: $TARGET_DIR"
+message "BUILD_DIR: $BUILD_DIR"
+message "BINARIES_DIR: $BINARIES_DIR"
+message "BASE_DIR: $BASE_DIR"
 
 #
 # Install a symlink for /sbin/getty that points to /sbin/agetty.
@@ -65,14 +66,14 @@ rm -f $targetdir/etc/systemd/system/multi-user.target.wants/named.service
 # Replace /etc/os-release with a Mistify-relevant one. Format is documented at
 # http://www.freedesktop.org/software/systemd/man/os-release.html
 #
-echo "Generating /etc/os-release..."
+message "Generating /etc/os-release..."
 mistify_version=`(cd ../.. && git describe --abbrev=0 --tags)`
 mistify_hashid=`(cd ../../ && git rev-parse HEAD)`
 mistify_hashid_short=${mistify_hashid:0:8}
 
-echo "    Mistify Version: $mistify_version"
-echo "    Mistify Hash ID: $mistify_hashid"
-echo "    Mistify Short Hash: $mistify_hashid_short"
+message "    Mistify Version: $mistify_version"
+message "    Mistify Hash ID: $mistify_hashid"
+message "    Mistify Short Hash: $mistify_hashid_short"
 
 cat > $targetdir/etc/os-release <<EOF
 NAME="MistifyOS"
@@ -128,7 +129,8 @@ chmod 1777 $targetdir/var/tmp
 # solution.
 #-
 if [ "$2" == "SDK" ]; then
-    echo "Copying additional files to target fs."
+    message "Generating SDK image."
+    message "Copying additional files to target fs."
     cp $STAGING_DIR/usr/lib/crt*.o $TARGET_DIR/usr/lib
     cp $STAGING_DIR/usr/lib/libc.so $TARGET_DIR/usr/lib
     cp $STAGING_DIR/usr/lib/libc_nonshared.a $TARGET_DIR/usr/lib
@@ -139,7 +141,7 @@ if [ "$2" == "SDK" ]; then
     # options gcc demands.
     #-
     for f in ar ld nm objdump ranlib strip; do
-        echo "Copying $f to usr/bin"
+        message "Copying $f to usr/bin"
         cp $TARGET_DIR/usr/x86_64-buildroot-linux-gnu/bin/$f $TARGET_DIR/usr/bin
     done
     #+
@@ -163,13 +165,13 @@ if [ "$2" == "SDK" ]; then
     # with this a workaround is to have the target install the forks module but
     # that requires the perl headers.
     #-
-    echo STAGING_DIR: $STAGING_DIR
-    echo TARGET_DIR: $TARGET_DIR
+    message STAGING_DIR: $STAGING_DIR
+    message TARGET_DIR: $TARGET_DIR
     s=$STAGING_DIR/usr/lib/perl5
-    d=$TARGET_DIR/usr/lib/perl5
-    echo Source directory: $s
-    echo Destination directory: $d
-    rm -rf $d
+    d=$TARGET_DIR/usr/lib
+    message Source directory: $s
+    message Destination directory: $d
+    rm -rf $d/perl5
     cp -r $s $d
     #+
     # libm needs to be copied. It's not installed in the target for
@@ -201,9 +203,10 @@ if [ "$2" == "SDK" ]; then
     # NOTE: This is another hack. A true install to the target needs to be
     # determined.
     #-
-    cp $STAGING_DIR/usr/lib/*.a $TARGET_DIR/usr/lib
-    cp $STAGING_DIR/lib/*.a $TARGET_DIR/lib
-    cp $BUILD_DIR/sdk-gcc-build/x86_64-unknown-linux-gnu/libgcc/*.a \
+    message Copying static libraries.
+    cp -f $STAGING_DIR/usr/lib/*.a $TARGET_DIR/usr/lib
+    cp -f $STAGING_DIR/lib/*.a $TARGET_DIR/lib
+    cp -f $BUILD_DIR/sdk-gcc-build/x86_64-unknown-linux-gnu/libgcc/*.a \
        $TARGET_DIR/usr/lib
     #+
     # libutil is missing from the target.
@@ -223,7 +226,7 @@ if [ "$2" == "SDK" ]; then
     #-
     lmv=`ls $STAGING_DIR/lib/libmvec-*.so 2>/dev/null`
     if [ -n "$lmv" ]; then
-        echo Creating symlinks for $lmv
+        message Creating symlinks for $lmv
         cp $STAGING_DIR/lib/libmvec-*.so $TARGET_DIR/lib
         ln -sf $(basename $lmv) $TARGET_DIR/lib/libmvec.so.1
         ln -sf libmvec.so.1 $TARGET_DIR/lib/libmvec.so
@@ -246,15 +249,11 @@ if [ "$2" == "SDK" ]; then
     # Some parts for 32 bit compiles (needed for grub).
     #-
     if [ -d $TARGET_DIR/usr/lib32 ]; then
-	rm -rf $TARGET_DIR/usr/lib32
+	       rm -rf $TARGET_DIR/usr/lib32
     fi
-    rm -rf $TARGET_DIR/lib/32
-    cp -r $STAGING_DIR/lib/32 $TARGET_DIR/lib
-    rm $TARGET_DIR/lib32
-    ln -s lib/32 $TARGET_DIR/lib32
-    ln -sf libgcc_s.so.1 $TARGET_DIR/lib32/libgcc.so
     rm -rf $TARGET_DIR/usr/lib/32
     cp -r $STAGING_DIR/usr/lib/32 $TARGET_DIR/usr/lib
-    rm $TARGET_DIR/usr/lib32
-    ln -s lib/32 $TARGET_DIR/usr/lib32
+    ln -sf libgcc_s.so.1 $TARGET_DIR/usr/lib/32/libgcc.so
+    ln -sf lib/32 $TARGET_DIR/lib32
+    ln -sf lib/32 $TARGET_DIR/usr/lib32
 fi
