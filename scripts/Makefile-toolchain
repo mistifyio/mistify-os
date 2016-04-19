@@ -72,7 +72,7 @@ $(call message, "toolchain_install_dir = $(toolchain_install_dir)")
 toolchain_target_file = $(toolchain_install_dir)/bin/$(toolchainprefix)-gcc
 
 define run_in_tc_dir
-  cd $(toolchain_variation_dir) && $(1)
+  if [ -d $(toolchain_variation_dir) ]; then cd $(toolchain_variation_dir) && $(1); fi
 endef
 
 .Phony: build clean fullclean dist distclean version tagformat
@@ -146,7 +146,7 @@ dist: $(downloaddir)/$(toolchain_tar_file)
 clean:
 	-rm -rf $(toolchain_install_dir)
 	$(call run_in_tc_dir, \
-	  if [ -f ct-ng ]; then ./ct-ng distclean; fi;)
+	  if [ -f ct-ng ]; then ./ct-ng distclean; fi)
 
 distclean: clean
 	-rm -f $(downloaddir)/$(toolchain_tar_file)
