@@ -31,4 +31,19 @@ PERL_CONF_OPTS += -Dusethreads
 PERL_CONF_OPTS += -Duseithreads
 PERL_CONF_OPTS += -Dmultiplicity
 
+#+
+# Part of the SDK is GCC which in turn requires GMP. GMP has a known bug which
+# has caused problems when running in a container.
+# This is documented here:
+#   https://gmplib.org/list-archives/gmp-bugs/2008-August/001114.html
+# This is fixed here in the post install of the host side m4.
+#-
+define M4_GMP_BUG_WORKAROUND
+	if [ ! -e $(HOST_DIR)/usr/bin/m4-not-needed ]; then \
+	  ln -s m4 $(HOST_DIR)/usr/bin/m4-not-needed; \
+	fi
+endef
+
+HOST_M4_POST_INSTALL_HOOKS += M4_GMP_BUG_WORKAROUND
+
 endif
