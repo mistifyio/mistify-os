@@ -1,7 +1,8 @@
 #!/bin/bash
 
 CERANA_IFSTATE=/tmp/.ifstate
-CERANA_CONFIG=/tmp/mistify-config
+CERANA_CONFIG=/tmp/cerana-config
+CERANA_BOOTCFG=/tmp/cerana-bootcfg
 CERANA_MAC=/etc/sysconfig/ovsbridge
 PROC_CMDLINE=/proc/cmdline
 ETHER_DEVS=(`ls /sys/class/net | egrep -v '^lo$'`)
@@ -11,7 +12,7 @@ CERANA_KOPT_PREFIX="cerana"
 CERANA_KOPT_ZFS_CONFIG=""
 CERANA_KOPT_CLUSTER_IPS=""
 CERANA_KOPT_CLUSTER_BOOTSTRAP=""
-CERANA_KOPT_CLUSTER_RESCUE=""
+CERANA_KOPT_RESCUE=""
 CERANA_KOPT_MGMT_MAC=""
 CERANA_KOPT_MGMT_IP=""
 CERANA_KOPT_MGMT_GW=""
@@ -23,33 +24,47 @@ function parse_boot_args() {
     local cmdline=$(cat $PROC_CMDLINE)
     grep -q $CERANA_KOPT_PREFIX <<<$cmdline || return
 
+    cp /dev/null $CERANA_BOOTCFG
+
     for kopt in $cmdline; do
         k=`echo $kopt | awk -F= '{print $1}'`
         v=`echo $kopt | awk -F= '{print $2}'`
         case $k in
             $CERANA_KOPT_PREFIX.zfs_config)
                 CERANA_KOPT_ZFS_CONFIG="$v"
+		echo "CERANA_KOPT_ZFS_CONFIG=1" >> $CERANA_BOOTCFG
                 ;;
             $CERANA_KOPT_PREFIX.cluster_ips)
                 CERANA_KOPT_CLUSTER_IPS="$v"
+		echo "CERANA_KOPT_CLUSTER_IPS=1" >> $CERANA_BOOTCFG
                 ;;
             $CERANA_KOPT_PREFIX.cluster_bootstrap)
                 CERANA_KOPT_CLUSTER_BOOTSTRAP="$v"
+		echo "CERANA_KOPT_CLUSTER_BOOTSTRAP=1" >> $CERANA_BOOTCFG
                 ;;
-            $CERANA_KOPT_PREFIX.cluster_rescue)
-                CERANA_KOPT_CLUSTER_RESCUE="$v"
+            $CERANA_KOPT_PREFIX.rescue)
+		# No argument expected. If present, just set to 1.
+		echo "CERANA_KOPT_RESCUE=1" >> $CERANA_BOOTCFG
+                ;;
+            $CERANA_KOPT_PREFIX.install)
+		# No argument expected. If present, just set to 1.
+		echo "CERANA_KOPT_INSTALL=1" >> $CERANA_BOOTCFG
                 ;;
             $CERANA_KOPT_PREFIX.mgmt_mac)
                 CERANA_KOPT_MGMT_MAC="$v"
+		echo "CERANA_KOPT_MGMT_MAC=$v" >> $CERANA_BOOTCFG
                 ;;
             $CERANA_KOPT_PREFIX.mgmt_ip)
                 CERANA_KOPT_MGMT_IP="$v"
+		echo "CERANA_KOPT_MGMT_IP=$v" >> $CERANA_BOOTCFG
                 ;;
             $CERANA_KOPT_PREFIX.mgmt_gw)
                 CERANA_KOPT_MGMT_GW="$v"
+		echo "CERANA_KOPT_MGMT_GW=$v" >> $CERANA_BOOTCFG
                 ;;
             $CERANA_KOPT_PREFIX.mgmt_iface)
                 CERANA_KOPT_MGMT_IFACE="$v"
+		echo "CERANA_KOPT_MGMT_IFACE=$v" >> $CERANA_BOOTCFG
                 ;;
         esac
     done
@@ -72,7 +87,7 @@ function configure_net_manual() {
     echo "IP=$CERANA_KOPT_MGMT_IP" >> $CERANA_IFSTATE
 
     if [ -n "$CERANA_KOPT_MGMT_GW" ]; then
-        echo "Manually adding $CERANA_KOPT_GW as default route"
+        echo "Manually adding $CERANA_KOPT_MGMT_GW as default route"
         /sbin/ip route add default via $CERANA_KOPT_MGMT_GW
         echo "GW=$CERANA_KOPT_MGMT_GW" >> $CERANA_IFSTATE
     fi
@@ -111,12 +126,12 @@ function unconfigure_net_iface() {
 
 function save_mac_for_bridge() {
     local mac=$(cat /sys/class/net/$1/address)
-    ! grep -sq MACAddress $CERANA_MAC &&
-        echo "MACAddress=$mac" >> $CERANA_MAC &&
+    ! grep -sq MACAddress $CERANA__KOPT_MGMT_MAC &&
+        echo "MACAddress=$mac" >> $CERANA_KOPT_MGMT__MAC &&
         echo "Saving MAC address for bridge $mac"
 }
 
-function get_mistify_config() {
+function get_cerana_config() {
     if [ -f $CERANA_IFSTATE ]; then
         . $CERANA_IFSTATE
     else
@@ -146,7 +161,7 @@ function get_mistify_config() {
     curl http://$addr:$port/config/$ip > $CERANA_CONFIG
 
     if [ $? -ne 0 ]; then
-        echo "FATAL: Could not get Mistify configuration for $ip!"
+        echo "FATAL: Could not get Cerana configuration for $ip!"
         return 1
     fi
 }
@@ -161,11 +176,18 @@ case "$1" in
 
         parse_boot_args
 
+	# Test if the cerana.install option was specified. Start install
+	# script to quiz the user for basic IP information
+	if [ $CERANA_KOPT_INSTALL ]; then
+		/etc/pre-init.d/install.sh
+		break
+	fi
+
         if [ -n "$CERANA_KOPT_MGMT_IP" ]; then
             configure_net_manual
         else
             configure_net_dhcp
-            get_mistify_config
+            get_cerana_config
         fi
         ;;
     'stop')

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+CERANA_BOOTCFG=/tmp/cerana_bootcfg
+
 . init_logging
 
 /bin/mount -t devtmpfs devtmpfs /dev
@@ -26,11 +28,24 @@ start_logging
 
 /etc/pre-init.d/net-init.sh start
 
-# Turn off logging
-stop_logging
-/etc/pre-init.d/init-zpools.sh
-# Turn on logging
-start_logging
+# Source the boot configuration that was generated with net-init.sh
+if [ -f $CERANA_BOOTCFG ]; then
+	. $CERANA_BOOTCFG
+fi
+
+# Check for rescue mode, and drop to a shell prompt if so. This is to give
+# the user the opportunity to fix a zpool or other things early in the boot process.
+if [ -n "$CERANA_RESCUE" ]; then
+	echo "Entering RESCUE MODE..."
+	/bin/bash
+	reboot
+else
+	# Turn off logging
+	stop_logging
+	/etc/pre-init.d/init-zpools.sh
+	# Turn on logging
+	start_logging
+fi
 
 /etc/pre-init.d/mount-aufs.sh
 
